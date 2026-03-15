@@ -22,6 +22,7 @@ import {
 import { CodeBlockRuntime } from '@theme';
 import { transformerAddLineNumbers } from '@rspress/core/shiki-transformers';
 import type { GoConfig } from '../config';
+import { DEFAULT_I18N } from '../config';
 
 /**
  * CodeBlock wrapper that delegates to rspress's CodeBlockRuntime
@@ -64,7 +65,16 @@ export const rspressAdapter: Pick<
   'withBase' | 'useI18n' | 'useLang' | 'useDark' | 'NoSSR' | 'CodeBlock'
 > = {
   withBase,
-  useI18n: () => useI18n(),
+  useI18n: () => {
+    const t = useI18n();
+    return (key: string) => {
+      try {
+        return t(key);
+      } catch {
+        return DEFAULT_I18N[key] || key;
+      }
+    };
+  },
   useLang: () => useLang(),
   useDark: () => useDark(),
   NoSSR,
