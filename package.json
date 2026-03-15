@@ -1,8 +1,12 @@
 {
-  "name": "@lynx-js/go-web",
+  "name": "@aspect-build/go-web",
   "version": "0.1.0",
   "description": "Interactive Go component for Lynx documentation sites",
   "type": "module",
+  "scripts": {
+    "dev": "cd example && pnpm install && pnpm dev",
+    "typecheck": "tsc --noEmit"
+  },
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {
@@ -12,6 +16,11 @@
   "files": [
     "src"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lynx-community/go-web.git"
+  },
+  "license": "Apache-2.0",
   "peerDependencies": {
     "@douyinfe/semi-icons": ">=2.74.0",
     "@douyinfe/semi-ui": ">=2.75.0",
@@ -29,5 +38,22 @@
     "@rspress/core": {
       "optional": true
     }
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/react-copy-to-clipboard": "^5.0.7",
+    "typescript": "^5.7.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@douyinfe/semi-icons": "^2.74.0",
+    "@douyinfe/semi-ui": "^2.75.0",
+    "@lynx-js/web-core": "npm:@lynx-js/web-core-canary@0.19.7-canary-20260126-5e7e43c5",
+    "@lynx-js/web-elements": "^0.11.0",
+    "@shikijs/transformers": "^3.4.2",
+    "qrcode.react": "^4.2.0",
+    "react-copy-to-clipboard": "^5.1.0",
+    "swr": "^2.2.5",
+    "vscode-icons-js": "^11.6.1"
   }
 }
