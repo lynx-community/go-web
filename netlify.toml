@@ -1,0 +1,7 @@
+[build]
+  base = "example"
+  command = "cd .. && pnpm install --no-frozen-lockfile && cd example && pnpm install --no-frozen-lockfile && pnpm build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
