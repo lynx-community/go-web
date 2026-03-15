@@ -1,5 +1,5 @@
 [build]
-  command = "corepack enable && pnpm install --no-frozen-lockfile && cd example && pnpm install --no-frozen-lockfile && pnpm build"
+  command = "npm install -g pnpm && pnpm install --no-frozen-lockfile && cd example && pnpm install --no-frozen-lockfile && pnpm build"
   publish = "example/dist"
 
 [build.environment]
