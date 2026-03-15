@@ -49,4 +49,5 @@ jobs:
         with:
           node-version: 20
 
+      - run: pnpm install --no-frozen-lockfile
       - run: cd example-rspress && pnpm install --no-frozen-lockfile && pnpm build

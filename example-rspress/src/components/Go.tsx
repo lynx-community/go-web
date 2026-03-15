@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Go as GoBase,
   GoConfigProvider,
@@ -15,7 +15,16 @@ const config = {
   ...adapter,
 };
 
+/** Sync rspress dark mode → Semi UI body attribute */
+function useSemiDarkMode() {
+  const dark = adapter.useDark!();
+  useEffect(() => {
+    document.body.setAttribute('theme-mode', dark ? 'dark' : 'light');
+  }, [dark]);
+}
+
 export function Go(props: GoProps) {
+  useSemiDarkMode();
   return (
     <GoConfigProvider config={config}>
       <GoBase {...props} />
