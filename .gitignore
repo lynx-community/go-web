@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.DS_Store
+*.tsbuildinfo
+example/dist/
+example/node_modules/
+example/public/lynx-examples/
+example-rspress/node_modules/
+example-rspress/doc_build/
