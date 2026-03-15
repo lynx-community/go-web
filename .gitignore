@@ -2,6 +2,7 @@ node_modules/
 dist/
 .DS_Store
 *.tsbuildinfo
+pnpm-lock.yaml
 example/dist/
 example/node_modules/
 example/public/lynx-examples/
