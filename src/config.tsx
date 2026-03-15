@@ -83,6 +83,8 @@ export interface GoConfig {
   SSGComponent?: React.ComponentType<ExamplePreviewProps>;
   /** Custom loading overlay component */
   LoadingComponent?: React.ComponentType<{ visible: boolean }>;
+  /** Absolute disk path to examples directory, for built-in SSG component */
+  ssgExampleRoot?: string;
 
   // --- Framework adapter ---
 

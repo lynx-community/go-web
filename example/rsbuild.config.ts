@@ -3,6 +3,7 @@ import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSass } from '@rsbuild/plugin-sass';
 import path from 'node:path';
 import fs from 'node:fs';
+import { generateSSGHTML } from '../src/ssg';
 
 // Discover examples from public/lynx-examples/ (populated by `pnpm prepare`
 // which processes @lynx-example/* npm packages).
@@ -13,6 +14,20 @@ const exampleNames = fs.existsSync(examplesDir)
       .filter((name) => fs.statSync(path.join(examplesDir, name)).isDirectory())
       .sort()
   : ['hello-world'];
+
+// Generate SSG previews for each example at build time
+const ssgPreviews: Record<string, string> = {};
+for (const name of exampleNames) {
+  try {
+    ssgPreviews[name] = generateSSGHTML({
+      exampleRoot: examplesDir,
+      example: name,
+      defaultFile: 'src/App.tsx',
+    });
+  } catch {
+    // skip examples that can't be pre-rendered
+  }
+}
 
 export default defineConfig({
   plugins: [pluginReact(), pluginSass()],
@@ -28,6 +43,8 @@ export default defineConfig({
     define: {
       // Inject the example list as a build-time constant
       'import.meta.env.EXAMPLES': JSON.stringify(exampleNames),
+      // Inject SSG previews as a build-time constant
+      'import.meta.env.SSG_PREVIEWS': JSON.stringify(ssgPreviews),
     },
   },
 

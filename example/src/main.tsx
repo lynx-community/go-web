@@ -123,13 +123,18 @@ const StandaloneCodeBlock = ({
   );
 };
 
-// Build-time injected list of available examples
+// Build-time injected list of available examples and SSG previews
 declare global {
   interface ImportMeta {
-    env: { EXAMPLES: string[] };
+    env: {
+      EXAMPLES: string[];
+      SSG_PREVIEWS: Record<string, string>;
+    };
   }
 }
 const EXAMPLES: string[] = import.meta.env.EXAMPLES ?? ['hello-world'];
+const SSG_PREVIEWS: Record<string, string> =
+  import.meta.env.SSG_PREVIEWS ?? {};
 
 // ---------------------------------------------------------------------------
 // URL State Persistence
@@ -435,6 +440,7 @@ function App() {
   const [img, setImg] = useState('');
   const [schema, setSchema] = useState('');
   const [propsOpen, setPropsOpen] = useState(true);
+  const [ssgOpen, setSsgOpen] = useState(false);
   const [jsxDialogOpen, setJsxDialogOpen] = useState(false);
   const [jsxCopied, setJsxCopied] = useState(false);
   const jsxPreRef = useRef<HTMLPreElement>(null);
@@ -1022,6 +1028,63 @@ function App() {
           </GoConfigProvider>
         </PreviewErrorBoundary>
       </main>
+
+      {/* ── SSG Preview panel ── */}
+      {SSG_PREVIEWS[example] && (
+        <div
+          style={{
+            marginTop: 20,
+            borderRadius: 10,
+            background: 'var(--sb-surface)',
+            border: '1px solid var(--sb-border)',
+            overflow: 'hidden',
+            fontSize: 13,
+            fontFamily: 'var(--sb-font-mono)',
+          }}
+        >
+          <button
+            onClick={() => setSsgOpen((v) => !v)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              width: '100%',
+              padding: '10px 16px',
+              border: 'none',
+              background: 'transparent',
+              color: 'inherit',
+              fontSize: 13,
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
+          >
+            <span
+              style={{
+                display: 'inline-block',
+                transition: 'transform 0.15s',
+                transform: ssgOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+              }}
+            >
+              &#9654;
+            </span>
+            <span style={{ fontWeight: 600 }}>SSG Preview</span>
+            <span style={{ color: 'var(--sb-text-dim)', fontSize: 11 }}>
+              Build-time static HTML output
+            </span>
+          </button>
+          {ssgOpen && (
+            <div
+              style={{
+                borderTop: '1px solid var(--sb-border)',
+                padding: 16,
+                background: 'var(--sb-bg)',
+              }}
+              dangerouslySetInnerHTML={{ __html: SSG_PREVIEWS[example] }}
+            />
+          )}
+        </div>
+      )}
 
       {/* ── JSX dialog ── */}
       {jsxDialogOpen && (

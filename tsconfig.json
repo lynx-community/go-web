@@ -14,5 +14,5 @@
     "allowImportingTsExtensions": true
   },
   "include": ["src"],
-  "exclude": ["src/adapters/rspress.tsx"]
+  "exclude": ["src/adapters/rspress.tsx", "src/ssg.tsx"]
 }

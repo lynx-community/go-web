@@ -5,7 +5,6 @@ import path from 'node:path';
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
   title: 'Go Web - Rspress Example',
-  ssg: false,
   source: {
     include: [/[\\/]go-web[\\/]/],
   },
