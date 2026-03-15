@@ -3,7 +3,7 @@ import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSass } from '@rsbuild/plugin-sass';
 import path from 'node:path';
 import fs from 'node:fs';
-import { generateSSGHTML } from '../src/ssg';
+import { generateSSGHTML } from '../src/ssg-generate';
 
 // Discover examples from public/lynx-examples/ (populated by `pnpm prepare`
 // which processes @lynx-example/* npm packages).

@@ -32,6 +32,50 @@ const config = {
 </GoConfigProvider>
 ```
 
+### SSG (Static Site Generation)
+
+go-web ships a built-in SSG component and a pure generation function so that pre-rendered pages include a meaningful code preview instead of an empty placeholder.
+
+#### Option A: React component (rspress / SSR frameworks)
+
+Use `ExamplePreviewSSG` as the `SSGComponent` in your GoConfig. It reads example files from disk at render time during SSG.
+
+```tsx
+import { GoConfigProvider, Go } from '@lynx-js/go-web';
+import { rspressAdapter } from '@lynx-js/go-web/adapters/rspress';
+import { ExamplePreviewSSG } from '@lynx-js/go-web/ssg';
+import path from 'path';
+
+const config = {
+  exampleBasePath: '/lynx-examples',
+  ...rspressAdapter,
+  SSGComponent: ExamplePreviewSSG,
+  ssgExampleRoot: path.join(__dirname, '../docs/public/lynx-examples'),
+};
+
+<GoConfigProvider config={config}>
+  <Go example="hello-world" defaultFile="src/App.tsx" />
+</GoConfigProvider>
+```
+
+#### Option B: Pure function (build-time injection)
+
+Use `generateSSGHTML()` in your build config to pre-render example previews as static HTML strings at build time, then inject them as environment variables.
+
+```ts
+// rsbuild.config.ts
+import { generateSSGHTML } from '@lynx-js/go-web/ssg';
+
+const html = generateSSGHTML({
+  exampleRoot: path.resolve(__dirname, 'public/lynx-examples'),
+  example: 'hello-world',
+  defaultFile: 'src/App.tsx',
+  lang: 'en',
+});
+```
+
+The `./ssg` export uses Node.js `fs`/`path` and must not be bundled into browser code.
+
 ## Development
 
 ```bash
