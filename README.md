@@ -40,6 +40,14 @@ pnpm dev
 
 This starts the standalone example app at `localhost:3000`.
 
+## CI
+
+All three checks must pass on every PR:
+
+- **Type Check** — `pnpm typecheck` at the repo root
+- **Build Example App** — standalone Rsbuild example
+- **Build Rspress Example** — rspress integration example
+
 ## License
 
 Apache-2.0
