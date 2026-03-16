@@ -32,7 +32,6 @@ import {
   IconGithub,
   IconCopyLink,
   IconFullscreen,
-  IconFullscreenPreview,
   IconExitFullscreen,
 } from '../utils/icon';
 import { tabScrollToTop } from '../utils/tool';
@@ -269,36 +268,60 @@ export const ExampleContent: FC<ExampleContentProps> = ({
           <ResizableContainer show={fullscreenMode === 'preview' || (hasPreview && showPreview)} vertical={isVertical}>
             <div className={s['preview-wrap']}>
               <div className={s['preview-wrap-content']}>
-                <RadioGroup
-                  onChange={(e) => setPreviewType(e.target.value)}
-                  value={previewType}
-                  type="button"
-                  style={{
-                    display: 'flex',
-                    width: '100%',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {initState ? (
-                    <>
-                      {previewImage && (
-                        <Radio value={PreviewType.Preview}>
-                          {t('go.preview')}
-                        </Radio>
-                      )}
-                      {hasWebPreview && (
-                        <Radio value={PreviewType.Web}>Web</Radio>
-                      )}
-                      {currentEntry && (
-                        <Radio value={PreviewType.QRCode}>
-                          {t('go.qrcode')}
-                        </Radio>
-                      )}
-                    </>
-                  ) : (
-                    <div style={{ width: '100%', height: '32px' }}></div>
-                  )}
-                </RadioGroup>
+                <div className={s['preview-header']}>
+                  <RadioGroup
+                    onChange={(e) => setPreviewType(e.target.value)}
+                    value={previewType}
+                    type="button"
+                    style={{
+                      display: 'flex',
+                      flex: 1,
+                      minWidth: 0,
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {initState ? (
+                      <>
+                        {previewImage && (
+                          <Radio value={PreviewType.Preview}>
+                            {t('go.preview')}
+                          </Radio>
+                        )}
+                        {hasWebPreview && (
+                          <Radio value={PreviewType.Web}>Web</Radio>
+                        )}
+                        {currentEntry && (
+                          <Radio value={PreviewType.QRCode}>
+                            {t('go.qrcode')}
+                          </Radio>
+                        )}
+                      </>
+                    ) : (
+                      <div style={{ width: '100%', height: '32px' }}></div>
+                    )}
+                  </RadioGroup>
+                  <Button
+                    theme="borderless"
+                    icon={
+                      fullscreenMode === 'preview' ? (
+                        <IconExitFullscreen
+                          style={{ color: 'var(--semi-color-text-2)' }}
+                        />
+                      ) : (
+                        <IconFullscreen
+                          style={{ color: 'var(--semi-color-text-2)' }}
+                        />
+                      )
+                    }
+                    type="tertiary"
+                    size="small"
+                    onClick={() =>
+                      setFullscreenMode((m) =>
+                        m === 'preview' ? 'off' : 'preview',
+                      )
+                    }
+                  />
+                </div>
 
                 {previewType === PreviewType.QRCode && currentEntry && (
                   <div className={s.qrcode}>
@@ -482,27 +505,6 @@ export const ExampleContent: FC<ExampleContentProps> = ({
                 setFullscreenMode((m) => (m === 'all' ? 'off' : 'all'))
               }
             />
-            {hasPreview && (
-              <Button
-                theme="borderless"
-                icon={
-                  fullscreenMode === 'preview' ? (
-                    <IconExitFullscreen
-                      style={{ color: 'var(--semi-color-text-2)' }}
-                    />
-                  ) : (
-                    <IconFullscreenPreview
-                      style={{ color: 'var(--semi-color-text-2)' }}
-                    />
-                  )
-                }
-                type="tertiary"
-                size="small"
-                onClick={() =>
-                  setFullscreenMode((m) => (m === 'preview' ? 'off' : 'preview'))
-                }
-              />
-            )}
             {rightFooter}
           </Space>
         </div>
