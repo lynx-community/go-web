@@ -120,6 +120,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
   const { treeData, doChangeExpand, selectedKeys, expandedKeys, entryData } =
     useTreeController({ fileNames, value: currentFileName, entry });
   const [showPreview, setShowPreview] = useState(true);
+  const [showCode, setShowCode] = useState(true);
   const [showFileTree, setShowFileTree] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -162,17 +163,10 @@ export const ExampleContent: FC<ExampleContentProps> = ({
     };
   }, [previewImage, currentEntry, defaultWebPreviewFile]);
   const [tmpCurrentFileName, setTmpCurrentFileName] = useState('');
-  const [fullscreenMode, setFullscreenMode] = useState<'off' | 'all' | 'preview'>('off');
+  const [fullscreenMode, setFullscreenMode] = useState<'off' | 'all'>('off');
   const defaultI18n = (key: string) => DEFAULT_I18N[key] || key;
   const t = useI18nHook ? useI18nHook() : defaultI18n;
   const lang = useLangHook ? useLangHook() : 'en';
-
-  // Exit preview-only fullscreen when preview is hidden
-  useEffect(() => {
-    if (fullscreenMode === 'preview' && (!hasPreview || !showPreview)) {
-      setFullscreenMode('off');
-    }
-  }, [fullscreenMode, hasPreview, showPreview]);
 
   // Lock body scroll and handle Escape key in fullscreen
   useEffect(() => {
@@ -210,7 +204,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
 
   const showCodeTab = entryData && entryData?.length > 1;
   return (
-    <div className={`${s.box} ${fullscreenMode !== 'off' ? s['box-fullscreen'] : ''} ${fullscreenMode === 'preview' ? s['box-fullscreen-preview'] : ''}`} ref={boxRef}>
+    <div className={`${s.box} ${fullscreenMode !== 'off' ? s['box-fullscreen'] : ''} ${!showCode ? s['box-code-collapsed'] : ''} ${hasPreview && !showPreview ? s['box-preview-collapsed'] : ''}`} ref={boxRef}>
       <div className={s.container} ref={containerRef}>
         <div className={s.content}>
           <div className={s['code-wrap']}>
@@ -265,7 +259,20 @@ export const ExampleContent: FC<ExampleContentProps> = ({
             </div>
           </div>
 
-          <ResizableContainer show={fullscreenMode === 'preview' || (hasPreview && showPreview)} vertical={fullscreenMode === 'off' && isVertical} fullscreen={fullscreenMode !== 'off'}>
+          <ResizableContainer
+            show={hasPreview}
+            collapsed={hasPreview && !showPreview}
+            onCollapsedChange={(c) => {
+              setShowPreview(!c);
+              if (c && !showCode) setShowCode(true);
+            }}
+            codeCollapsed={hasPreview && !showCode}
+            onCodeCollapsedChange={(c) => {
+              setShowCode(!c);
+              if (c && !showPreview) setShowPreview(true);
+            }}
+            vertical={isVertical}
+          >
             <div className={s['preview-wrap']}>
               <div className={s['preview-wrap-content']}>
                 <div className={s['preview-header']}>
@@ -305,7 +312,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
                   <Button
                     theme="borderless"
                     icon={
-                      fullscreenMode === 'preview' ? (
+                      fullscreenMode !== 'off' && !showCode ? (
                         <IconExitFullscreen
                           style={{ color: 'var(--semi-color-text-2)' }}
                         />
@@ -317,11 +324,19 @@ export const ExampleContent: FC<ExampleContentProps> = ({
                     }
                     type="tertiary"
                     size="small"
-                    onClick={() =>
-                      setFullscreenMode((m) =>
-                        m === 'preview' ? 'off' : 'preview',
-                      )
-                    }
+                    onClick={() => {
+                      if (fullscreenMode !== 'off' && !showCode) {
+                        // Already fullscreen + preview only → exit fullscreen
+                        setFullscreenMode('off');
+                      } else if (fullscreenMode !== 'off' && showCode) {
+                        // Fullscreen with code visible → hide code
+                        setShowCode(false);
+                      } else {
+                        // Not fullscreen → enter fullscreen + hide code
+                        setFullscreenMode('all');
+                        setShowCode(false);
+                      }
+                    }}
                   />
                 </div>
 
@@ -454,26 +469,6 @@ export const ExampleContent: FC<ExampleContentProps> = ({
             </Space>
           </Space>
           <Space spacing={7}>
-            {hasPreview && (
-              <Space spacing={6}>
-                <Typography.Text size="small" type="tertiary">
-                  {t('go.preview')}
-                </Typography.Text>
-
-                <Switch
-                  style={{
-                    backgroundColor: showPreview
-                      ? 'var(--semi-color-info)'
-                      : 'var(--semi-color-fill-0)',
-                    cursor: 'pointer',
-                  }}
-                  checked={showPreview}
-                  onChange={setShowPreview}
-                  size="small"
-                />
-              </Space>
-            )}
-
             <Button
               theme="borderless"
               icon={
@@ -488,23 +483,44 @@ export const ExampleContent: FC<ExampleContentProps> = ({
                 );
               }}
             />
-            {fullscreenMode !== 'off' && (
+            {hasPreview && (
               <Space spacing={6}>
-                <Typography.Text size="small" type="tertiary">
+                <Typography.Text size="small" type="tertiary" className={s['toggle-label']}>
                   Code
                 </Typography.Text>
                 <Switch
                   style={{
-                    backgroundColor:
-                      fullscreenMode === 'all'
-                        ? 'var(--semi-color-info)'
-                        : 'var(--semi-color-fill-0)',
+                    backgroundColor: showCode
+                      ? 'var(--semi-color-info)'
+                      : 'var(--semi-color-fill-0)',
                     cursor: 'pointer',
                   }}
-                  checked={fullscreenMode === 'all'}
-                  onChange={(checked) =>
-                    setFullscreenMode(checked ? 'all' : 'preview')
-                  }
+                  checked={showCode}
+                  onChange={(checked) => {
+                    setShowCode(checked);
+                    if (!checked && !showPreview) setShowPreview(true);
+                  }}
+                  size="small"
+                />
+              </Space>
+            )}
+            {hasPreview && (
+              <Space spacing={6}>
+                <Typography.Text size="small" type="tertiary" className={s['toggle-label']}>
+                  {t('go.preview')}
+                </Typography.Text>
+                <Switch
+                  style={{
+                    backgroundColor: showPreview
+                      ? 'var(--semi-color-info)'
+                      : 'var(--semi-color-fill-0)',
+                    cursor: 'pointer',
+                  }}
+                  checked={showPreview}
+                  onChange={(v) => {
+                    setShowPreview(v);
+                    if (!v && !showCode) setShowCode(true);
+                  }}
                   size="small"
                 />
               </Space>

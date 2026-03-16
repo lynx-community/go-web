@@ -993,19 +993,19 @@ function App() {
                 />
                 <div className="figure-caption">Desktop</div>
               </div>
-              {/* Mobile — fixed 340×766 */}
+              {/* Mobile — fixed 320×660 */}
               <div
                 className="mobile-preview"
                 style={{
-                  flex: '0 0 340px',
-                  maxWidth: 340,
+                  flex: '0 0 320px',
+                  maxWidth: 320,
                   overflow: 'hidden',
                   containerType: 'inline-size' as any,
                 }}
               >
                 <div
                   style={{
-                    height: 766,
+                    height: 660,
                     overflow: 'hidden',
                     borderRadius: 16,
                   }}
@@ -1022,7 +1022,7 @@ function App() {
                     schema={schema || undefined}
                   />
                 </div>
-                <div className="figure-caption">Mobile (340 × 766)</div>
+                <div className="figure-caption">Mobile (320 × 660)</div>
               </div>
             </div>
           </GoConfigProvider>

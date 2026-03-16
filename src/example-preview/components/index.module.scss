@@ -23,6 +23,21 @@
         z-index: 0;
       }
     }
+
+    // Visual hints when dragging into a collapse snap-zone.
+    // Classes are toggled directly on the DOM during drag for performance.
+    &:global(.snap-preview-collapse) {
+      .preview-wrap {
+        opacity: 0.4;
+        transition: opacity 0.15s ease;
+      }
+    }
+    &:global(.snap-code-collapse) {
+      .code-wrap {
+        opacity: 0.4;
+        transition: opacity 0.15s ease;
+      }
+    }
   }
 
   .code-wrap,
@@ -67,6 +82,7 @@
       height: 100%;
       overflow: auto;
       min-height: 0;
+      background: var(--shiki-dark-bg, var(--rp-code-block-bg, var(--semi-color-bg-1)));
     }
     .code-tab {
       width: 100%;
@@ -224,6 +240,9 @@
     .switch-schema {
       display: none;
     }
+    .toggle-label {
+      display: none;
+    }
   }
 
   // Container query: same as @media above, fires when the Go component's
@@ -270,6 +289,9 @@
     .switch-schema {
       display: none;
     }
+    .toggle-label {
+      display: none;
+    }
   }
 }
 
@@ -304,28 +326,85 @@
   }
 
   :global {
-    .semi-resizable-resizable {
-      max-width: calc(100% - 200px) !important;
-    }
     .semi-resizable-resizableHandler {
       display: block !important;
     }
   }
 }
 
-.box-fullscreen-preview {
-  .code-wrap {
-    display: none;
+.box-code-collapsed {
+  .content {
+    gap: 0;
   }
-
+  .code-wrap {
+    min-height: 0 !important;
+    min-width: 0 !important;
+    overflow: hidden;
+    border-color: transparent;
+  }
+  // Prevent the resizable from overflowing the container when dragging
+  // past the edge while code is collapsed.
   :global {
     .semi-resizable-resizable {
-      width: 100% !important;
-      max-width: none !important;
-      height: 100% !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
     }
-    .semi-resizable-resizableHandler {
-      display: none;
+  }
+}
+
+.box-preview-collapsed {
+  .content {
+    gap: 0;
+  }
+  .preview-wrap {
+    border-color: transparent;
+  }
+  // Prevent the resizable from overflowing when dragging past the edge
+  // while preview is collapsed (symmetric with .box-code-collapsed).
+  :global {
+    .semi-resizable-resizable {
+      max-width: 100% !important;
+      max-height: 100% !important;
+    }
+  }
+}
+
+// Visible drag indicator when a panel is collapsed to 0.
+// The handler itself has no background, so we add a thin line via ::after.
+.box-code-collapsed,
+.box-preview-collapsed {
+  :global {
+    .semi-resizable-resizableHandler-left {
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        width: 2px;
+        border-radius: 1px;
+        background: var(--semi-color-border);
+        transition: background 0.15s ease;
+      }
+      &:hover::after {
+        background: var(--semi-color-primary);
+      }
+    }
+    .semi-resizable-resizableHandler-top {
+      &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 2px;
+        border-radius: 1px;
+        background: var(--semi-color-border);
+        transition: background 0.15s ease;
+      }
+      &:hover::after {
+        background: var(--semi-color-primary);
+      }
     }
   }
 }
