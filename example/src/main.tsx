@@ -136,6 +136,10 @@ const EXAMPLES: string[] = import.meta.env.EXAMPLES ?? ['hello-world'];
 const SSG_PREVIEWS: Record<string, string> =
   import.meta.env.SSG_PREVIEWS ?? {};
 
+function getExampleSource(name: string): 'vue' | 'lynx' {
+  return name.startsWith('vue-') ? 'vue' : 'lynx';
+}
+
 // ---------------------------------------------------------------------------
 // URL State Persistence
 // ---------------------------------------------------------------------------
@@ -429,21 +433,7 @@ function App() {
   const [example, setExample] = useState(initial.example ?? 'hello-world');
   const [defaultFile, setDefaultFile] = useState(initial.file ?? 'src/App.tsx');
   const [copied, setCopied] = useState(false);
-
-  // Per-example version map (for tags in the sidebar list)
-  const [exampleVersions, setExampleVersions] = useState<Record<string, string>>({});
-  useEffect(() => {
-    for (const name of EXAMPLES) {
-      fetch(`/lynx-examples/${name}/example-metadata.json`)
-        .then((res) => res.ok ? res.json() : null)
-        .then((data) => {
-          if (data?.version) {
-            setExampleVersions((prev) => ({ ...prev, [name]: data.version }));
-          }
-        })
-        .catch(() => {});
-    }
-  }, []);
+  const [exampleSearch, setExampleSearch] = useState('');
 
   // Metadata & entry state
   const [metadata, setMetadata] = useState<Record<string, any> | null>(null);
@@ -772,7 +762,7 @@ function App() {
             {/* Col 1: examples list */}
             <div
               style={{
-                flex: '0 0 140px',
+                flex: '0 0 180px',
                 padding: '10px 12px',
                 overflow: 'auto',
                 maxHeight: 200,
@@ -786,45 +776,87 @@ function App() {
                   ...panelLabelStyle,
                   padding: '0 4px',
                   marginBottom: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
                 }}
               >
-                Examples
-              </div>
-              {EXAMPLES.map((name) => (
-                <button
-                  key={name}
-                  className="entry-list-btn"
-                  data-active={example === name}
-                  onClick={() => {
-                    setExample(name);
-                    setDefaultFile('src/App.tsx');
-                  }}
+                <span>Examples</span>
+                <input
+                  type="text"
+                  value={exampleSearch}
+                  onChange={(e) => setExampleSearch(e.target.value)}
+                  placeholder="Filter…"
                   style={{
-                    padding: '3px 8px',
-                    borderRadius: 5,
-                    border: 'none',
-                    background:
-                      example === name ? 'var(--sb-accent)' : 'transparent',
-                    color: example === name ? '#fff' : 'var(--sb-text-dim)',
-                    fontSize: 11,
-                    fontFamily: 'var(--sb-font-mono)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    whiteSpace: 'nowrap',
-                    transition: 'background 0.12s, color 0.12s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
+                    flex: 1,
+                    padding: '1px 5px',
+                    borderRadius: 4,
+                    border: '1px solid var(--sb-border)',
+                    background: 'transparent',
+                    color: 'inherit',
+                    fontSize: 10,
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                    minWidth: 0,
                   }}
-                >
-                  {name}
-                  {exampleVersions[name] && (
-                    <span className="example-tag example-tag-version">
-                      {exampleVersions[name]}
-                    </span>
-                  )}
-                </button>
-              ))}
+                />
+              </div>
+              {EXAMPLES.filter(
+                (name) =>
+                  !exampleSearch ||
+                  name.toLowerCase().includes(exampleSearch.toLowerCase()),
+              ).map((name) => {
+                const source = getExampleSource(name);
+                const displayName =
+                  source === 'vue' ? name.replace(/^vue-/, '') : name;
+                return (
+                  <button
+                    key={name}
+                    className="entry-list-btn"
+                    data-active={example === name}
+                    onClick={() => {
+                      setExample(name);
+                      setDefaultFile(
+                        source === 'vue' ? 'src/App.vue' : 'src/App.tsx',
+                      );
+                    }}
+                    style={{
+                      padding: '3px 8px',
+                      borderRadius: 5,
+                      border: 'none',
+                      background:
+                        example === name ? 'var(--sb-accent)' : 'transparent',
+                      color: example === name ? '#fff' : 'var(--sb-text-dim)',
+                      fontSize: 11,
+                      fontFamily: 'var(--sb-font-mono)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      whiteSpace: 'nowrap',
+                      transition: 'background 0.12s, color 0.12s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    {displayName}
+                    {source === 'vue' && (
+                      <span
+                        className="example-tag example-tag-vue"
+                        style={{
+                          fontSize: 9,
+                          padding: '0 4px',
+                          borderRadius: 3,
+                          lineHeight: '16px',
+                          fontWeight: 600,
+                          flexShrink: 0,
+                        }}
+                      >
+                        Vue
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Col 2: entry list */}
@@ -968,8 +1000,31 @@ function App() {
                 maxHeight: 200,
               }}
             >
-              <div style={{ ...panelLabelStyle, marginBottom: 8 }}>
+              <div style={{ ...panelLabelStyle, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                 example-metadata.json
+                {metadata?.version && (
+                  <span className="example-tag example-tag-version">
+                    {metadata.version}
+                  </span>
+                )}
+                {metadata?.reactLynxVersion && (
+                  <span className="example-tag example-tag-react">
+                    react {metadata.reactLynxVersion}
+                  </span>
+                )}
+                {metadata?.templateFiles?.length > 0 && (
+                  <span
+                    className={`example-tag ${
+                      metadata.templateFiles.some((t: any) => t.webFile)
+                        ? 'example-tag-web'
+                        : 'example-tag-no-web'
+                    }`}
+                  >
+                    {metadata.templateFiles.some((t: any) => t.webFile)
+                      ? 'Web'
+                      : 'No Web'}
+                  </span>
+                )}
               </div>
               {metadataHtml ? (
                 <div

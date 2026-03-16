@@ -234,9 +234,19 @@ html[style*='color-scheme: dark'] .shiki span {
   color: #3b82f6;
 }
 
-.entry-list-btn[data-active='true'] .example-tag-version {
-  background: rgba(255, 255, 255, 0.25);
-  color: #fff;
+.example-tag-react {
+  background: #e879f920;
+  color: #c026d3;
+}
+
+.example-tag-web {
+  background: #10b98120;
+  color: #059669;
+}
+
+.example-tag-no-web {
+  background: #f9731620;
+  color: #ea580c;
 }
 
 /* ------------------------------------------------------------------ */
