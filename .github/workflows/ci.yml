@@ -36,8 +36,16 @@ jobs:
 
       - run: pnpm install --no-frozen-lockfile
       - run: cd example && pnpm install --no-frozen-lockfile && pnpm prepare:clean
-      - name: Prepare vue-lynx examples (clone, build, copy)
-        run: cd example && node scripts/prepare-vue-lynx-examples.js --repo https://github.com/huxpro/vue-lynx --build
+
+      - name: Checkout vue-lynx
+        uses: actions/checkout@v4
+        with:
+          repository: huxpro/vue-lynx
+          path: _vue-lynx
+
+      - name: Prepare vue-lynx examples (install, build, copy)
+        run: cd example && node scripts/prepare-vue-lynx-examples.js --local ../_vue-lynx --build
+
       - run: cd example && pnpm build
 
   build-rspress:
