@@ -102,6 +102,11 @@
       align-items: center;
       gap: 4px;
       flex-shrink: 0;
+      :global {
+        .semi-radioGroup-buttonRadioGroup {
+          background: transparent;
+        }
+      }
     }
     .qrcode {
       width: 100%;
@@ -268,6 +273,7 @@
     .semi-resizable-resizable {
       width: 100% !important;
       max-width: none !important;
+      height: 100% !important;
     }
     .semi-resizable-resizableHandler {
       display: none;
