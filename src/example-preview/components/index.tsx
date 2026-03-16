@@ -117,6 +117,20 @@ export const ExampleContent: FC<ExampleContentProps> = ({
   const [showPreview, setShowPreview] = useState(true);
   const [showFileTree, setShowFileTree] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [isVertical, setIsVertical] = useState(false);
+
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setIsVertical(entry.contentRect.width <= 600);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const [previewType, setPreviewType] = useState(() => {
     if (defaultTab === 'preview' && previewImage) return PreviewType.Preview;
     if (defaultTab === 'qrcode') return PreviewType.QRCode;
@@ -163,7 +177,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
 
   const showCodeTab = entryData && entryData?.length > 1;
   return (
-    <div className={s.box}>
+    <div className={s.box} ref={boxRef}>
       <div className={s.container} ref={containerRef}>
         <div className={s.content}>
           <div className={s['code-wrap']}>
@@ -218,7 +232,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
             </div>
           </div>
 
-          <ResizableContainer show={hasPreview && showPreview}>
+          <ResizableContainer show={hasPreview && showPreview} vertical={isVertical}>
             <div className={s['preview-wrap']}>
               <div className={s['preview-wrap-content']}>
                 <RadioGroup
