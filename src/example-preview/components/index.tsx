@@ -265,10 +265,12 @@ export const ExampleContent: FC<ExampleContentProps> = ({
             </div>
           </div>
 
-          <ResizableContainer show={fullscreenMode === 'preview' || (hasPreview && showPreview)} vertical={fullscreenMode === 'off' && isVertical}>
+          <ResizableContainer show={fullscreenMode === 'preview' || (hasPreview && showPreview)} vertical={fullscreenMode === 'off' && isVertical} fullscreen={fullscreenMode !== 'off'}>
             <div className={s['preview-wrap']}>
               <div className={s['preview-wrap-content']}>
                 <div className={s['preview-header']}>
+                  {/* Invisible spacer to balance the fullscreen button on the right */}
+                  <div style={{ width: 24, flexShrink: 0 }} />
                   <RadioGroup
                     onChange={(e) => setPreviewType(e.target.value)}
                     value={previewType}

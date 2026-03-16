@@ -1,110 +1,102 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { IconHandle } from '@douyinfe/semi-icons';
 import { Resizable } from '@douyinfe/semi-ui';
+
+const VerticalHandle = (
+  <div
+    style={{
+      width: '100%',
+      display: 'flex',
+      justifyContent: 'center',
+    }}
+  >
+    <IconHandle
+      style={{
+        fontSize: '12px',
+        marginTop: '-2px',
+        transform: 'rotate(90deg)',
+      }}
+    />
+  </div>
+);
+
+const HorizontalHandle = (
+  <div
+    style={{
+      height: '100%',
+      display: 'flex',
+      alignItems: 'center',
+    }}
+  >
+    <IconHandle style={{ fontSize: '12px', marginLeft: '-2px' }} />
+  </div>
+);
 
 export const ResizableContainer = ({
   show,
   children,
   vertical = false,
+  fullscreen = false,
 }: {
   show: boolean;
   children: React.ReactNode;
   vertical?: boolean;
+  fullscreen?: boolean;
 }) => {
-  if (vertical) {
-    return (
-      <Resizable
-        key="vertical"
-        style={{
-          display: show ? 'block' : 'none',
-        }}
-        enable={{
-          top: true,
-          right: false,
-          bottom: false,
-          left: false,
-          topLeft: false,
-          topRight: false,
-          bottomLeft: false,
-          bottomRight: false,
-        }}
-        defaultSize={{
-          height: '50%',
-          width: '100%',
-        }}
-        minHeight={100}
-        maxHeight="80%"
-        handleStyle={{
-          top: {
-            top: '-8px',
-            height: '8px',
-          },
-        }}
-        handleNode={{
-          top: (
-            <div
-              style={{
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'center',
-              }}
-            >
-              <IconHandle
-                style={{
-                  fontSize: '12px',
-                  marginTop: '-2px',
-                  transform: 'rotate(90deg)',
-                }}
-              />
-            </div>
-          ),
-        }}
-      >
-        {children}
-      </Resizable>
-    );
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const resizableRef = useRef<any>(null);
+  const initialVertical = useRef(vertical);
+
+  // Imperatively reset the Resizable's internal size state when switching
+  // between vertical and horizontal modes, without remounting (which would
+  // destroy the children / lynx-view).
+  useEffect(() => {
+    // Skip the initial mount — defaultSize handles that.
+    if (vertical === initialVertical.current) return;
+    initialVertical.current = vertical;
+
+    if (resizableRef.current) {
+      if (vertical) {
+        resizableRef.current.setState({ width: '100%', height: '50%' });
+      } else {
+        resizableRef.current.setState({ width: 280, height: 'auto' });
+      }
+    }
+  }, [vertical]);
 
   return (
     <Resizable
-      key="horizontal"
+      ref={resizableRef}
+      defaultSize={
+        vertical
+          ? { height: '50%', width: '100%' }
+          : { width: 280 }
+      }
       style={{
         display: show ? 'block' : 'none',
       }}
       enable={{
-        top: false,
+        top: vertical,
         right: false,
         bottom: false,
+        left: !vertical,
         topLeft: false,
         topRight: false,
         bottomLeft: false,
         bottomRight: false,
-        left: true,
       }}
-      defaultSize={{
-        width: 280,
-      }}
-      minWidth={200}
-      maxWidth={600}
-      handleStyle={{
-        left: {
-          left: '-8px',
-          width: '8px',
-        },
-      }}
-      handleNode={{
-        left: (
-          <div
-            style={{
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            <IconHandle style={{ fontSize: '12px', marginLeft: '-2px' }} />
-          </div>
-        ),
-      }}
+      minHeight={vertical ? 100 : undefined}
+      maxHeight={vertical ? '80%' : undefined}
+      minWidth={!vertical ? 260 : undefined}
+      maxWidth={!vertical && !fullscreen ? 600 : undefined}
+      handleStyle={
+        vertical
+          ? { top: { top: '-8px', height: '8px' } }
+          : { left: { left: '-8px', width: '8px' } }
+      }
+      handleNode={
+        vertical ? { top: VerticalHandle } : { left: HorizontalHandle }
+      }
     >
       {children}
     </Resizable>
