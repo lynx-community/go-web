@@ -28,7 +28,7 @@ import { SwitchSchema } from './switch-schema';
 import { PreviewImg } from './preview-img';
 import { ResizableContainer } from './resizable';
 
-import { IconGithub, IconCopyLink } from '../utils/icon';
+import { IconGithub, IconCopyLink, IconFullscreen, IconExitFullscreen } from '../utils/icon';
 import { tabScrollToTop } from '../utils/tool';
 import { useTreeController } from '../hooks/use-tree-controller';
 import type { SchemaOptionsData } from '../hooks/use-switch-schema';
@@ -157,9 +157,29 @@ export const ExampleContent: FC<ExampleContentProps> = ({
     };
   }, [previewImage, currentEntry, defaultWebPreviewFile]);
   const [tmpCurrentFileName, setTmpCurrentFileName] = useState('');
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const defaultI18n = (key: string) => DEFAULT_I18N[key] || key;
   const t = useI18nHook ? useI18nHook() : defaultI18n;
   const lang = useLangHook ? useLangHook() : 'en';
+
+  useEffect(() => {
+    if (isFullscreen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          setIsFullscreen(false);
+        }
+      };
+      document.addEventListener('keydown', handleEscape);
+
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.removeEventListener('keydown', handleEscape);
+      };
+    }
+  }, [isFullscreen]);
 
   const getContainer = () => containerRef.current as HTMLDivElement;
   const onFileSelect = (v: string) => {
@@ -177,7 +197,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
 
   const showCodeTab = entryData && entryData?.length > 1;
   return (
-    <div className={s.box} ref={boxRef}>
+    <div className={`${s.box} ${isFullscreen ? s['box-fullscreen'] : ''}`} ref={boxRef}>
       <div className={s.container} ref={containerRef}>
         <div className={s.content}>
           <div className={s['code-wrap']}>
@@ -428,6 +448,23 @@ export const ExampleContent: FC<ExampleContentProps> = ({
                   '_blank',
                 );
               }}
+            />
+            <Button
+              theme="borderless"
+              icon={
+                isFullscreen ? (
+                  <IconExitFullscreen
+                    style={{ color: 'var(--semi-color-text-2)' }}
+                  />
+                ) : (
+                  <IconFullscreen
+                    style={{ color: 'var(--semi-color-text-2)' }}
+                  />
+                )
+              }
+              type="tertiary"
+              size="small"
+              onClick={() => setIsFullscreen((v) => !v)}
             />
             {rightFooter}
           </Space>
