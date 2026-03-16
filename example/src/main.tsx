@@ -1070,18 +1070,24 @@ function App() {
             </span>
             <span style={{ fontWeight: 600 }}>SSG Preview</span>
             <span style={{ color: 'var(--sb-text-dim)', fontSize: 11 }}>
-              Build-time static HTML output
+              Raw markdown output from ExamplePreviewSSG
             </span>
           </button>
           {ssgOpen && (
-            <div
+            <pre
               style={{
                 borderTop: '1px solid var(--sb-border)',
                 padding: 16,
+                margin: 0,
                 background: 'var(--sb-bg)',
+                fontSize: 12,
+                lineHeight: 1.6,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-all',
               }}
-              dangerouslySetInnerHTML={{ __html: SSG_PREVIEWS[example] }}
-            />
+            >
+              {SSG_PREVIEWS[example]}
+            </pre>
           )}
         </div>
       )}
