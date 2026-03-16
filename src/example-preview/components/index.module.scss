@@ -153,11 +153,7 @@
       flex-direction: column;
     }
     :global {
-      .semi-resizable-resizableHandler {
-        display: none;
-      }
       .semi-resizable-resizable {
-        height: 370px !important;
         width: 100% !important;
       }
       pre.shiki {
@@ -199,11 +195,7 @@
       flex-direction: column;
     }
     :global {
-      .semi-resizable-resizableHandler {
-        display: none;
-      }
       .semi-resizable-resizable {
-        height: 370px !important;
         width: 100% !important;
       }
       pre.shiki {
