@@ -350,7 +350,52 @@ const panelLabelStyle: React.CSSProperties = {
 const panelInputStyle: React.CSSProperties = {
   ...inputStyle,
   width: 'auto',
+  minWidth: 0,
 };
+
+// ---------------------------------------------------------------------------
+// Column Resizer (Finder-style drag handle between columns)
+// ---------------------------------------------------------------------------
+
+function ColumnResizer({
+  widthRef,
+  onWidthChange,
+  reverse,
+}: {
+  widthRef: React.RefObject<number>;
+  onWidthChange: (w: number) => void;
+  reverse?: boolean;
+}) {
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const startX = e.clientX;
+      const startW = widthRef.current!;
+      const sign = reverse ? -1 : 1;
+      const onMouseMove = (ev: MouseEvent) => {
+        onWidthChange(Math.max(80, startW + (ev.clientX - startX) * sign));
+      };
+      const onMouseUp = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    },
+    [widthRef, onWidthChange, reverse],
+  );
+
+  return (
+    <div
+      className="col-resizer"
+      onMouseDown={handleMouseDown}
+    />
+  );
+}
 
 // ---------------------------------------------------------------------------
 // JSX snippet builder (for copy-to-clipboard)
@@ -434,6 +479,7 @@ function App() {
   const [defaultFile, setDefaultFile] = useState(initial.file ?? 'src/App.tsx');
   const [copied, setCopied] = useState(false);
   const [exampleSearch, setExampleSearch] = useState('');
+  const [entrySearch, setEntrySearch] = useState('');
 
   // Metadata & entry state
   const [metadata, setMetadata] = useState<Record<string, any> | null>(null);
@@ -450,6 +496,18 @@ function App() {
   const [jsxCopied, setJsxCopied] = useState(false);
   const jsxPreRef = useRef<HTMLPreElement>(null);
   const [metadataHtml, setMetadataHtml] = useState('');
+
+  // Resizable column widths
+  const col1Ref = useRef(180);
+  const col2Ref = useRef(180);
+  const col4Ref = useRef(300);
+  const [col1W, setCol1W] = useState(180);
+  const [col2W, setCol2W] = useState(180);
+  const [col4W, setCol4W] = useState(300);
+
+  const setCol1 = useCallback((w: number) => { col1Ref.current = w; setCol1W(w); }, []);
+  const setCol2 = useCallback((w: number) => { col2Ref.current = w; setCol2W(w); }, []);
+  const setCol4 = useCallback((w: number) => { col4Ref.current = w; setCol4W(w); }, []);
 
   const jsxString = useMemo(
     () =>
@@ -538,6 +596,7 @@ function App() {
   useEffect(() => {
     setMetadata(null);
     setMetadataLoading(true);
+    setEntrySearch('');
     fetch(`/lynx-examples/${example}/example-metadata.json`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -762,7 +821,7 @@ function App() {
             {/* Col 1: examples list */}
             <div
               style={{
-                flex: '0 0 180px',
+                flex: `0 0 ${col1W}px`,
                 padding: '10px 12px',
                 overflow: 'auto',
                 maxHeight: 200,
@@ -859,12 +918,13 @@ function App() {
               })}
             </div>
 
+            <ColumnResizer widthRef={col1Ref} onWidthChange={setCol1} />
+
             {/* Col 2: entry list */}
             <div
               style={{
-                flex: '0 0 180px',
+                flex: `0 0 ${col2W}px`,
                 padding: '10px 12px',
-                borderLeft: '1px solid var(--sb-border)',
                 overflow: 'auto',
                 maxHeight: 200,
                 display: 'flex',
@@ -877,11 +937,36 @@ function App() {
                   ...panelLabelStyle,
                   padding: '0 4px',
                   marginBottom: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
                 }}
               >
-                Entries
+                <span>Entries</span>
+                <input
+                  type="text"
+                  value={entrySearch}
+                  onChange={(e) => setEntrySearch(e.target.value)}
+                  placeholder="Filter…"
+                  style={{
+                    flex: 1,
+                    padding: '1px 5px',
+                    borderRadius: 4,
+                    border: '1px solid var(--sb-border)',
+                    background: 'transparent',
+                    color: 'inherit',
+                    fontSize: 10,
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                    minWidth: 0,
+                  }}
+                />
               </div>
-              {metadata?.templateFiles?.map((t: any) => (
+              {metadata?.templateFiles?.filter(
+                (t: any) =>
+                  !entrySearch ||
+                  t.name.toLowerCase().includes(entrySearch.toLowerCase()),
+              ).map((t: any) => (
                 <button
                   key={t.name}
                   className="entry-list-btn"
@@ -922,12 +1007,15 @@ function App() {
               )}
             </div>
 
+            <ColumnResizer widthRef={col2Ref} onWidthChange={setCol2} />
+
             {/* Col 3: controls */}
             <div
               style={{
                 flex: '1 1 0',
+                minWidth: 120,
                 padding: '10px 16px',
-                borderLeft: '1px solid var(--sb-border)',
+                overflow: 'hidden',
                 display: 'grid',
                 gridTemplateColumns: 'auto 1fr',
                 gap: '5px 10px',
@@ -989,12 +1077,13 @@ function App() {
               />
             </div>
 
+            <ColumnResizer widthRef={col4Ref} onWidthChange={setCol4} reverse />
+
             {/* Right: metadata JSON */}
             <div
               style={{
-                flex: '0 0 33.3%',
+                flex: `0 0 ${col4W}px`,
                 minWidth: 0,
-                borderLeft: '1px solid var(--sb-border)',
                 padding: '10px 16px',
                 overflow: 'auto',
                 maxHeight: 200,
