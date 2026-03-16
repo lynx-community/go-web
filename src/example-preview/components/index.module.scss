@@ -157,18 +157,18 @@
         width: 100% !important;
       }
       pre.shiki {
-        min-height: 371px !important;
+        min-height: 0 !important;
       }
     }
     .code-view-container-tab-show {
       :global {
         pre.shiki {
-          min-height: 324px !important;
+          min-height: 0 !important;
         }
       }
     }
     .code-wrap {
-      height: 100%;
+      flex: 1;
       min-height: 0;
     }
     .preview-wrap .qrcode {
@@ -199,18 +199,18 @@
         width: 100% !important;
       }
       pre.shiki {
-        min-height: 371px !important;
+        min-height: 0 !important;
       }
     }
     .code-view-container-tab-show {
       :global {
         pre.shiki {
-          min-height: 324px !important;
+          min-height: 0 !important;
         }
       }
     }
     .code-wrap {
-      height: 100%;
+      flex: 1;
       min-height: 0;
     }
     .preview-wrap .qrcode {

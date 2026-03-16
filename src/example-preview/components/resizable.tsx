@@ -14,6 +14,7 @@ export const ResizableContainer = ({
   if (vertical) {
     return (
       <Resizable
+        key="vertical"
         style={{
           display: show ? 'block' : 'none',
         }}
@@ -66,6 +67,7 @@ export const ResizableContainer = ({
 
   return (
     <Resizable
+      key="horizontal"
       style={{
         display: show ? 'block' : 'none',
       }}
