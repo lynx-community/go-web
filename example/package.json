@@ -5,6 +5,9 @@
   "scripts": {
     "prepare": "node scripts/prepare-examples.js",
     "prepare:clean": "node scripts/prepare-examples.js --clean",
+    "prepare:vue-lynx": "node scripts/prepare-vue-lynx-examples.js --local ~/github/vue-lynx --build",
+    "prepare:vue-lynx:git": "node scripts/prepare-vue-lynx-examples.js --repo https://github.com/huxpro/vue-lynx --build",
+    "sync-examples": "node scripts/sync-examples.js",
     "dev": "rsbuild dev",
     "build": "rsbuild build",
     "preview": "rsbuild preview"
