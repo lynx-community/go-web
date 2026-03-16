@@ -17,6 +17,9 @@ importers:
       '@lynx-example/accessibility':
         specifier: 0.6.5
         version: 0.6.5(@types/react@18.3.28)
+      '@lynx-example/action-sheet':
+        specifier: 0.6.5
+        version: 0.6.5(@types/react@18.3.28)
       '@lynx-example/animation':
         specifier: 0.6.7
         version: 0.6.7(@types/react@18.3.28)
@@ -129,6 +132,9 @@ importers:
         specifier: latest
         version: 0.6.11(@types/react@18.3.28)
       '@lynx-example/view':
+        specifier: 0.6.5
+        version: 0.6.5(@types/react@18.3.28)
+      '@lynx-example/zustand':
         specifier: 0.6.5
         version: 0.6.5(@types/react@18.3.28)
       '@lynx-js/web-core':
@@ -280,6 +286,10 @@ packages:
     resolution: {integrity: sha512-q5T5VjB/EdcOb3Ek1AXTBFPaIhOaSSkym9dAVemy7B95xQxkRn+CE2WcP99cT9rI4UZ9hWeuz6HY47pyMmUevA==}
     engines: {node: '>=18'}
 
+  '@lynx-example/action-sheet@0.6.5':
+    resolution: {integrity: sha512-sTBh2BdkepFvZ85ClIAlLjgQ5kQGwnVOAQp8gzKminr2TKbYPcri6rUk6K10mhZScTIhguISIr/US4CzngmmIA==}
+    engines: {node: '>=18'}
+
   '@lynx-example/animation@0.6.7':
     resolution: {integrity: sha512-U4HjIj72uS7PAScyP1z5vMNZsvSzn/9dZYjP1229h8Lic/OUH3FOG0xIsBq/TsP7bMRm7fw8W1DOSpdD2eF6qw==}
 
@@ -412,6 +422,9 @@ packages:
   '@lynx-example/view@0.6.5':
     resolution: {integrity: sha512-dSs0FhogEiuemWhV9QTFfPIQoKu+LW9wQN+JKxWbKvi1/eYP6PgZXm4ohDlSqBKdSVhw2Ok0LNgpPWmwdLV9HA==}
     engines: {node: '>=18'}
+
+  '@lynx-example/zustand@0.6.5':
+    resolution: {integrity: sha512-zypS4TpmlyEc7u2ATutSewH8jEnMhL75RwQgvt2OFXHqfyj0gMJdu1ygP6OEoerx8wdMQUjO27I2HYvmwbhOwQ==}
 
   '@lynx-js/lynx-core@0.1.3':
     resolution: {integrity: sha512-uWzKKYJUK4Q09ZRZxWSAFINnmZb9piWPbvWF9SkLn+3snBl9u/BJa4ekPRcKWAhBmpbtxWH1x27fxe3Q3p5l3Q==}
@@ -2173,6 +2186,13 @@ snapshots:
       - '@lynx-js/types'
       - '@types/react'
 
+  '@lynx-example/action-sheet@0.6.5(@types/react@18.3.28)':
+    dependencies:
+      '@lynx-js/react': 0.115.1(@types/react@18.3.28)
+    transitivePeerDependencies:
+      - '@lynx-js/types'
+      - '@types/react'
+
   '@lynx-example/animation@0.6.7(@types/react@18.3.28)':
     dependencies:
       '@lynx-js/react': 0.115.1(@types/react@18.3.28)
@@ -2444,6 +2464,13 @@ snapshots:
       - '@types/react'
 
   '@lynx-example/view@0.6.5(@types/react@18.3.28)':
+    dependencies:
+      '@lynx-js/react': 0.115.1(@types/react@18.3.28)
+    transitivePeerDependencies:
+      - '@lynx-js/types'
+      - '@types/react'
+
+  '@lynx-example/zustand@0.6.5(@types/react@18.3.28)':
     dependencies:
       '@lynx-js/react': 0.115.1(@types/react@18.3.28)
     transitivePeerDependencies:
