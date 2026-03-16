@@ -10,5 +10,17 @@ export default defineConfig({
   },
   builderConfig: {
     plugins: [pluginSass()],
+    tools: {
+      rspack: {
+        resolve: {
+          // The SSG component imports fs/path for reading example files at
+          // build time. These must be stubbed out in the browser bundle.
+          fallback: {
+            fs: false,
+            path: false,
+          },
+        },
+      },
+    },
   },
 });
