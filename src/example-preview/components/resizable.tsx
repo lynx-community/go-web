@@ -28,11 +28,11 @@ export const ResizableContainer = ({
           bottomRight: false,
         }}
         defaultSize={{
-          height: 370,
+          height: '50%',
           width: '100%',
         }}
-        minHeight={150}
-        maxHeight={500}
+        minHeight={100}
+        maxHeight="70%"
         handleStyle={{
           top: {
             top: '-8px',
