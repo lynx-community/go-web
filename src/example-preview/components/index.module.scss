@@ -252,6 +252,21 @@
   }
 }
 
+.box-fullscreen-preview {
+  .code-wrap {
+    display: none;
+  }
+
+  :global {
+    .semi-resizable-resizable {
+      width: 100% !important;
+    }
+    .semi-resizable-resizableHandler {
+      display: none;
+    }
+  }
+}
+
 @keyframes fullscreen-enter {
   from {
     opacity: 0.9;

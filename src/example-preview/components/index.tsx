@@ -28,7 +28,13 @@ import { SwitchSchema } from './switch-schema';
 import { PreviewImg } from './preview-img';
 import { ResizableContainer } from './resizable';
 
-import { IconGithub, IconCopyLink, IconFullscreen, IconExitFullscreen } from '../utils/icon';
+import {
+  IconGithub,
+  IconCopyLink,
+  IconFullscreen,
+  IconFullscreenPreview,
+  IconExitFullscreen,
+} from '../utils/icon';
 import { tabScrollToTop } from '../utils/tool';
 import { useTreeController } from '../hooks/use-tree-controller';
 import type { SchemaOptionsData } from '../hooks/use-switch-schema';
@@ -157,29 +163,37 @@ export const ExampleContent: FC<ExampleContentProps> = ({
     };
   }, [previewImage, currentEntry, defaultWebPreviewFile]);
   const [tmpCurrentFileName, setTmpCurrentFileName] = useState('');
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenMode, setFullscreenMode] = useState<'off' | 'all' | 'preview'>('off');
   const defaultI18n = (key: string) => DEFAULT_I18N[key] || key;
   const t = useI18nHook ? useI18nHook() : defaultI18n;
   const lang = useLangHook ? useLangHook() : 'en';
 
+  // Exit preview-only fullscreen when preview is hidden
   useEffect(() => {
-    if (isFullscreen) {
-      const originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-
-      const handleEscape = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-          setIsFullscreen(false);
-        }
-      };
-      document.addEventListener('keydown', handleEscape);
-
-      return () => {
-        document.body.style.overflow = originalOverflow;
-        document.removeEventListener('keydown', handleEscape);
-      };
+    if (fullscreenMode === 'preview' && (!hasPreview || !showPreview)) {
+      setFullscreenMode('off');
     }
-  }, [isFullscreen]);
+  }, [fullscreenMode, hasPreview, showPreview]);
+
+  // Lock body scroll and handle Escape key in fullscreen
+  useEffect(() => {
+    if (fullscreenMode === 'off') return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setFullscreenMode('off');
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [fullscreenMode]);
 
   const getContainer = () => containerRef.current as HTMLDivElement;
   const onFileSelect = (v: string) => {
@@ -197,7 +211,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
 
   const showCodeTab = entryData && entryData?.length > 1;
   return (
-    <div className={`${s.box} ${isFullscreen ? s['box-fullscreen'] : ''}`} ref={boxRef}>
+    <div className={`${s.box} ${fullscreenMode !== 'off' ? s['box-fullscreen'] : ''} ${fullscreenMode === 'preview' ? s['box-fullscreen-preview'] : ''}`} ref={boxRef}>
       <div className={s.container} ref={containerRef}>
         <div className={s.content}>
           <div className={s['code-wrap']}>
@@ -252,7 +266,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
             </div>
           </div>
 
-          <ResizableContainer show={hasPreview && showPreview} vertical={isVertical}>
+          <ResizableContainer show={fullscreenMode === 'preview' || (hasPreview && showPreview)} vertical={isVertical}>
             <div className={s['preview-wrap']}>
               <div className={s['preview-wrap-content']}>
                 <RadioGroup
@@ -452,7 +466,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
             <Button
               theme="borderless"
               icon={
-                isFullscreen ? (
+                fullscreenMode === 'all' ? (
                   <IconExitFullscreen
                     style={{ color: 'var(--semi-color-text-2)' }}
                   />
@@ -464,8 +478,31 @@ export const ExampleContent: FC<ExampleContentProps> = ({
               }
               type="tertiary"
               size="small"
-              onClick={() => setIsFullscreen((v) => !v)}
+              onClick={() =>
+                setFullscreenMode((m) => (m === 'all' ? 'off' : 'all'))
+              }
             />
+            {hasPreview && (
+              <Button
+                theme="borderless"
+                icon={
+                  fullscreenMode === 'preview' ? (
+                    <IconExitFullscreen
+                      style={{ color: 'var(--semi-color-text-2)' }}
+                    />
+                  ) : (
+                    <IconFullscreenPreview
+                      style={{ color: 'var(--semi-color-text-2)' }}
+                    />
+                  )
+                }
+                type="tertiary"
+                size="small"
+                onClick={() =>
+                  setFullscreenMode((m) => (m === 'preview' ? 'off' : 'preview'))
+                }
+              />
+            )}
             {rightFooter}
           </Space>
         </div>
