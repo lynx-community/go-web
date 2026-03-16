@@ -35,7 +35,10 @@ jobs:
           node-version: 20
 
       - run: pnpm install --no-frozen-lockfile
-      - run: cd example && pnpm install --no-frozen-lockfile && pnpm prepare:clean && pnpm build
+      - run: cd example && pnpm install --no-frozen-lockfile && pnpm prepare:clean
+      - name: Prepare vue-lynx examples (clone, build, copy)
+        run: cd example && node scripts/prepare-vue-lynx-examples.js --repo https://github.com/huxpro/vue-lynx --build
+      - run: cd example && pnpm build
 
   build-rspress:
     name: Build Rspress Example
