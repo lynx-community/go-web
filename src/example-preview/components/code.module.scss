@@ -1,4 +1,7 @@
 .code {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+
   :global(.rp-codeblock) {
     margin: 0 0;
     border: none;
