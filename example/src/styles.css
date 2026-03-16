@@ -216,6 +216,29 @@ html[style*='color-scheme: dark'] .shiki span {
   color: #fff !important;
 }
 
+/* Example version tags                                                */
+/* ------------------------------------------------------------------ */
+.example-tag {
+  display: inline-block;
+  font-size: 9px;
+  padding: 0 4px;
+  border-radius: 3px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+.example-tag-version {
+  background: #3b82f620;
+  color: #3b82f6;
+}
+
+.entry-list-btn[data-active='true'] .example-tag-version {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
 /* ------------------------------------------------------------------ */
 /* JSX dialog                                                          */
 /* ------------------------------------------------------------------ */

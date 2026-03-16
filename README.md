@@ -84,6 +84,20 @@ pnpm dev
 
 This starts the standalone example app at `localhost:3000`.
 
+### Lynx examples
+
+The `@lynx-example/*` packages are fetched directly from the npm registry at build time — no need to declare them as dependencies. The `prepare` script handles discovery, download, and metadata generation automatically.
+
+```bash
+# Local dev: uses cached examples if available (instant)
+pnpm prepare
+
+# Force re-fetch latest from npm registry
+pnpm prepare:clean
+```
+
+CI always runs `prepare:clean` to ensure examples are up-to-date.
+
 ## CI
 
 All three checks must pass on every PR:

@@ -4,11 +4,11 @@
   "type": "module",
   "scripts": {
     "prepare": "node scripts/prepare-examples.js",
+    "prepare:clean": "node scripts/prepare-examples.js --clean",
     "dev": "rspress dev",
     "build": "rspress build"
   },
   "dependencies": {
-    "@lynx-example/hello-world": "0.6.7",
     "@lynx-js/go-web": "file:..",
     "@rspress/core": "^2.0.3",
     "@douyinfe/semi-icons": "^2.74.0",

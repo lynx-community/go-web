@@ -430,6 +430,21 @@ function App() {
   const [defaultFile, setDefaultFile] = useState(initial.file ?? 'src/App.tsx');
   const [copied, setCopied] = useState(false);
 
+  // Per-example version map (for tags in the sidebar list)
+  const [exampleVersions, setExampleVersions] = useState<Record<string, string>>({});
+  useEffect(() => {
+    for (const name of EXAMPLES) {
+      fetch(`/lynx-examples/${name}/example-metadata.json`)
+        .then((res) => res.ok ? res.json() : null)
+        .then((data) => {
+          if (data?.version) {
+            setExampleVersions((prev) => ({ ...prev, [name]: data.version }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
   // Metadata & entry state
   const [metadata, setMetadata] = useState<Record<string, any> | null>(null);
   const [metadataLoading, setMetadataLoading] = useState(false);
@@ -797,9 +812,17 @@ function App() {
                     textAlign: 'left',
                     whiteSpace: 'nowrap',
                     transition: 'background 0.12s, color 0.12s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
                   }}
                 >
                   {name}
+                  {exampleVersions[name] && (
+                    <span className="example-tag example-tag-version">
+                      {exampleVersions[name]}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>

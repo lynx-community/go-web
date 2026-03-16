@@ -35,7 +35,7 @@ jobs:
           node-version: 20
 
       - run: pnpm install --no-frozen-lockfile
-      - run: cd example && pnpm install --no-frozen-lockfile && pnpm build
+      - run: cd example && pnpm install --no-frozen-lockfile && pnpm prepare:clean && pnpm build
 
   build-rspress:
     name: Build Rspress Example
@@ -50,4 +50,4 @@ jobs:
           node-version: 20
 
       - run: pnpm install --no-frozen-lockfile
-      - run: cd example-rspress && pnpm install --no-frozen-lockfile && pnpm build
+      - run: cd example-rspress && pnpm install --no-frozen-lockfile && pnpm prepare:clean && pnpm build

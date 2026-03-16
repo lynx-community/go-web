@@ -54,8 +54,8 @@ importers:
         specifier: 0.6.7
         version: 0.6.7(@types/react@18.3.28)
       '@lynx-example/hello-world':
-        specifier: 0.6.7
-        version: 0.6.7(@types/react@18.3.28)
+        specifier: 0.6.8
+        version: 0.6.8(@types/react@18.3.28)
       '@lynx-example/i18n':
         specifier: 0.5.5
         version: 0.5.5(@types/react@18.3.28)
@@ -84,8 +84,8 @@ importers:
         specifier: 0.1.7
         version: 0.1.7(@types/react@18.3.28)
       '@lynx-example/main-thread':
-        specifier: 0.4.6
-        version: 0.4.6(@types/react@18.3.28)
+        specifier: 0.4.7
+        version: 0.4.7(@types/react@18.3.28)
       '@lynx-example/native-element':
         specifier: 0.6.7
         version: 0.6.7(@types/react@18.3.28)
@@ -328,8 +328,8 @@ packages:
   '@lynx-example/gallery@0.6.7':
     resolution: {integrity: sha512-erXkDalISkUTToHf8eooYm9QdGY1uNQeRhaJNzmu5eUQ1mJRtPfaaAm8YmQusP5qfEN2ajmPRZ81vo4AUW/4Xg==}
 
-  '@lynx-example/hello-world@0.6.7':
-    resolution: {integrity: sha512-6uUI4/x24QFtzlOv6yLS9yHhMN1iMFijpsaSPBgC1OaUES03XM/xWwbiXKMqoosRDM93TNuPczOyCiAgBrwswA==}
+  '@lynx-example/hello-world@0.6.8':
+    resolution: {integrity: sha512-MgsovxJHgxCr91sOJPD0KKV0NM8aRk4IUWRsz2tA5ZP3FhgB5lj+N6NouVVDYUPbvciSOzDJDJ3gGbpu97AeSQ==}
     engines: {node: '>=18'}
 
   '@lynx-example/i18n@0.5.5':
@@ -365,8 +365,8 @@ packages:
     resolution: {integrity: sha512-WMLcWgWBn/DminNaWD0UV6Ro58odW/rqIwlsH8netqUgg3ZL6p6Gq+s2f8UJxXk4WacFu2DYYlSMpbNDFEOcyg==}
     engines: {node: '>=18'}
 
-  '@lynx-example/main-thread@0.4.6':
-    resolution: {integrity: sha512-Eg17uXLorAZ2AYEz2SH15k4/q4o0koxIXDAjhOALzXX7f8dgeAuqyc4C3Bouwo8kAMh8J0Zn3hmTqocjct9g+w==}
+  '@lynx-example/main-thread@0.4.7':
+    resolution: {integrity: sha512-7PMUhNlfX7lIM1SNeJF4PJBg7uyOs76iY7qWGsv/8gRiHuB4tu7UBtqb5X69Oy5kBKpZfZkcAor0F/ECsNQBSw==}
     engines: {node: '>=18'}
 
   '@lynx-example/native-element@0.6.7':
@@ -2273,9 +2273,9 @@ snapshots:
       - '@lynx-js/types'
       - '@types/react'
 
-  '@lynx-example/hello-world@0.6.7(@types/react@18.3.28)':
+  '@lynx-example/hello-world@0.6.8(@types/react@18.3.28)':
     dependencies:
-      '@lynx-js/react': 0.115.1(@types/react@18.3.28)
+      '@lynx-js/react': 0.116.4(@types/react@18.3.28)
     transitivePeerDependencies:
       - '@lynx-js/types'
       - '@types/react'
@@ -2345,9 +2345,9 @@ snapshots:
       - '@lynx-js/types'
       - '@types/react'
 
-  '@lynx-example/main-thread@0.4.6(@types/react@18.3.28)':
+  '@lynx-example/main-thread@0.4.7(@types/react@18.3.28)':
     dependencies:
-      '@lynx-js/react': 0.115.3(@types/react@18.3.28)
+      '@lynx-js/react': 0.116.4(@types/react@18.3.28)
     transitivePeerDependencies:
       - '@lynx-js/types'
       - '@types/react'
