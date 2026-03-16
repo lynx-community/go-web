@@ -486,10 +486,31 @@ export const ExampleContent: FC<ExampleContentProps> = ({
                 );
               }}
             />
+            {fullscreenMode !== 'off' && (
+              <Space spacing={6}>
+                <Typography.Text size="small" type="tertiary">
+                  Code
+                </Typography.Text>
+                <Switch
+                  style={{
+                    backgroundColor:
+                      fullscreenMode === 'all'
+                        ? 'var(--semi-color-info)'
+                        : 'var(--semi-color-fill-0)',
+                    cursor: 'pointer',
+                  }}
+                  checked={fullscreenMode === 'all'}
+                  onChange={(checked) =>
+                    setFullscreenMode(checked ? 'all' : 'preview')
+                  }
+                  size="small"
+                />
+              </Space>
+            )}
             <Button
               theme="borderless"
               icon={
-                fullscreenMode === 'all' ? (
+                fullscreenMode !== 'off' ? (
                   <IconExitFullscreen
                     style={{ color: 'var(--semi-color-text-2)' }}
                   />
@@ -502,7 +523,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
               type="tertiary"
               size="small"
               onClick={() =>
-                setFullscreenMode((m) => (m === 'all' ? 'off' : 'all'))
+                setFullscreenMode((m) => (m !== 'off' ? 'off' : 'all'))
               }
             />
             {rightFooter}
