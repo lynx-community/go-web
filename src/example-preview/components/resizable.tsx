@@ -33,7 +33,7 @@ export const ResizableContainer = ({
           width: '100%',
         }}
         minHeight={100}
-        maxHeight="70%"
+        maxHeight="80%"
         handleStyle={{
           top: {
             top: '-8px',
