@@ -257,6 +257,25 @@
     env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
     env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
   animation: fullscreen-enter 0.15s ease-out;
+
+  // Override mobile / container-query vertical stacking —
+  // fullscreen always uses horizontal layout with default sizing.
+  .content {
+    flex-direction: row !important;
+    align-items: stretch !important;
+  }
+
+  .code-wrap {
+    flex: initial !important;
+    min-height: 0 !important;
+    height: 100% !important;
+  }
+
+  :global {
+    .semi-resizable-resizableHandler {
+      display: block !important;
+    }
+  }
 }
 
 .box-fullscreen-preview {

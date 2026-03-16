@@ -265,7 +265,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
             </div>
           </div>
 
-          <ResizableContainer show={fullscreenMode === 'preview' || (hasPreview && showPreview)} vertical={isVertical}>
+          <ResizableContainer show={fullscreenMode === 'preview' || (hasPreview && showPreview)} vertical={fullscreenMode === 'off' && isVertical}>
             <div className={s['preview-wrap']}>
               <div className={s['preview-wrap-content']}>
                 <div className={s['preview-header']}>
