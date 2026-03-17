@@ -1,6 +1,20 @@
 /* ------------------------------------------------------------------ */
 /* Shiki dual-theme support                                            */
 /* ------------------------------------------------------------------ */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.rp-codeblock,
+.rp-codeblock *,
+.shiki,
+.shiki *,
+.shiki code {
+  -webkit-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
+
 html[style*='color-scheme: light'] .shiki,
 html:not([style*='color-scheme: dark']) .shiki {
   background-color: var(--shiki-light-bg, #fff) !important;
