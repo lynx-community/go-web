@@ -76,13 +76,48 @@ const html = generateSSGHTML({
 
 The `./ssg` export uses Node.js `fs`/`path` and must not be bundled into browser code.
 
+### Iframe Embed (no React required)
+
+For non-React sites (Hugo, Jekyll, plain HTML, etc.), use the iframe embed API. The host page only loads a tiny JS file — React runs inside the iframe.
+
+```html
+<div id="demo" style="height: 500px;"></div>
+<script type="module">
+  import { mount } from 'https://go.lynxjs.org/embed.js';
+
+  const embed = mount('#demo', {
+    example: 'hello-world',
+    defaultFile: 'src/App.tsx',
+  });
+
+  // Switch example dynamically:
+  // embed.update({ example: 'css' });
+
+  // Clean up:
+  // embed.destroy();
+</script>
+```
+
+Options:
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `example` | `string` | **Required.** Example folder name |
+| `defaultFile` | `string` | Initial file to display (default: `'src/App.tsx'`) |
+| `defaultTab` | `'preview' \| 'web' \| 'qrcode'` | Default preview tab |
+| `exampleBasePath` | `string` | Base path or full URL for example data |
+| `img` | `string` | Static preview image URL |
+| `defaultEntryFile` | `string` | Default entry file for web preview |
+| `highlight` | `string` | Line highlight spec, e.g. `'{1,3-5}'` |
+| `entry` | `string \| string[]` | Filter entry files in tree |
+
 ## Development
 
 ```bash
 pnpm dev
 ```
 
-This starts the standalone example app at `localhost:3000`.
+This starts the standalone example app at `localhost:5969`.
 
 ### Lynx examples
 
