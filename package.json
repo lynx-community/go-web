@@ -12,7 +12,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./adapters/rspress": "./src/adapters/rspress.tsx",
-    "./ssg": "./src/ssg.tsx"
+    "./ssg": "./src/ssg.tsx",
+    "./embed": "./src/embed.ts"
   },
   "files": [
     "src"

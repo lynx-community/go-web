@@ -44,13 +44,28 @@ for (const name of exampleNames) {
 export default defineConfig({
   plugins: [pluginReact(), pluginSass()],
 
+  server: {
+    port: 5969,
+    proxy: {
+      // Proxy requests to production examples when local examples are not available.
+      // This avoids CORS issues when testing the embed with go.lynxjs.org data.
+      '/proxy-lynx-examples': {
+        target: 'https://go.lynxjs.org',
+        pathRewrite: { '^/proxy-lynx-examples': '/lynx-examples' },
+        changeOrigin: true,
+      },
+    },
+  },
+
   html: {
-    template: './index.html',
+    template: ({ entryName }) =>
+      entryName === 'embed' ? './embed.html' : './index.html',
   },
 
   source: {
     entry: {
       index: './src/main.tsx',
+      embed: './src/embed-entry.tsx',
     },
     define: {
       // Inject the example list as a build-time constant

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Go Web — Iframe Embed Test</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+        background: #f0f0f0;
+        color: #333;
+        padding: 40px;
+      }
+
+      h1 {
+        font-size: 24px;
+        margin-bottom: 8px;
+      }
+
+      p {
+        color: #666;
+        margin-bottom: 24px;
+        line-height: 1.5;
+      }
+
+      .demo-container {
+        height: 500px;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+        margin-bottom: 32px;
+      }
+
+      .controls {
+        margin-bottom: 24px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        padding: 8px 16px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        background: #fff;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      button:hover { background: #f5f5f5; }
+      button.active { background: #0071e3; color: #fff; border-color: #0071e3; }
+
+      code {
+        background: #e8e8e8;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+
+      .code-block {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 16px 20px;
+        border-radius: 8px;
+        font-family: 'SF Mono', 'Fira Code', Menlo, monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        overflow-x: auto;
+        margin-bottom: 32px;
+        white-space: pre;
+      }
+
+      h2 {
+        font-size: 18px;
+        margin-bottom: 12px;
+      }
+
+      .info {
+        background: #e3f2fd;
+        border: 1px solid #90caf9;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 24px;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+    </style>
+  </head>
+  <body>
+    <h1>Iframe Embed API Test</h1>
+    <p>
+      This page demonstrates the <code>@lynx-js/go-web</code> iframe embed API.
+      It loads the Go component inside an iframe via a pure JS <code>mount()</code> call —
+      no React dependency needed on the host page.
+    </p>
+
+    <div class="info">
+      <strong>How to test:</strong><br/>
+      1. Start dev server: <code>cd example && pnpm dev</code> (serves on <strong>localhost:5969</strong>)<br/>
+      2. Open this file in a browser (or <code>npx serve example-iframe-embed</code>)<br/>
+      Example data is proxied from <strong>go.lynxjs.org</strong> via <code>/proxy-lynx-examples</code>.
+    </div>
+
+    <h2>Usage</h2>
+    <div class="code-block">&lt;div id="demo" style="height: 500px"&gt;&lt;/div&gt;
+&lt;script type="module"&gt;
+  import { mount } from 'https://go.lynxjs.org/embed.js';
+  mount('#demo', {
+    example: 'hello-world',
+    defaultFile: 'src/App.tsx',
+    exampleBasePath: 'https://go.lynxjs.org/lynx-examples',
+  });
+&lt;/script&gt;</div>
+
+    <h2>Live Demo</h2>
+
+    <div class="controls" id="controls"></div>
+
+    <div class="demo-container" id="demo"></div>
+
+    <script type="module">
+      // ---------------------------------------------------------------------------
+      // Config
+      // ---------------------------------------------------------------------------
+
+      // The embed React app runs on localhost (cd example && pnpm dev).
+      // Example data is proxied through the dev server to avoid CORS issues.
+      // The proxy rewrites /proxy-lynx-examples/* → go.lynxjs.org/lynx-examples/*
+      const EMBED_BASE = 'http://localhost:5969';
+      const EXAMPLE_BASE_PATH = '/proxy-lynx-examples';
+
+      // ---------------------------------------------------------------------------
+      // Inline mount() — mimics src/embed.ts for local testing
+      // In production you'd: import { mount } from 'https://go.lynxjs.org/embed.js'
+      // ---------------------------------------------------------------------------
+
+      function mount(container, options) {
+        const el = typeof container === 'string'
+          ? document.querySelector(container)
+          : container;
+
+        if (!el) throw new Error('Container not found: ' + container);
+
+        const embedUrl = new URL(EMBED_BASE + '/embed');
+
+        const iframe = document.createElement('iframe');
+        iframe.src = embedUrl.href;
+        iframe.style.cssText = 'width: 100%; height: 100%; border: none;';
+
+        let currentOptions = { ...options };
+
+        function handleMessage(event) {
+          if (event.source !== iframe.contentWindow) return;
+          if (event.data?.type === 'go-embed:ready') {
+            iframe.contentWindow.postMessage({
+              type: 'go-embed:init',
+              options: currentOptions,
+            }, '*');
+          }
+        }
+
+        window.addEventListener('message', handleMessage);
+        el.innerHTML = '';
+        el.appendChild(iframe);
+
+        return {
+          iframe,
+          update(newOptions) {
+            currentOptions = { ...currentOptions, ...newOptions };
+            iframe.contentWindow.postMessage({
+              type: 'go-embed:update',
+              options: newOptions,
+            }, '*');
+          },
+          destroy() {
+            window.removeEventListener('message', handleMessage);
+            el.innerHTML = '';
+          },
+        };
+      }
+
+      // ---------------------------------------------------------------------------
+      // Fetch available examples from production
+      // ---------------------------------------------------------------------------
+
+      async function fetchExampleList() {
+        // Try a few known examples; the production site doesn't expose a directory listing.
+        // Requests go through the dev server proxy to avoid CORS.
+        const knownExamples = [
+          'hello-world', 'text', 'view', 'image', 'css',
+          'scroll-view', 'list', 'navigator',
+        ];
+
+        const available = [];
+        await Promise.all(
+          knownExamples.map(async (name) => {
+            try {
+              const res = await fetch(`${EMBED_BASE}${EXAMPLE_BASE_PATH}/${name}/example-metadata.json`, { method: 'HEAD' });
+              if (res.ok) available.push(name);
+            } catch { /* skip */ }
+          }),
+        );
+
+        // Preserve original order
+        return knownExamples.filter((n) => available.includes(n));
+      }
+
+      // ---------------------------------------------------------------------------
+      // Mount demos
+      // ---------------------------------------------------------------------------
+
+      const examples = await fetchExampleList();
+      if (examples.length === 0) {
+        examples.push('hello-world'); // fallback
+      }
+
+      const EXAMPLES = examples.map((name) => ({
+        name,
+        file: 'src/App.tsx',
+      }));
+
+      // Mount main demo
+      let embed = mount('#demo', {
+        example: EXAMPLES[0].name,
+        defaultFile: EXAMPLES[0].file,
+        defaultTab: 'web',
+        exampleBasePath: EXAMPLE_BASE_PATH,
+      });
+
+      // Create example switcher buttons
+      const controls = document.getElementById('controls');
+      EXAMPLES.forEach((ex, i) => {
+        const btn = document.createElement('button');
+        btn.textContent = ex.name;
+        if (i === 0) btn.classList.add('active');
+        btn.addEventListener('click', () => {
+          controls.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          embed.destroy();
+          embed = mount('#demo', {
+            example: ex.name,
+            defaultFile: ex.file,
+            defaultTab: 'web',
+            exampleBasePath: EXAMPLE_BASE_PATH,
+          });
+        });
+        controls.appendChild(btn);
+      });
+
+    </script>
+  </body>
+</html>
