@@ -146,16 +146,33 @@ const SSG_PREVIEWS: Record<string, string> =
 // Runtime example & version fetching hooks
 // ---------------------------------------------------------------------------
 
+type PackagesSource = 'build' | 'fetching' | 'live' | 'error';
+
 function useExamplePackages() {
-  const [packages, setPackages] = useState<NpmPackageInfo[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Initialize immediately from build-time data — zero latency on first render
+  const [packages, setPackages] = useState<NpmPackageInfo[]>(() =>
+    (import.meta.env.EXAMPLES ?? ['hello-world']).map((name: string) => ({
+      name: `@lynx-example/${name}`,
+      shortName: name,
+      version: '',
+    })),
+  );
+  const [source, setSource] = useState<PackagesSource>('build');
+
   useEffect(() => {
+    setSource('fetching');
     searchExamplePackages()
-      .then(setPackages)
-      .catch((err) => console.error('Failed to fetch example packages:', err))
-      .finally(() => setLoading(false));
+      .then((pkgs) => {
+        setPackages(pkgs);
+        setSource('live');
+      })
+      .catch((err) => {
+        console.error('Failed to fetch example packages:', err);
+        setSource('error');
+      });
   }, []);
-  return { packages, loading };
+
+  return { packages, source };
 }
 
 function usePackageVersions(packageName: string) {
@@ -172,6 +189,38 @@ function usePackageVersions(packageName: string) {
       .finally(() => setLoading(false));
   }, [packageName]);
   return { versions, loading };
+}
+
+// ---------------------------------------------------------------------------
+// SourceBadge — shows whether the example list is from build-time or npm live
+// ---------------------------------------------------------------------------
+
+const SOURCE_BADGE_CONFIG: Record<
+  PackagesSource,
+  { label: string; className: string; dot: boolean }
+> = {
+  build:    { label: 'static', className: 'source-badge-build',    dot: false },
+  fetching: { label: 'fetching', className: 'source-badge-fetching', dot: true  },
+  live:     { label: 'live',    className: 'source-badge-live',     dot: true  },
+  error:    { label: 'offline', className: 'source-badge-error',    dot: false },
+};
+
+function SourceBadge({ source, count }: { source: PackagesSource; count: number }) {
+  const { label, className, dot } = SOURCE_BADGE_CONFIG[source];
+  return (
+    <span
+      className={`source-badge ${className}`}
+      title={
+        source === 'build'    ? `Showing ${count} examples from build-time bundle` :
+        source === 'fetching' ? 'Fetching latest examples from npm registry…' :
+        source === 'live'     ? `Showing ${count} examples fetched live from npm` :
+                                'npm fetch failed — showing build-time bundle'
+      }
+    >
+      {dot && <span className={`source-dot${source === 'fetching' ? ' source-dot-fetching' : ''}`} />}
+      {label}
+    </span>
+  );
 }
 
 function getExampleSource(name: string): 'vue' | 'lynx' {
@@ -559,13 +608,10 @@ function App() {
   const [entrySearch, setEntrySearch] = useState('');
 
   // Runtime: fetch example list and versions from npm
-  const { packages: examplePackages, loading: packagesLoading } =
+  const { packages: examplePackages, source: packagesSource } =
     useExamplePackages();
   const EXAMPLES = useMemo(
-    () =>
-      examplePackages.length > 0
-        ? examplePackages.map((p) => p.shortName)
-        : (import.meta.env.EXAMPLES ?? ['hello-world']),
+    () => examplePackages.map((p) => p.shortName),
     [examplePackages],
   );
   const { versions: packageVersions } = usePackageVersions(
@@ -952,6 +998,7 @@ function App() {
                 }}
               >
                 <span>Examples</span>
+                <SourceBadge source={packagesSource} count={EXAMPLES.length} />
                 <input
                   type="text"
                   value={exampleSearch}
@@ -971,17 +1018,6 @@ function App() {
                   }}
                 />
               </div>
-              {packagesLoading && (
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: 'var(--sb-text-dim)',
-                    padding: '3px 8px',
-                  }}
-                >
-                  Loading from npm…
-                </span>
-              )}
               {EXAMPLES.filter(
                 (name) =>
                   !exampleSearch ||

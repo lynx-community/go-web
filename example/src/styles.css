@@ -243,6 +243,60 @@ html[style*='color-scheme: dark'] .shiki span {
   left: 1.5px;
 }
 
+/* ------------------------------------------------------------------ */
+/* npm source badge (build / fetching / live / error)                 */
+/* ------------------------------------------------------------------ */
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  cursor: default;
+}
+
+.source-badge-build {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.source-badge-fetching {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+}
+
+.source-badge-live {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.source-badge-error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.source-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+@keyframes source-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.source-dot-fetching {
+  animation: source-pulse 1.2s ease-in-out infinite;
+}
+
 /* Example version tags                                                */
 /* ------------------------------------------------------------------ */
 .example-tag {
