@@ -466,6 +466,38 @@ function getJsonHighlighter() {
 }
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Convert PascalCase / camelCase to kebab-case. */
+function toKebab(s: string) {
+  return s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+}
+
+/**
+ * Given an entry name (from bundle filename, e.g. "gallery-autoscroll") and the
+ * full file list, find the actual source directory and index file.  Rspeedy may
+ * kebab-case PascalCase directory names in the output bundle, so we can't just
+ * use `src/${entryName}/` directly.
+ */
+function findEntrySourceDir(
+  entryName: string,
+  files: string[],
+): { srcDir: string; indexFile: string | undefined } | undefined {
+  // Collect src/*/index.* candidates
+  for (const f of files) {
+    const m = f.match(/^src\/([^/]+)\/index\.\w+$/);
+    if (m) {
+      const dirName = m[1];
+      if (dirName === entryName || toKebab(dirName) === entryName) {
+        return { srcDir: `src/${dirName}`, indexFile: f };
+      }
+    }
+  }
+  return undefined;
+}
+
+// ---------------------------------------------------------------------------
 // App
 // ---------------------------------------------------------------------------
 
@@ -481,7 +513,9 @@ function App() {
     initial.tab ?? 'web',
   );
   const [example, setExample] = useState(initial.example ?? 'hello-world');
-  const [defaultFile, setDefaultFile] = useState(initial.file ?? 'src/App.tsx');
+  const [defaultFile, setDefaultFile] = useState(
+    initial.file ?? ((initial.example ?? 'hello-world').startsWith('vue-') ? 'src/App.vue' : 'src/App.tsx'),
+  );
   const [copied, setCopied] = useState(false);
   const [exampleSearch, setExampleSearch] = useState('');
   const [entrySearch, setEntrySearch] = useState('');
@@ -614,8 +648,9 @@ function App() {
           setSelectedEntry(first.name);
           setDefaultEntryFile(first.file);
           if (data.templateFiles.length > 1) {
-            setDefaultFile(`src/${first.name}/index.tsx`);
-            setEntryFilter(`src/${first.name}`);
+            const found = findEntrySourceDir(first.name, data.files ?? []);
+            setDefaultFile(found?.indexFile ?? `src/${first.name}/index.tsx`);
+            setEntryFilter(found?.srcDir ?? `src/${first.name}`);
           } else {
             setEntryFilter('');
           }
@@ -654,8 +689,9 @@ function App() {
       if (entry) {
         setDefaultEntryFile(entry.file);
         if (metadata!.templateFiles.length > 1) {
-          setDefaultFile(`src/${entryName}/index.tsx`);
-          setEntryFilter(`src/${entryName}`);
+          const found = findEntrySourceDir(entryName, metadata!.files ?? []);
+          setDefaultFile(found?.indexFile ?? `src/${entryName}/index.tsx`);
+          setEntryFilter(found?.srcDir ?? `src/${entryName}`);
         }
       }
     },

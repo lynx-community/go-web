@@ -163,7 +163,7 @@ function EmbedApp() {
         <Go
           key={`${options.exampleBasePath}/${options.example}`}
           example={options.example}
-          defaultFile={options.defaultFile ?? 'src/App.tsx'}
+          defaultFile={options.defaultFile ?? (options.example.startsWith('vue-') ? 'src/App.vue' : 'src/App.tsx')}
           defaultTab={options.defaultTab}
           img={options.img}
           defaultEntryFile={options.defaultEntryFile}
