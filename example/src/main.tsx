@@ -469,27 +469,25 @@ function getJsonHighlighter() {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Convert PascalCase / camelCase to kebab-case. */
-function toKebab(s: string) {
-  return s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-}
-
 /**
  * Given an entry name (from bundle filename, e.g. "gallery-autoscroll") and the
- * full file list, find the actual source directory and index file.  Rspeedy may
- * kebab-case PascalCase directory names in the output bundle, so we can't just
- * use `src/${entryName}/` directly.
+ * full file list, find the actual source directory and index file.
+ *
+ * Entry keys in lynx.config.ts may differ in casing/hyphenation from source
+ * directory names (e.g. entry "gallery-autoscroll" → dir "GalleryAutoScroll"),
+ * so we normalize both sides by stripping hyphens and comparing lowercase.
  */
 function findEntrySourceDir(
   entryName: string,
   files: string[],
 ): { srcDir: string; indexFile: string | undefined } | undefined {
-  // Collect src/*/index.* candidates
+  const normalize = (s: string) => s.replace(/-/g, '').toLowerCase();
+  const target = normalize(entryName);
   for (const f of files) {
     const m = f.match(/^src\/([^/]+)\/index\.\w+$/);
     if (m) {
       const dirName = m[1];
-      if (dirName === entryName || toKebab(dirName) === entryName) {
+      if (normalize(dirName) === target) {
         return { srcDir: `src/${dirName}`, indexFile: f };
       }
     }
