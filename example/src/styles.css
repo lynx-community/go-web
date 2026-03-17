@@ -266,6 +266,11 @@ html[style*='color-scheme: dark'] .shiki span {
   color: #c026d3;
 }
 
+.example-tag-vue {
+  background: #42b88320;
+  color: #42b883;
+}
+
 .example-tag-web {
   background: #10b98120;
   color: #059669;
