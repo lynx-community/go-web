@@ -93,7 +93,11 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
 
   // Load web-core + web-elements eagerly on mount
   useEffect(() => {
-    ensureRuntime().then(() => setReady(true));
+    const t = performance.now();
+    ensureRuntime().then(() => {
+      console.log('[WebIframe] runtime ready', `${(performance.now() - t).toFixed(0)}ms`);
+      setReady(true);
+    });
   }, []);
 
   // Update lynx-view dimensions to match the container.
@@ -116,6 +120,10 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
   // Set URL only after runtime is ready AND element is mounted
   useEffect(() => {
     if (ready && show && src && lynxViewRef.current && containerRef.current) {
+      const t0 = performance.now();
+      const tag = `[WebIframe ${src.split('/').pop()}]`;
+      console.log(tag, 'effect start', { ready, show, src });
+
       updateDimensions();
 
       // @ts-ignore
@@ -158,6 +166,7 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
         return template;
       };
 
+      console.log(tag, 'url set', `+${(performance.now() - t0).toFixed(0)}ms`);
       lynxViewRef.current.url = src;
 
       // Workaround: web-core reads MouseEvent.x/.y (viewport-relative) for
@@ -188,8 +197,15 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
       // The shadow root is created asynchronously by web-core after url is
       // set, so we poll until it becomes available before attaching observers.
       const setupShadow = (shadow: ShadowRoot) => {
+        console.log(tag, 'shadow found', `+${(performance.now() - t0).toFixed(0)}ms`, {
+          childElementCount: shadow.childElementCount,
+        });
+
         mo = new MutationObserver(() => {
           if (shadow.childElementCount > 0) {
+            console.log(tag, 'rendered (observer)', `+${(performance.now() - t0).toFixed(0)}ms`, {
+              childElementCount: shadow.childElementCount,
+            });
             setRendered(true);
             mo!.disconnect();
           }
@@ -213,7 +229,10 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
       pollShadow();
 
       // Fallback: hide loading after timeout
-      const timer = setTimeout(() => setRendered(true), 5000);
+      const timer = setTimeout(() => {
+        console.log(tag, 'rendered (timeout fallback)', `+${(performance.now() - t0).toFixed(0)}ms`);
+        setRendered(true);
+      }, 5000);
       return () => {
         disposed = true;
         clearTimeout(timer);
