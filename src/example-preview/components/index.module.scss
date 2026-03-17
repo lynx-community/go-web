@@ -64,6 +64,8 @@
       overflow: auto;
       min-height: 0;
       background: var(--shiki-dark-bg, var(--rp-code-block-bg, var(--semi-color-bg-1)));
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
     }
     .code-tab {
       width: 100%;
