@@ -366,25 +366,29 @@ function ColumnResizer({
   onWidthChange: (w: number) => void;
   reverse?: boolean;
 }) {
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
       e.preventDefault();
+      const el = e.currentTarget as HTMLElement;
+      el.setPointerCapture(e.pointerId);
       const startX = e.clientX;
       const startW = widthRef.current!;
       const sign = reverse ? -1 : 1;
-      const onMouseMove = (ev: MouseEvent) => {
+      const onPointerMove = (ev: PointerEvent) => {
         onWidthChange(Math.max(80, startW + (ev.clientX - startX) * sign));
       };
-      const onMouseUp = () => {
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
+      const onPointerUp = () => {
+        el.removeEventListener('pointermove', onPointerMove);
+        el.removeEventListener('pointerup', onPointerUp);
+        el.removeEventListener('pointercancel', onPointerUp);
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
       };
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', onMouseUp);
+      el.addEventListener('pointermove', onPointerMove);
+      el.addEventListener('pointerup', onPointerUp);
+      el.addEventListener('pointercancel', onPointerUp);
     },
     [widthRef, onWidthChange, reverse],
   );
@@ -392,7 +396,8 @@ function ColumnResizer({
   return (
     <div
       className="col-resizer"
-      onMouseDown={handleMouseDown}
+      onPointerDown={handlePointerDown}
+      style={{ touchAction: 'none' }}
     />
   );
 }

@@ -185,18 +185,110 @@ export const SplitPane = React.forwardRef<SplitPaneHandle, SplitPaneProps>(({
     snapZoneRef.current = 'none';
   }, []);
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
+  const KEYBOARD_STEP = 20;
+  const KEYBOARD_STEP_LARGE = 60;
+
+  /** Commit a final size after drag ends, handling collapse/expand/snap-back. */
+  const commitSize = useCallback(
+    (previewSize: number) => {
+      const containerInner = getContainerInner(containerRef.current, vertical);
+      const codeSize = containerInner - previewSize - DIVIDER_SIZE;
+
+      // --- Preview collapse/expand ---
+      if (onCollapsedChange) {
+        if (collapsed) {
+          if (previewSize > previewCollapse) {
+            sizeRef.current = previewSize;
+            onCollapsedChange(false);
+          } else {
+            setSecondSize(COLLAPSED_SIZE);
+          }
+          return;
+        }
+
+        if (!firstCollapsed && previewSize < previewCollapse) {
+          sizeRef.current = previewSize;
+          onCollapsedChange(true);
+          return;
+        }
+      }
+
+      // --- Code collapse/expand ---
+      if (onFirstCollapsedChange && !collapsed) {
+        if (firstCollapsed) {
+          if (codeSize > codeCollapse) {
+            sizeRef.current = previewSize;
+            onFirstCollapsedChange(false);
+          } else {
+            setSecondSize(containerInner - DIVIDER_SIZE);
+          }
+          return;
+        }
+
+        if (codeSize < codeCollapse && containerInner > 0) {
+          sizeRef.current = previewSize;
+          onFirstCollapsedChange(true);
+          return;
+        }
+      }
+
+      // --- Soft min snap-back ---
+      if (!collapsed && !firstCollapsed && containerInner > 0) {
+        const maxPreview = Math.max(containerInner - CODE_SOFT_MIN - DIVIDER_SIZE, 0);
+        const minPreview = PREVIEW_SOFT_MIN;
+
+        if (previewSize > maxPreview && maxPreview > 0) {
+          setSecondSize(maxPreview);
+        } else if (previewSize < minPreview && minPreview < containerInner) {
+          setSecondSize(minPreview);
+        } else {
+          setSecondSize(previewSize);
+        }
+      } else {
+        setSecondSize(previewSize);
+      }
+    },
+    [
+      vertical,
+      collapsed,
+      firstCollapsed,
+      previewCollapse,
+      codeCollapse,
+      onCollapsedChange,
+      onFirstCollapsedChange,
+      setSecondSize,
+    ],
+  );
+
+  /** Reset both panels to default sizes. */
+  const resetToDefault = useCallback(() => {
+    // Expand any collapsed panels first
+    if (collapsed) onCollapsedChange?.(false);
+    if (firstCollapsed) onFirstCollapsedChange?.(false);
+
+    if (vertical) {
+      const containerInner = getContainerInner(containerRef.current, true);
+      setSecondSize(containerInner ? Math.round((containerInner - DIVIDER_SIZE) / 2) : H_DEFAULT);
+    } else {
+      setSecondSize(H_DEFAULT);
+    }
+  }, [vertical, collapsed, firstCollapsed, onCollapsedChange, onFirstCollapsedChange, setSecondSize]);
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
       e.preventDefault();
       const containerEl = containerRef.current;
       const secondEl = secondRef.current;
       const firstEl = firstRef.current;
+      const dividerEl = e.currentTarget as HTMLElement;
       if (!containerEl || !firstEl || !secondEl) return;
+
+      dividerEl.setPointerCapture(e.pointerId);
 
       const startPos = vertical ? e.clientY : e.clientX;
       const startSize = sizeRef.current ?? 0;
 
-      const onMouseMove = (ev: MouseEvent) => {
+      const onPointerMove = (ev: PointerEvent) => {
         const delta = vertical
           ? startPos - ev.clientY // top resize: moving up increases second panel
           : startPos - ev.clientX; // left resize: moving left increases second panel
@@ -232,9 +324,10 @@ export const SplitPane = React.forwardRef<SplitPaneHandle, SplitPaneProps>(({
         }
       };
 
-      const onMouseUp = (ev: MouseEvent) => {
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
+      const onPointerUp = (ev: PointerEvent) => {
+        dividerEl.removeEventListener('pointermove', onPointerMove);
+        dividerEl.removeEventListener('pointerup', onPointerUp);
+        dividerEl.removeEventListener('pointercancel', onPointerUp);
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
 
@@ -244,68 +337,14 @@ export const SplitPane = React.forwardRef<SplitPaneHandle, SplitPaneProps>(({
           ? startPos - ev.clientY
           : startPos - ev.clientX;
         const previewSize = Math.max(startSize + delta, 0);
-        const containerInner = getContainerInner(containerEl, vertical);
-        const codeSize = containerInner - previewSize - DIVIDER_SIZE;
-
-        // --- Preview collapse/expand ---
-        if (onCollapsedChange) {
-          if (collapsed) {
-            if (previewSize > previewCollapse) {
-              sizeRef.current = previewSize;
-              onCollapsedChange(false);
-            } else {
-              setSecondSize(COLLAPSED_SIZE);
-            }
-            return;
-          }
-
-          if (!firstCollapsed && previewSize < previewCollapse) {
-            sizeRef.current = previewSize;
-            onCollapsedChange(true);
-            return;
-          }
-        }
-
-        // --- Code collapse/expand ---
-        if (onFirstCollapsedChange && !collapsed) {
-          if (firstCollapsed) {
-            if (codeSize > codeCollapse) {
-              sizeRef.current = previewSize;
-              onFirstCollapsedChange(false);
-            } else {
-              setSecondSize(containerInner - DIVIDER_SIZE);
-            }
-            return;
-          }
-
-          if (codeSize < codeCollapse && containerInner > 0) {
-            sizeRef.current = previewSize;
-            onFirstCollapsedChange(true);
-            return;
-          }
-        }
-
-        // --- Soft min snap-back ---
-        if (!collapsed && !firstCollapsed && containerInner > 0) {
-          const maxPreview = Math.max(containerInner - CODE_SOFT_MIN - DIVIDER_SIZE, 0);
-          const minPreview = PREVIEW_SOFT_MIN;
-
-          if (previewSize > maxPreview && maxPreview > 0) {
-            setSecondSize(maxPreview);
-          } else if (previewSize < minPreview && minPreview < containerInner) {
-            setSecondSize(minPreview);
-          } else {
-            setSecondSize(previewSize);
-          }
-        } else {
-          setSecondSize(previewSize);
-        }
+        commitSize(previewSize);
       };
 
       document.body.style.cursor = vertical ? 'row-resize' : 'col-resize';
       document.body.style.userSelect = 'none';
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', onMouseUp);
+      dividerEl.addEventListener('pointermove', onPointerMove);
+      dividerEl.addEventListener('pointerup', onPointerUp);
+      dividerEl.addEventListener('pointercancel', onPointerUp);
     },
     [
       vertical,
@@ -313,11 +352,57 @@ export const SplitPane = React.forwardRef<SplitPaneHandle, SplitPaneProps>(({
       firstCollapsed,
       previewCollapse,
       codeCollapse,
-      onCollapsedChange,
-      onFirstCollapsedChange,
-      setSecondSize,
+      commitSize,
       clearSnapHints,
     ],
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const currentSize = sizeRef.current ?? 0;
+      const step = e.shiftKey ? KEYBOARD_STEP_LARGE : KEYBOARD_STEP;
+
+      // In our layout, second panel is the right/bottom panel.
+      // Arrow left/up → increase second panel (move divider toward first)
+      // Arrow right/down → decrease second panel (move divider toward second)
+      switch (e.key) {
+        case 'ArrowLeft':
+        case 'ArrowUp': {
+          e.preventDefault();
+          const newSize = currentSize + step;
+          commitSize(newSize);
+          break;
+        }
+        case 'ArrowRight':
+        case 'ArrowDown': {
+          e.preventDefault();
+          const newSize = Math.max(currentSize - step, 0);
+          commitSize(newSize);
+          break;
+        }
+        case 'Home': {
+          e.preventDefault();
+          // Collapse second panel (preview)
+          onCollapsedChange?.(true);
+          break;
+        }
+        case 'End': {
+          e.preventDefault();
+          // Collapse first panel (code)
+          onFirstCollapsedChange?.(true);
+          break;
+        }
+        case 'Enter':
+        case ' ': {
+          e.preventDefault();
+          resetToDefault();
+          break;
+        }
+        default:
+          break;
+      }
+    },
+    [commitSize, resetToDefault, onCollapsedChange, onFirstCollapsedChange],
   );
 
   if (!show) return null;
@@ -349,7 +434,12 @@ export const SplitPane = React.forwardRef<SplitPaneHandle, SplitPaneProps>(({
       </div>
       <div
         className="split-pane__divider"
-        onMouseDown={handleMouseDown}
+        role="separator"
+        tabIndex={0}
+        aria-orientation={vertical ? 'horizontal' : 'vertical'}
+        onPointerDown={handlePointerDown}
+        onDoubleClick={resetToDefault}
+        onKeyDown={handleKeyDown}
         style={{
           flex: `0 0 ${DIVIDER_SIZE}px`,
           cursor: vertical ? 'row-resize' : 'col-resize',
@@ -358,6 +448,7 @@ export const SplitPane = React.forwardRef<SplitPaneHandle, SplitPaneProps>(({
           justifyContent: 'center',
           position: 'relative',
           zIndex: 1,
+          touchAction: 'none',
         }}
       >
         {vertical ? (
