@@ -110,24 +110,16 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
 
     const rule = `:host { --lynx-vh: ${h}px; --lynx-vw: ${w}px; }`;
 
-    // Set injectStyleRules for initial template load
+    // Set injectStyleRules for initial template load (before shadow DOM exists)
     // @ts-ignore
     lynxViewRef.current.injectStyleRules = [rule];
 
-    // Also update directly in the shadow DOM for live resize,
-    // since injectStyleRules only takes effect at template load time.
-    const shadow = (lynxViewRef.current as unknown as HTMLElement).shadowRoot;
-    if (shadow) {
-      let styleEl = shadow.getElementById(
-        '__lynx-viewport-vars',
-      ) as HTMLStyleElement | null;
-      if (!styleEl) {
-        styleEl = document.createElement('style');
-        styleEl.id = '__lynx-viewport-vars';
-        shadow.prepend(styleEl);
-      }
-      styleEl.textContent = rule;
-    }
+    // Also set CSS custom properties directly on the host element's inline
+    // style for live resize updates. Inline custom properties on the host
+    // are inherited by shadow DOM descendants immediately.
+    const el = lynxViewRef.current as unknown as HTMLElement;
+    el.style.setProperty('--lynx-vh', `${h}px`);
+    el.style.setProperty('--lynx-vw', `${w}px`);
   }, []);
 
   // Set URL only after runtime is ready AND element is mounted
