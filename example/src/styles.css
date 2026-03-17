@@ -277,6 +277,25 @@ html[style*='color-scheme: dark'] .shiki span {
 }
 
 /* ------------------------------------------------------------------ */
+/* Example source tags                                                 */
+/* ------------------------------------------------------------------ */
+.example-tag {
+  display: inline-block;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.example-tag-vue {
+  background: #42b88320;
+  color: #42b883;
+}
+
+.entry-list-btn[data-active='true'] .example-tag-vue {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+/* ------------------------------------------------------------------ */
 /* JSX dialog                                                          */
 /* ------------------------------------------------------------------ */
 .jsx-dialog-backdrop {

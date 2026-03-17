@@ -119,9 +119,15 @@ async function main() {
   }
   console.log(`Found ${packages.length} packages.`);
 
-  // Clean and recreate output
+  // Clean existing @lynx-example dirs (preserve vue-* and other non-lynx dirs)
   if (fs.existsSync(outputDir)) {
-    fs.rmSync(outputDir, { recursive: true, force: true });
+    for (const entry of fs.readdirSync(outputDir)) {
+      if (entry.startsWith('vue-')) continue;
+      const entryPath = path.join(outputDir, entry);
+      if (fs.statSync(entryPath).isDirectory()) {
+        fs.rmSync(entryPath, { recursive: true, force: true });
+      }
+    }
   }
   fs.mkdirSync(outputDir, { recursive: true });
 
