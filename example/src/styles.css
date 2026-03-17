@@ -53,7 +53,8 @@ html[style*='color-scheme: dark'] .shiki span {
 .shiki {
   padding: 0;
   margin: 0;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: visible;
   border-radius: 0;
   text-align: left;
   white-space: pre;
@@ -62,6 +63,8 @@ html[style*='color-scheme: dark'] .shiki span {
   word-wrap: normal;
   tab-size: 4;
   hyphens: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 .shiki code {
