@@ -862,21 +862,6 @@ function App() {
               />
             </ControlGroup>
 
-            <ControlGroup label="Version">
-              <select
-                value={version}
-                onChange={(e) => setVersion(e.target.value)}
-                style={selectStyle}
-              >
-                <option value="latest">latest</option>
-                {packageVersions.map((v) => (
-                  <option key={v.version} value={v.version}>
-                    {v.version}
-                  </option>
-                ))}
-              </select>
-            </ControlGroup>
-
             {/* JSX button */}
             <button
               className="toolbar-btn"
@@ -1040,6 +1025,28 @@ function App() {
                         Vue
                       </span>
                     )}
+                    {example === name && (() => {
+                      const pkg = examplePackages.find(p => p.shortName === name);
+                      const latestVer = pkg?.version;
+                      const displayVer = version === 'latest' ? latestVer : version;
+                      return displayVer ? (
+                        <span
+                          style={{
+                            fontSize: 9,
+                            padding: '0 4px',
+                            borderRadius: 3,
+                            lineHeight: '16px',
+                            fontWeight: 500,
+                            flexShrink: 0,
+                            background: 'rgba(255,255,255,0.25)',
+                            color: 'inherit',
+                            marginLeft: 'auto',
+                          }}
+                        >
+                          v{displayVer}
+                        </span>
+                      ) : null;
+                    })()}
                   </button>
                 );
               })}
@@ -1063,7 +1070,7 @@ function App() {
                 style={{
                   ...panelLabelStyle,
                   padding: '0 4px',
-                  marginBottom: 4,
+                  marginBottom: 2,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
@@ -1088,6 +1095,36 @@ function App() {
                     minWidth: 0,
                   }}
                 />
+              </div>
+              <div
+                style={{
+                  padding: '0 4px',
+                  marginBottom: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <span style={{ fontSize: 10, color: 'var(--sb-text-dim)', flexShrink: 0 }}>
+                  Version
+                </span>
+                <select
+                  value={version}
+                  onChange={(e) => setVersion(e.target.value)}
+                  style={{
+                    ...selectStyle,
+                    fontSize: 10,
+                    padding: '1px 20px 1px 6px',
+                    borderRadius: 4,
+                  }}
+                >
+                  <option value="latest">latest</option>
+                  {packageVersions.map((v) => (
+                    <option key={v.version} value={v.version}>
+                      {v.version}
+                    </option>
+                  ))}
+                </select>
               </div>
               {metadata?.templateFiles?.filter(
                 (t: any) =>
