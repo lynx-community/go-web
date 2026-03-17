@@ -37,7 +37,8 @@ function readSSGMarkdown(exampleName: string, defaultFile = 'src/App.tsx'): stri
 
 const ssgPreviews: Record<string, string> = {};
 for (const name of exampleNames) {
-  const md = readSSGMarkdown(name);
+  const defaultFile = name.startsWith('vue-') ? 'src/App.vue' : 'src/App.tsx';
+  const md = readSSGMarkdown(name, defaultFile);
   if (md) ssgPreviews[name] = md;
 }
 

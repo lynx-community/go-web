@@ -1106,6 +1106,11 @@ function App() {
                     react {metadata.reactLynxVersion}
                   </span>
                 )}
+                {metadata?.vueLynxVersion && (
+                  <span className="example-tag example-tag-vue">
+                    vue-lynx {metadata.vueLynxVersion}
+                  </span>
+                )}
                 {metadata?.templateFiles?.length > 0 && (
                   <span
                     className={`example-tag ${
