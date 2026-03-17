@@ -572,6 +572,14 @@ function App() {
     `@lynx-example/${example}`,
   );
 
+  // Resolve 'latest' to a real semver before passing to ExamplePreview,
+  // because the jsdelivr data API does not support dist-tags like 'latest'.
+  const currentPkg = examplePackages.find((p) => p.shortName === example);
+  const effectiveVersion =
+    version === 'latest'
+      ? (currentPkg?.version ?? packageVersions[0]?.version)
+      : version;
+
   // Metadata & entry state
   const [metadata, setMetadata] = useState<Record<string, any> | null>(null);
   const [metadataLoading, setMetadataLoading] = useState(false);
@@ -690,14 +698,17 @@ function App() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  // Fetch example metadata when example or version changes
+  // Fetch example metadata when example or version changes.
+  // Use effectiveVersion (resolved semver) because the jsdelivr data API
+  // does not accept dist-tags like 'latest'.
   useEffect(() => {
+    if (!effectiveVersion) return; // still resolving 'latest', wait
     setMetadata(null);
     setMetadataLoading(true);
     setEntrySearch('');
 
     const pkgName = `@lynx-example/${example}`;
-    const metadataPromise = fetchExampleMetadata(pkgName, version);
+    const metadataPromise = fetchExampleMetadata(pkgName, effectiveVersion);
 
     metadataPromise
       .then((data) => {
@@ -720,7 +731,7 @@ function App() {
       })
       .catch(() => setMetadata(null))
       .finally(() => setMetadataLoading(false));
-  }, [example, version]);
+  }, [example, effectiveVersion]);
 
   // Highlight metadata JSON with shiki
   useEffect(() => {
@@ -1317,7 +1328,7 @@ function App() {
               {/* Desktop */}
               <div style={{ flex: '1 1 500px', minWidth: 0 }}>
                 <Go
-                  key={`desktop-${example}-${selectedEntry}-${defaultTab}-${version}`}
+                  key={`desktop-${example}-${selectedEntry}-${defaultTab}-${effectiveVersion}`}
                   example={example}
                   defaultFile={defaultFile}
                   defaultTab={defaultTab}
@@ -1326,7 +1337,7 @@ function App() {
                   highlight={highlight || undefined}
                   img={img || undefined}
                   schema={schema || undefined}
-                  version={version}
+                  version={effectiveVersion}
                 />
                 <div className="figure-caption">Desktop</div>
               </div>
@@ -1348,7 +1359,7 @@ function App() {
                   }}
                 >
                   <Go
-                    key={`mobile-${example}-${selectedEntry}-${defaultTab}-${version}`}
+                    key={`mobile-${example}-${selectedEntry}-${defaultTab}-${effectiveVersion}`}
                     example={example}
                     defaultFile={defaultFile}
                     defaultTab={defaultTab}
@@ -1357,7 +1368,7 @@ function App() {
                     highlight={highlight || undefined}
                     img={img || undefined}
                     schema={schema || undefined}
-                    version={version}
+                    version={effectiveVersion}
                   />
                 </div>
                 <div className="figure-caption">Mobile (320 × 660)</div>
