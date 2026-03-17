@@ -80,6 +80,12 @@ function rewriteViewportUnits(template: any): void {
   }
 }
 
+// DEV: ?simulateError=runtime|template|shadow|render
+const simulateError =
+  typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('simulateError')
+    : null;
+
 export const WebIframe = ({ show, src }: WebIframeProps) => {
   const lynxViewRef = useRef<LynxView>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -98,6 +104,10 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
   // Load web-core + web-elements eagerly on mount
   useEffect(() => {
     const t = performance.now();
+    if (simulateError === 'runtime') {
+      setError('Failed to load Lynx runtime: simulated error');
+      return;
+    }
     ensureRuntime()
       .then(() => {
         console.log('[WebIframe] runtime ready', `${(performance.now() - t).toFixed(0)}ms`);
@@ -137,6 +147,9 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
 
       // @ts-ignore
       lynxViewRef.current.customTemplateLoader = async (url: string) => {
+        if (simulateError === 'template') {
+          throw new Error('simulated template load error');
+        }
         try {
           const res = await fetch(url);
           if (!res.ok) {
@@ -213,6 +226,7 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
       // set, so we poll until it becomes available before attaching observers.
       const markRendered = (source: string) => {
         if (renderedRef.current) return;
+        if (simulateError === 'render') return; // simulate render timeout
         console.log(tag, `rendered (${source})`, `+${(performance.now() - t0).toFixed(0)}ms`);
         renderedRef.current = true;
         setRendered(true);
@@ -240,6 +254,11 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
         removeClickFix = () =>
           shadow.removeEventListener('click', adjustClickCoords, true);
       };
+
+      if (simulateError === 'shadow') {
+        setTimeout(() => setError('Preview timed out: shadow root was not created (simulated)'), 500);
+        return () => {};
+      }
 
       const pollStart = performance.now();
       const pollShadow = () => {
