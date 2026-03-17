@@ -34,6 +34,8 @@
     width: 100%;
     min-width: 0;
     overflow: hidden;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     background: var(--shiki-dark-bg, var(--rp-code-block-bg, var(--semi-color-bg-1)));
     :global {
       div[class^='language-'] {
