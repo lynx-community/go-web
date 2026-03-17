@@ -7,6 +7,7 @@
  *   --branch <name>  Git branch to clone (default: main)
  *   --prefix <str>   Prefix for example directory names (default: "vue-")
  *   --build          Install deps and build examples before copying
+ *   --vue-lynx-version <ver>  vue-lynx npm version to use (default: pre-alpha)
  *
  * Examples are written to public/lynx-examples/<prefix><name>/ alongside
  * existing @lynx-example packages.
@@ -40,6 +41,7 @@ function parseArgs() {
     branch: 'main',
     prefix: 'vue-',
     build: false,
+    vueLynxVersion: 'pre-alpha',
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -58,6 +60,9 @@ function parseArgs() {
         break;
       case '--build':
         opts.build = true;
+        break;
+      case '--vue-lynx-version':
+        opts.vueLynxVersion = args[++i];
         break;
     }
   }
@@ -158,15 +163,15 @@ function resolveExamplesDir(opts) {
 // Build examples if --build is set
 // ---------------------------------------------------------------------------
 
-function buildExamples(repoRoot, examplesDir) {
-  console.log('\nInstalling dependencies…');
-  execSync('pnpm install --frozen-lockfile', {
-    cwd: repoRoot,
-    stdio: 'inherit',
-  });
+function buildExamples(repoRoot, examplesDir, vueLynxVersion) {
+  // Remove pnpm workspace config so each example installs independently
+  // (otherwise pnpm resolves workspace:* to the local monorepo package)
+  const workspaceYaml = path.join(repoRoot, 'pnpm-workspace.yaml');
+  if (fs.existsSync(workspaceYaml)) {
+    console.log('Removing pnpm-workspace.yaml to install examples independently…');
+    fs.unlinkSync(workspaceYaml);
+  }
 
-  // Build all examples via the workspace filter
-  console.log('\nBuilding examples…');
   const examples = fs.readdirSync(examplesDir).filter((name) => {
     if (ignoreDirs.includes(name)) return false;
     const dir = path.join(examplesDir, name);
@@ -178,10 +183,36 @@ function buildExamples(repoRoot, examplesDir) {
 
   for (const example of examples) {
     const exampleDir = path.join(examplesDir, example);
-    const pkg = JSON.parse(
-      fs.readFileSync(path.join(exampleDir, 'package.json'), 'utf8'),
-    );
+    const pkgPath = path.join(exampleDir, 'package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
     if (!pkg.scripts?.build) continue;
+
+    // Replace workspace:* vue-lynx dep with npm version
+    let patched = false;
+    for (const depField of ['dependencies', 'devDependencies']) {
+      if (pkg[depField]?.['vue-lynx']?.startsWith('workspace:')) {
+        pkg[depField]['vue-lynx'] = vueLynxVersion;
+        patched = true;
+      }
+    }
+    if (patched) {
+      fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+      console.log(`  Patched ${example}: vue-lynx → ${vueLynxVersion}`);
+    }
+
+    // Install deps for this example independently
+    console.log(`  Installing ${example}…`);
+    try {
+      execSync('pnpm install --no-frozen-lockfile', {
+        cwd: exampleDir,
+        stdio: 'inherit',
+      });
+    } catch (e) {
+      console.warn(`  ⚠ Install failed for "${example}", skipping`);
+      continue;
+    }
+
+    // Build
     console.log(`  Building ${example}…`);
     try {
       execSync('pnpm build', { cwd: exampleDir, stdio: 'inherit' });
@@ -201,7 +232,7 @@ const { dir: examplesDir, repoRoot, cleanup } = resolveExamplesDir(opts);
 
 if (opts.build) {
   const root = repoRoot || path.resolve(examplesDir, '..');
-  buildExamples(root, examplesDir);
+  buildExamples(root, examplesDir, opts.vueLynxVersion);
 }
 
 console.log(`Reading vue-lynx examples from: ${examplesDir}`);
