@@ -85,19 +85,28 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   const [rendered, setRendered] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const renderedRef = useRef(false);
 
-  // Reset rendered state when src changes
+  // Reset state when src changes
   useEffect(() => {
     setRendered(false);
+    setError(null);
+    renderedRef.current = false;
   }, [src]);
 
   // Load web-core + web-elements eagerly on mount
   useEffect(() => {
     const t = performance.now();
-    ensureRuntime().then(() => {
-      console.log('[WebIframe] runtime ready', `${(performance.now() - t).toFixed(0)}ms`);
-      setReady(true);
-    });
+    ensureRuntime()
+      .then(() => {
+        console.log('[WebIframe] runtime ready', `${(performance.now() - t).toFixed(0)}ms`);
+        setReady(true);
+      })
+      .catch((err) => {
+        console.error('[WebIframe] runtime load failed', err);
+        setError(`Failed to load Lynx runtime: ${err instanceof Error ? err.message : String(err)}`);
+      });
   }, []);
 
   // Update lynx-view dimensions to match the container.
@@ -128,42 +137,48 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
 
       // @ts-ignore
       lynxViewRef.current.customTemplateLoader = async (url: string) => {
-        const res = await fetch(url);
-        if (!res.ok) {
-          throw new Error(`Failed to load template: ${url} (${res.status})`);
-        }
-        const text = await res.text();
-
-        // Rewrite webpack's public path in the bundle JS so that asset
-        // URLs (images etc.) resolve relative to the bundle location,
-        // not the page URL.
-        const baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
-        const rewritten = text.replace(
-          WEBPACK_PUBLIC_PATH_RE,
-          `.p=\\"${baseUrl}\\"`,
-        );
-        const template = JSON.parse(rewritten);
-
-        // Workaround: when no template modules reference publicPath (no asset
-        // imports), rspack omits the local webpack runtime from lepusCode and
-        // emits a bare `__webpack_require__` reference. Inject a minimal shim
-        // so the entry-point executor (`__webpack_require__.x`) can run.
-        if (template.lepusCode?.root) {
-          const root = template.lepusCode.root;
-          if (
-            typeof root === 'string' &&
-            root.includes('__webpack_require__') &&
-            !root.includes('function __webpack_require__')
-          ) {
-            template.lepusCode.root =
-              `var __webpack_require__={p:"${baseUrl}"};` + root;
+        try {
+          const res = await fetch(url);
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status} loading ${url}`);
           }
+          const text = await res.text();
+
+          // Rewrite webpack's public path in the bundle JS so that asset
+          // URLs (images etc.) resolve relative to the bundle location,
+          // not the page URL.
+          const baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
+          const rewritten = text.replace(
+            WEBPACK_PUBLIC_PATH_RE,
+            `.p=\\"${baseUrl}\\"`,
+          );
+          const template = JSON.parse(rewritten);
+
+          // Workaround: when no template modules reference publicPath (no asset
+          // imports), rspack omits the local webpack runtime from lepusCode and
+          // emits a bare `__webpack_require__` reference. Inject a minimal shim
+          // so the entry-point executor (`__webpack_require__.x`) can run.
+          if (template.lepusCode?.root) {
+            const root = template.lepusCode.root;
+            if (
+              typeof root === 'string' &&
+              root.includes('__webpack_require__') &&
+              !root.includes('function __webpack_require__')
+            ) {
+              template.lepusCode.root =
+                `var __webpack_require__={p:"${baseUrl}"};` + root;
+            }
+          }
+
+          // Rewrite vh/vw units in CSS to use container-relative custom properties
+          rewriteViewportUnits(template);
+
+          return template;
+        } catch (err) {
+          console.error(tag, 'template load failed', err);
+          setError(`Failed to load template: ${err instanceof Error ? err.message : String(err)}`);
+          throw err;
         }
-
-        // Rewrite vh/vw units in CSS to use container-relative custom properties
-        rewriteViewportUnits(template);
-
-        return template;
       };
 
       console.log(tag, 'url set', `+${(performance.now() - t0).toFixed(0)}ms`);
@@ -196,29 +211,44 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
 
       // The shadow root is created asynchronously by web-core after url is
       // set, so we poll until it becomes available before attaching observers.
+      const markRendered = (source: string) => {
+        if (renderedRef.current) return;
+        console.log(tag, `rendered (${source})`, `+${(performance.now() - t0).toFixed(0)}ms`);
+        renderedRef.current = true;
+        setRendered(true);
+      };
+
       const setupShadow = (shadow: ShadowRoot) => {
         console.log(tag, 'shadow found', `+${(performance.now() - t0).toFixed(0)}ms`, {
           childElementCount: shadow.childElementCount,
         });
 
-        mo = new MutationObserver(() => {
-          if (shadow.childElementCount > 0) {
-            console.log(tag, 'rendered (observer)', `+${(performance.now() - t0).toFixed(0)}ms`, {
-              childElementCount: shadow.childElementCount,
-            });
-            setRendered(true);
-            mo!.disconnect();
-          }
-        });
-        mo.observe(shadow, { childList: true, subtree: true });
+        // If shadow already has children when we attach, we missed the mutation
+        if (shadow.childElementCount > 0) {
+          markRendered('immediate');
+        } else {
+          mo = new MutationObserver(() => {
+            if (shadow.childElementCount > 0) {
+              markRendered('observer');
+              mo!.disconnect();
+            }
+          });
+          mo.observe(shadow, { childList: true, subtree: true });
+        }
 
         shadow.addEventListener('click', adjustClickCoords, true);
         removeClickFix = () =>
           shadow.removeEventListener('click', adjustClickCoords, true);
       };
 
+      const pollStart = performance.now();
       const pollShadow = () => {
         if (disposed) return;
+        if (performance.now() - pollStart > 3000) {
+          console.error(tag, 'shadow root timeout');
+          setError('Preview timed out: shadow root was not created');
+          return;
+        }
         const shadow = el.shadowRoot;
         if (shadow) {
           setupShadow(shadow);
@@ -228,10 +258,12 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
       };
       pollShadow();
 
-      // Fallback: hide loading after timeout
+      // Fallback: error if rendering doesn't complete within 5s
       const timer = setTimeout(() => {
-        console.log(tag, 'rendered (timeout fallback)', `+${(performance.now() - t0).toFixed(0)}ms`);
-        setRendered(true);
+        if (!renderedRef.current) {
+          console.error(tag, 'render timeout', `+${(performance.now() - t0).toFixed(0)}ms`);
+          setError('Preview timed out: rendering did not complete within 5s');
+        }
       }, 5000);
       return () => {
         disposed = true;
@@ -251,7 +283,7 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
     return () => ro.disconnect();
   }, [ready, updateDimensions]);
 
-  const loading = show && (!ready || !rendered);
+  const loading = show && (!ready || !rendered || !!error);
 
   return (
     <div
@@ -265,7 +297,7 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
         position: 'relative',
       }}
     >
-      <LoadingOverlay visible={loading} />
+      <LoadingOverlay visible={loading} error={error} />
       {show && src && (
         <lynx-view
           ref={lynxViewRef}

@@ -1,3 +1,4 @@
+import type React from 'react';
 import { useGoConfig, defaultUseDark } from '../../config';
 
 const LOGO_LIGHT =
@@ -5,24 +6,58 @@ const LOGO_LIGHT =
 const LOGO_DARK =
   'https://lf-lynx.tiktok-cdns.com/obj/lynx-artifacts-oss-sg/lynx-website/assets/lynx-light-logo.svg';
 
-export const LoadingOverlay = ({ visible }: { visible: boolean }) => {
+export const LoadingOverlay = ({
+  visible,
+  error,
+}: {
+  visible: boolean;
+  error?: string | null;
+}) => {
   const { useDark: useDarkHook = defaultUseDark } = useGoConfig();
   const isDark = useDarkHook();
   if (!visible) return null;
+
+  const containerStyle: React.CSSProperties = {
+    position: 'absolute',
+    inset: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '12px',
+    zIndex: 1,
+    background: isDark ? '#1b1b1f' : '#ffffff',
+  };
+
+  if (error) {
+    return (
+      <div style={containerStyle}>
+        <img
+          src={isDark ? LOGO_DARK : LOGO_LIGHT}
+          alt="Lynx"
+          width={40}
+          height={40}
+          style={{ opacity: 0.3, filter: 'grayscale(1)' }}
+        />
+        <div
+          style={{
+            color: isDark ? '#f87171' : '#dc2626',
+            fontSize: '13px',
+            fontFamily: 'system-ui, sans-serif',
+            textAlign: 'center',
+            padding: '0 24px',
+            maxWidth: '320px',
+            lineHeight: '1.5',
+          }}
+        >
+          {error}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '12px',
-        zIndex: 1,
-        background: isDark ? '#1b1b1f' : '#ffffff',
-      }}
-    >
+    <div style={containerStyle}>
       <img
         src={isDark ? LOGO_DARK : LOGO_LIGHT}
         alt="Lynx"
