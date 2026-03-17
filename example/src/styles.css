@@ -53,8 +53,7 @@ html[style*='color-scheme: dark'] .shiki span {
 .shiki {
   padding: 0;
   margin: 0;
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow: visible;
   border-radius: 0;
   text-align: left;
   white-space: pre;
