@@ -107,10 +107,27 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
       pixelWidth: Math.round(w * window.devicePixelRatio),
       pixelHeight: Math.round(h * window.devicePixelRatio),
     };
-    // @ts-ignore – update CSS custom properties for viewport-unit rewriting
-    lynxViewRef.current.injectStyleRules = [
-      `:host { --lynx-vh: ${h}px; --lynx-vw: ${w}px; }`,
-    ];
+
+    const rule = `:host { --lynx-vh: ${h}px; --lynx-vw: ${w}px; }`;
+
+    // Set injectStyleRules for initial template load
+    // @ts-ignore
+    lynxViewRef.current.injectStyleRules = [rule];
+
+    // Also update directly in the shadow DOM for live resize,
+    // since injectStyleRules only takes effect at template load time.
+    const shadow = (lynxViewRef.current as unknown as HTMLElement).shadowRoot;
+    if (shadow) {
+      let styleEl = shadow.getElementById(
+        '__lynx-viewport-vars',
+      ) as HTMLStyleElement | null;
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = '__lynx-viewport-vars';
+        shadow.prepend(styleEl);
+      }
+      styleEl.textContent = rule;
+    }
   }, []);
 
   // Set URL only after runtime is ready AND element is mounted
