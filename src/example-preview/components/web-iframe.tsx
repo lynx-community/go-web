@@ -107,10 +107,19 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
       pixelWidth: Math.round(w * window.devicePixelRatio),
       pixelHeight: Math.round(h * window.devicePixelRatio),
     };
-    // @ts-ignore – update CSS custom properties for viewport-unit rewriting
-    lynxViewRef.current.injectStyleRules = [
-      `:host { --lynx-vh: ${h}px; --lynx-vw: ${w}px; }`,
-    ];
+
+    const rule = `:host { --lynx-vh: ${h}px; --lynx-vw: ${w}px; }`;
+
+    // Set injectStyleRules for initial template load (before shadow DOM exists)
+    // @ts-ignore
+    lynxViewRef.current.injectStyleRules = [rule];
+
+    // Also set CSS custom properties directly on the host element's inline
+    // style for live resize updates. Inline custom properties on the host
+    // are inherited by shadow DOM descendants immediately.
+    const el = lynxViewRef.current as unknown as HTMLElement;
+    el.style.setProperty('--lynx-vh', `${h}px`);
+    el.style.setProperty('--lynx-vw', `${w}px`);
   }, []);
 
   // Set URL only after runtime is ready AND element is mounted
