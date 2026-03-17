@@ -7,7 +7,14 @@ import React, {
 } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@douyinfe/semi-ui/dist/css/semi.min.css';
-import { GoConfigProvider, Go } from '../../src/index';
+import {
+  GoConfigProvider,
+  Go,
+  searchExamplePackages,
+  fetchPackageVersions,
+  fetchExampleMetadata,
+} from '../../src/index';
+import type { NpmPackageInfo, PackageVersionInfo } from '../../src/index';
 import type { PreviewTab, GoConfig } from '../../src/config';
 import type { ShikiTransformer, BundledLanguage } from 'shiki';
 import './styles.css';
@@ -123,7 +130,7 @@ const StandaloneCodeBlock = ({
   );
 };
 
-// Build-time injected list of available examples and SSG previews
+// Build-time injected SSG previews (example list is now fetched at runtime)
 declare global {
   interface ImportMeta {
     env: {
@@ -132,9 +139,40 @@ declare global {
     };
   }
 }
-const EXAMPLES: string[] = import.meta.env.EXAMPLES ?? ['hello-world'];
 const SSG_PREVIEWS: Record<string, string> =
   import.meta.env.SSG_PREVIEWS ?? {};
+
+// ---------------------------------------------------------------------------
+// Runtime example & version fetching hooks
+// ---------------------------------------------------------------------------
+
+function useExamplePackages() {
+  const [packages, setPackages] = useState<NpmPackageInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    searchExamplePackages()
+      .then(setPackages)
+      .catch((err) => console.error('Failed to fetch example packages:', err))
+      .finally(() => setLoading(false));
+  }, []);
+  return { packages, loading };
+}
+
+function usePackageVersions(packageName: string) {
+  const [versions, setVersions] = useState<PackageVersionInfo[]>([]);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (!packageName) return;
+    setLoading(true);
+    fetchPackageVersions(packageName)
+      .then(setVersions)
+      .catch((err) =>
+        console.error(`Failed to fetch versions for ${packageName}:`, err),
+      )
+      .finally(() => setLoading(false));
+  }, [packageName]);
+  return { versions, loading };
+}
 
 function getExampleSource(name: string): 'vue' | 'lynx' {
   return name.startsWith('vue-') ? 'vue' : 'lynx';
@@ -150,6 +188,7 @@ interface UrlState {
   tab?: PreviewTab;
   file?: string;
   example?: string;
+  version?: string;
 }
 
 function readUrlState(): UrlState {
@@ -514,9 +553,24 @@ function App() {
   const [defaultFile, setDefaultFile] = useState(
     initial.file ?? ((initial.example ?? 'hello-world').startsWith('vue-') ? 'src/App.vue' : 'src/App.tsx'),
   );
+  const [version, setVersion] = useState<string>(initial.version ?? 'latest');
   const [copied, setCopied] = useState(false);
   const [exampleSearch, setExampleSearch] = useState('');
   const [entrySearch, setEntrySearch] = useState('');
+
+  // Runtime: fetch example list and versions from npm
+  const { packages: examplePackages, loading: packagesLoading } =
+    useExamplePackages();
+  const EXAMPLES = useMemo(
+    () =>
+      examplePackages.length > 0
+        ? examplePackages.map((p) => p.shortName)
+        : (import.meta.env.EXAMPLES ?? ['hello-world']),
+    [examplePackages],
+  );
+  const { versions: packageVersions } = usePackageVersions(
+    `@lynx-example/${example}`,
+  );
 
   // Metadata & entry state
   const [metadata, setMetadata] = useState<Record<string, any> | null>(null);
@@ -599,8 +653,15 @@ function App() {
 
   // Persist state to URL hash
   useEffect(() => {
-    writeUrlState({ dark, lang, tab: defaultTab, file: defaultFile, example });
-  }, [dark, lang, defaultTab, defaultFile, example]);
+    writeUrlState({
+      dark,
+      lang,
+      tab: defaultTab,
+      file: defaultFile,
+      example,
+      version: version !== 'latest' ? version : undefined,
+    });
+  }, [dark, lang, defaultTab, defaultFile, example, version]);
 
   // Apply Semi UI dark/light mode
   useEffect(() => {
@@ -629,16 +690,16 @@ function App() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  // Fetch example metadata when example changes
+  // Fetch example metadata when example or version changes
   useEffect(() => {
     setMetadata(null);
     setMetadataLoading(true);
     setEntrySearch('');
-    fetch(`/lynx-examples/${example}/example-metadata.json`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
+
+    const pkgName = `@lynx-example/${example}`;
+    const metadataPromise = fetchExampleMetadata(pkgName, version);
+
+    metadataPromise
       .then((data) => {
         setMetadata(data);
         const first = data.templateFiles?.[0];
@@ -659,7 +720,7 @@ function App() {
       })
       .catch(() => setMetadata(null))
       .finally(() => setMetadataLoading(false));
-  }, [example]);
+  }, [example, version]);
 
   // Highlight metadata JSON with shiki
   useEffect(() => {
@@ -703,7 +764,7 @@ function App() {
   }, []);
 
   const goConfig: GoConfig = {
-    exampleBasePath: '/lynx-examples',
+    exampleBasePath: '/lynx-examples', // fallback for non-versioned mode
     defaultTab,
     explorerUrl: {
       en: 'https://lynxjs.org/guide/start/quick-start.html#download-lynx-explorer',
@@ -799,6 +860,21 @@ function App() {
                 ]}
                 onChange={(v) => setDefaultTab(v as PreviewTab)}
               />
+            </ControlGroup>
+
+            <ControlGroup label="Version">
+              <select
+                value={version}
+                onChange={(e) => setVersion(e.target.value)}
+                style={selectStyle}
+              >
+                <option value="latest">latest</option>
+                {packageVersions.map((v) => (
+                  <option key={v.version} value={v.version}>
+                    {v.version}
+                  </option>
+                ))}
+              </select>
             </ControlGroup>
 
             {/* JSX button */}
@@ -899,6 +975,17 @@ function App() {
                   }}
                 />
               </div>
+              {packagesLoading && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--sb-text-dim)',
+                    padding: '3px 8px',
+                  }}
+                >
+                  Loading from npm…
+                </span>
+              )}
               {EXAMPLES.filter(
                 (name) =>
                   !exampleSearch ||
@@ -914,6 +1001,7 @@ function App() {
                     data-active={example === name}
                     onClick={() => {
                       setExample(name);
+                      setVersion('latest');
                       setDefaultFile(
                         source === 'vue' ? 'src/App.vue' : 'src/App.tsx',
                       );
@@ -1192,7 +1280,7 @@ function App() {
               {/* Desktop */}
               <div style={{ flex: '1 1 500px', minWidth: 0 }}>
                 <Go
-                  key={`desktop-${example}-${selectedEntry}-${defaultTab}`}
+                  key={`desktop-${example}-${selectedEntry}-${defaultTab}-${version}`}
                   example={example}
                   defaultFile={defaultFile}
                   defaultTab={defaultTab}
@@ -1201,6 +1289,7 @@ function App() {
                   highlight={highlight || undefined}
                   img={img || undefined}
                   schema={schema || undefined}
+                  version={version}
                 />
                 <div className="figure-caption">Desktop</div>
               </div>
@@ -1222,7 +1311,7 @@ function App() {
                   }}
                 >
                   <Go
-                    key={`mobile-${example}-${selectedEntry}-${defaultTab}`}
+                    key={`mobile-${example}-${selectedEntry}-${defaultTab}-${version}`}
                     example={example}
                     defaultFile={defaultFile}
                     defaultTab={defaultTab}
@@ -1231,6 +1320,7 @@ function App() {
                     highlight={highlight || undefined}
                     img={img || undefined}
                     schema={schema || undefined}
+                    version={version}
                   />
                 </div>
                 <div className="figure-caption">Mobile (320 × 660)</div>
