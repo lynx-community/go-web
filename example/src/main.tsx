@@ -113,13 +113,26 @@ const StandaloneCodeBlock = ({
 
   if (!html) {
     return (
-      <pre style={{ padding: '16px', margin: 0, overflow: 'auto' }}>
-        <code>{code}</code>
-      </pre>
+      <div className="rp-codeblock">
+        <div className="rp-codeblock__content">
+          <div className="rp-codeblock__content__scroll-container">
+            <pre className="shiki" style={{ margin: 0 }}>
+              <code style={{ padding: '1rem 1.25rem' }}>{code}</code>
+            </pre>
+          </div>
+        </div>
+      </div>
     );
   }
   return (
-    <div className="rp-codeblock" dangerouslySetInnerHTML={{ __html: html }} />
+    <div className="rp-codeblock">
+      <div className="rp-codeblock__content">
+        <div
+          className="rp-codeblock__content__scroll-container"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      </div>
+    </div>
   );
 };
 

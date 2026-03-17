@@ -1,6 +1,20 @@
 /* ------------------------------------------------------------------ */
 /* Shiki dual-theme support                                            */
 /* ------------------------------------------------------------------ */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.rp-codeblock,
+.rp-codeblock *,
+.shiki,
+.shiki *,
+.shiki code {
+  -webkit-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
+
 html[style*='color-scheme: light'] .shiki,
 html:not([style*='color-scheme: dark']) .shiki {
   background-color: var(--shiki-light-bg, #fff) !important;
@@ -24,10 +38,12 @@ html[style*='color-scheme: dark'] .shiki span {
 /* ------------------------------------------------------------------ */
 /* Shiki line numbers (CSS counter)                                    */
 /* ------------------------------------------------------------------ */
+.rp-codeblock__content--line-numbers code,
 .shiki.has-line-numbers code {
   counter-reset: line;
 }
 
+.rp-codeblock__content--line-numbers code .line::before,
 .shiki.has-line-numbers code .line::before {
   counter-increment: line;
   content: counter(line);
@@ -39,6 +55,7 @@ html[style*='color-scheme: dark'] .shiki span {
 }
 
 /* Shiki highlight (matched to rspress) */
+.rp-codeblock__content .shiki.has-highlighted .line.highlighted,
 .shiki.has-highlighted .line.highlighted {
   background-color: #3b82f61a;
   box-shadow: inset 2px 0 #3b82f6;
@@ -50,10 +67,22 @@ html[style*='color-scheme: dark'] .shiki span {
 /* ------------------------------------------------------------------ */
 /* Shiki base styles (matched to rspress code block)                   */
 /* ------------------------------------------------------------------ */
-.shiki {
+.rp-codeblock {
+  position: relative;
+  overflow-x: auto;
+}
+
+.rp-codeblock__content {
+  position: relative;
+}
+
+.rp-codeblock__content__scroll-container {
+  overflow-x: auto;
+}
+
+.rp-codeblock__content :where(pre) {
   padding: 0;
   margin: 0;
-  overflow: auto;
   border-radius: 0;
   text-align: left;
   white-space: pre;
@@ -62,9 +91,13 @@ html[style*='color-scheme: dark'] .shiki span {
   word-wrap: normal;
   tab-size: 4;
   hyphens: none;
+  z-index: 1;
+  background: none;
+  outline: none;
+  position: relative;
 }
 
-.shiki code {
+.rp-codeblock__content :where(code) {
   display: inline-block;
   width: fit-content;
   min-width: 100%;
@@ -74,7 +107,7 @@ html[style*='color-scheme: dark'] .shiki span {
   line-height: 1.7;
 }
 
-.shiki span.line {
+.rp-codeblock__content .shiki span.line {
   padding: 0 1.25rem;
   display: inline-block;
 }

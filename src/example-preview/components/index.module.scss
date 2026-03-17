@@ -42,6 +42,13 @@
       }
       pre.shiki {
         min-height: 567px;
+        // Prevent iOS Safari text autosizing (font inflation).
+        // WebKit triggers autosizing when a block's layout width > visibleWidth.
+        // With white-space:pre and no overflow constraint, the pre's content
+        // width can exceed the viewport, triggering per-cluster font boosting.
+        // overflow-x:auto constrains the pre's layout width to its container,
+        // so WebKit sees width ≤ visibleWidth and skips autosizing entirely.
+        overflow-x: auto;
       }
     }
     .code-view-container-tab-show {
@@ -60,7 +67,8 @@
     .code-view-container {
       width: 100%;
       height: 100%;
-      overflow: auto;
+      overflow-y: auto;
+      overflow-x: hidden;
       min-height: 0;
       background: var(--shiki-dark-bg, var(--rp-code-block-bg, var(--semi-color-bg-1)));
     }
