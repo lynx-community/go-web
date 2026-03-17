@@ -6,5 +6,18 @@
     margin: 0 0;
     border: none;
     border-radius: none;
+    -webkit-text-size-adjust: 100% !important;
+    text-size-adjust: 100% !important;
+  }
+
+  :global(pre),
+  :global(code),
+  :global(pre code),
+  :global(pre code span),
+  :global(pre.shiki),
+  :global(pre.shiki code),
+  :global(pre.shiki code span) {
+    -webkit-text-size-adjust: 100% !important;
+    text-size-adjust: 100% !important;
   }
 }
