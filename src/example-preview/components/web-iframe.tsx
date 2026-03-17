@@ -147,10 +147,10 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
 
       // @ts-ignore
       lynxViewRef.current.customTemplateLoader = async (url: string) => {
-        if (simulateError === 'template') {
-          throw new Error('simulated template load error');
-        }
         try {
+          if (simulateError === 'template') {
+            throw new Error('simulated template load error');
+          }
           const res = await fetch(url);
           if (!res.ok) {
             throw new Error(`HTTP ${res.status} loading ${url}`);
