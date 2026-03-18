@@ -111,15 +111,16 @@ const StandaloneCodeBlock = ({
     if (html && onRendered) requestAnimationFrame(() => onRendered());
   }, [html, onRendered]);
 
-  if (!html) {
-    return (
-      <pre style={{ padding: '16px', margin: 0, overflow: 'auto' }}>
-        <code>{code}</code>
-      </pre>
-    );
-  }
   return (
-    <div className="rp-codeblock" dangerouslySetInnerHTML={{ __html: html }} />
+    <div className="rp-codeblock">
+      {html ? (
+        <div dangerouslySetInnerHTML={{ __html: html }} />
+      ) : (
+        <pre className="shiki">
+          <code>{code}</code>
+        </pre>
+      )}
+    </div>
   );
 };
 
