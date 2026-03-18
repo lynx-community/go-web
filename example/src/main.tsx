@@ -602,7 +602,7 @@ function App() {
   const [defaultFile, setDefaultFile] = useState(
     initial.file ?? ((initial.example ?? 'hello-world').startsWith('vue-') ? 'src/App.vue' : 'src/App.tsx'),
   );
-  const [version, setVersion] = useState<string>(initial.version ?? 'latest');
+  const [version, setVersion] = useState<string | undefined>(initial.version);
   const [copied, setCopied] = useState(false);
   const [exampleSearch, setExampleSearch] = useState('');
   const [entrySearch, setEntrySearch] = useState('');
@@ -618,13 +618,19 @@ function App() {
     `@lynx-example/${example}`,
   );
 
-  // Resolve 'latest' to a real semver before passing to ExamplePreview,
-  // because the jsdelivr data API does not support dist-tags like 'latest'.
+  // Auto-select the newest concrete version once packageVersions loads.
+  // Never pass the virtual 'latest' tag to jsdelivr; the data API requires real semver.
   const currentPkg = examplePackages.find((p) => p.shortName === example);
   const effectiveVersion =
-    version === 'latest'
-      ? (currentPkg?.version ?? packageVersions[0]?.version)
-      : version;
+    version ?? currentPkg?.version ?? packageVersions[0]?.version;
+
+  // Once packageVersions is available, pin `version` state to a real semver
+  // so the dropdown shows a selected value and the URL gets a concrete version.
+  useEffect(() => {
+    if (!version && packageVersions.length > 0) {
+      setVersion(packageVersions[0].version);
+    }
+  }, [version, packageVersions]);
 
   // Metadata & entry state
   const [metadata, setMetadata] = useState<Record<string, any> | null>(null);
@@ -713,7 +719,7 @@ function App() {
       tab: defaultTab,
       file: defaultFile,
       example,
-      version: version !== 'latest' ? version : undefined,
+      version,
     });
   }, [dark, lang, defaultTab, defaultFile, example, version]);
 
@@ -1033,7 +1039,7 @@ function App() {
                     data-active={example === name}
                     onClick={() => {
                       setExample(name);
-                      setVersion('latest');
+                      setVersion(undefined);
                       setDefaultFile(
                         source === 'vue' ? 'src/App.vue' : 'src/App.tsx',
                       );
@@ -1074,8 +1080,7 @@ function App() {
                     )}
                     {example === name && (() => {
                       const pkg = examplePackages.find(p => p.shortName === name);
-                      const latestVer = pkg?.version;
-                      const displayVer = version === 'latest' ? latestVer : version;
+                      const displayVer = version ?? pkg?.version;
                       return displayVer ? (
                         <span
                           style={{
@@ -1156,8 +1161,8 @@ function App() {
                   Version
                 </span>
                 <select
-                  value={version}
-                  onChange={(e) => setVersion(e.target.value)}
+                  value={version ?? ''}
+                  onChange={(e) => setVersion(e.target.value || undefined)}
                   style={{
                     ...selectStyle,
                     fontSize: 10,
@@ -1165,7 +1170,9 @@ function App() {
                     borderRadius: 4,
                   }}
                 >
-                  <option value="latest">latest</option>
+                  {packageVersions.length === 0 && (
+                    <option value="" disabled>Loading…</option>
+                  )}
                   {packageVersions.map((v) => (
                     <option key={v.version} value={v.version}>
                       {v.version}
