@@ -82,10 +82,19 @@ html[style*='color-scheme: dark'] .shiki span {
 }
 
 /* ------------------------------------------------------------------ */
-/* Fallback for --rp-code-block-bg (rspress variable)                  */
+/* Code block background — synced to Shiki theme colors               */
 /* ------------------------------------------------------------------ */
+/* Shiki sets --shiki-dark-bg / --shiki-light-bg only as inline styles
+   on <pre class="shiki">, so they don't cascade UP to .code-wrap or
+   .code-view-container. Define them at document level so layout
+   containers pick them up via var(--shiki-dark-bg, …). */
 :root {
-  --rp-code-block-bg: var(--semi-color-bg-1);
+  --rp-code-block-bg: #fff; /* github-light background */
+}
+
+html[style*='color-scheme: dark'] {
+  --shiki-dark-bg: #24292e; /* github-dark background */
+  --rp-code-block-bg: #24292e;
 }
 
 /* ------------------------------------------------------------------ */
