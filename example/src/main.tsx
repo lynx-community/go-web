@@ -867,7 +867,7 @@ function App() {
             {/* Col 1: examples list */}
             <div
               style={{
-                flex: col1W != null ? `0 0 ${col1W}px` : '1 1 0',
+                flex: col1W != null ? `0 0 ${col1W}px` : '2 1 0',
                 minWidth: 140,
                 padding: '10px 12px',
                 overflow: 'auto',
@@ -970,7 +970,7 @@ function App() {
             {/* Col 2: entry list */}
             <div
               style={{
-                flex: col2W != null ? `0 0 ${col2W}px` : '1 1 0',
+                flex: col2W != null ? `0 0 ${col2W}px` : '2 1 0',
                 minWidth: 120,
                 padding: '10px 12px',
                 overflow: 'auto',
@@ -1060,7 +1060,7 @@ function App() {
             {/* Col 3: controls */}
             <div
               style={{
-                flex: col3W != null ? `0 0 ${col3W}px` : '1 1 0',
+                flex: col3W != null ? `0 0 ${col3W}px` : '3 1 0',
                 minWidth: 200,
                 padding: '10px 16px',
                 overflow: 'hidden',
@@ -1130,7 +1130,7 @@ function App() {
             {/* Right: metadata JSON */}
             <div
               style={{
-                flex: col4W != null ? `0 0 ${col4W}px` : '1 1 0',
+                flex: col4W != null ? `0 0 ${col4W}px` : '3 1 0',
                 minWidth: 160,
                 padding: '10px 16px',
                 overflow: 'auto',
