@@ -10,6 +10,7 @@ import '@douyinfe/semi-ui/dist/css/semi.min.css';
 import {
   GoConfigProvider,
   Go,
+  EXAMPLE_SCOPES,
   searchExamplePackages,
   fetchPackageVersions,
   fetchExampleMetadata,
@@ -149,13 +150,23 @@ const SSG_PREVIEWS: Record<string, string> =
 type PackagesSource = 'build' | 'fetching' | 'live' | 'error';
 
 function useExamplePackages() {
-  // Initialize immediately from build-time data — zero latency on first render
+  // Initialize immediately from build-time data — zero latency on first render.
+  // Build-time names like "vue-basic" must map back to their npm scope.
   const [packages, setPackages] = useState<NpmPackageInfo[]>(() =>
-    (import.meta.env.EXAMPLES ?? ['hello-world']).map((name: string) => ({
-      name: `@lynx-example/${name}`,
-      shortName: name,
-      version: '',
-    })),
+    (import.meta.env.EXAMPLES ?? ['hello-world']).map((name: string) => {
+      const scopeConfig =
+        EXAMPLE_SCOPES.find((s) => s.prefix && name.startsWith(s.prefix)) ??
+        EXAMPLE_SCOPES[0];
+      const rawName = scopeConfig.prefix
+        ? name.slice(scopeConfig.prefix.length)
+        : name;
+      return {
+        name: `${scopeConfig.scope}${rawName}`,
+        shortName: name,
+        scope: scopeConfig,
+        version: '',
+      };
+    }),
   );
   const [source, setSource] = useState<PackagesSource>('build');
 
@@ -614,13 +625,14 @@ function App() {
     () => examplePackages.map((p) => p.shortName),
     [examplePackages],
   );
-  const { versions: packageVersions } = usePackageVersions(
-    `@lynx-example/${example}`,
-  );
+  // Derive the full package name from the packages list (scope-aware).
+  const currentPkg = examplePackages.find((p) => p.shortName === example);
+  const currentPkgName = currentPkg?.name ?? `@lynx-example/${example}`;
+
+  const { versions: packageVersions } = usePackageVersions(currentPkgName);
 
   // Auto-select the newest concrete version once packageVersions loads.
   // Never pass the virtual 'latest' tag to jsdelivr; the data API requires real semver.
-  const currentPkg = examplePackages.find((p) => p.shortName === example);
   const effectiveVersion =
     version ?? currentPkg?.version ?? packageVersions[0]?.version;
 
@@ -759,8 +771,7 @@ function App() {
     setMetadataLoading(true);
     setEntrySearch('');
 
-    const pkgName = `@lynx-example/${example}`;
-    const metadataPromise = fetchExampleMetadata(pkgName, effectiveVersion);
+    const metadataPromise = fetchExampleMetadata(currentPkgName, effectiveVersion);
 
     metadataPromise
       .then((data) => {

@@ -1,24 +1,48 @@
 /**
- * Runtime helpers for fetching @lynx-example packages from the npm registry
+ * Runtime helpers for fetching example packages from the npm registry
  * and serving their files via the jsdelivr CDN.
+ *
+ * Supports multiple package scopes (@lynx-example, @vue-lynx-example, etc.)
+ * via the shared EXAMPLE_SCOPES configuration.
  *
  * This module enables fetching any version of any example package directly
  * in the browser — no build-time preparation needed.
  */
 
-const NPM_SEARCH_URL =
-  'https://registry.npmjs.org/-/v1/search?text=%40lynx-example&size=250';
 const JSDELIVR_DATA_BASE = 'https://data.jsdelivr.com/v1/packages/npm';
 const JSDELIVR_CDN_BASE = 'https://cdn.jsdelivr.net/npm';
 
-const EXAMPLE_GIT_BASE_URL =
-  'https://github.com/lynx-family/lynx-examples/tree/main';
+// --- Scope configuration (shared source of truth) ---
+
+export interface ExampleScopeConfig {
+  /** npm scope including trailing slash, e.g. '@lynx-example/' */
+  scope: string;
+  /** Directory/shortName prefix for this scope, e.g. '' or 'vue-' */
+  prefix: string;
+  /** Git base URL for linking to example source */
+  exampleGitBaseUrl: string;
+}
+
+export const EXAMPLE_SCOPES: ExampleScopeConfig[] = [
+  {
+    scope: '@lynx-example/',
+    prefix: '',
+    exampleGitBaseUrl:
+      'https://github.com/lynx-family/lynx-examples/tree/main',
+  },
+  {
+    scope: '@vue-lynx-example/',
+    prefix: 'vue-',
+    exampleGitBaseUrl: 'https://github.com/Huxpro/vue-lynx/tree/main',
+  },
+];
 
 // --- Types ---
 
 export interface NpmPackageInfo {
   name: string;
   shortName: string;
+  scope: ExampleScopeConfig;
   description?: string;
   version: string;
 }
@@ -44,20 +68,45 @@ interface JsdelivrEntry {
 // --- Public API ---
 
 /**
- * Search the npm registry for all @lynx-example/* packages.
+ * Look up the scope config for a given package name.
+ */
+export function findScopeForPackage(
+  packageName: string,
+): ExampleScopeConfig | undefined {
+  return EXAMPLE_SCOPES.find((s) => packageName.startsWith(s.scope));
+}
+
+/**
+ * Search the npm registry for example packages across all configured scopes.
  */
 export async function searchExamplePackages(): Promise<NpmPackageInfo[]> {
-  const res = await fetch(NPM_SEARCH_URL);
-  if (!res.ok) throw new Error(`npm search failed: HTTP ${res.status}`);
-  const data = await res.json();
-  return data.objects
-    .filter((obj: any) => obj.package.name.startsWith('@lynx-example/'))
-    .map((obj: any) => ({
-      name: obj.package.name,
-      shortName: obj.package.name.replace('@lynx-example/', ''),
-      description: obj.package.description,
-      version: obj.package.version,
-    }))
+  const results = await Promise.all(
+    EXAMPLE_SCOPES.map(async (scopeConfig) => {
+      const encoded = encodeURIComponent(
+        scopeConfig.scope.slice(0, -1), // drop trailing /
+      );
+      const url = `https://registry.npmjs.org/-/v1/search?text=${encoded}&size=250`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`npm search failed: HTTP ${res.status}`);
+      const data = await res.json();
+      return data.objects
+        .filter((obj: any) =>
+          obj.package.name.startsWith(scopeConfig.scope),
+        )
+        .map((obj: any) => ({
+          name: obj.package.name,
+          shortName:
+            scopeConfig.prefix +
+            obj.package.name.replace(scopeConfig.scope, ''),
+          scope: scopeConfig,
+          description: obj.package.description,
+          version: obj.package.version,
+        }));
+    }),
+  );
+
+  return results
+    .flat()
     .sort((a: NpmPackageInfo, b: NpmPackageInfo) =>
       a.shortName.localeCompare(b.shortName),
     );
@@ -132,7 +181,10 @@ export async function fetchExampleMetadata(
   version: string,
 ): Promise<ExampleMetadata> {
   const allFiles = await fetchPackageFiles(packageName, version);
-  const shortName = packageName.replace('@lynx-example/', '');
+  const scopeConfig = findScopeForPackage(packageName);
+  const shortName = scopeConfig
+    ? packageName.replace(scopeConfig.scope, '')
+    : packageName;
 
   const filtered = allFiles.filter(
     (f) => !PREVIEW_IMAGE_RE.test(f) && !IGNORE_FILES.includes(f),
@@ -162,7 +214,8 @@ export async function fetchExampleMetadata(
     files: sorted,
     templateFiles,
     previewImage,
-    exampleGitBaseUrl: EXAMPLE_GIT_BASE_URL,
+    exampleGitBaseUrl:
+      scopeConfig?.exampleGitBaseUrl ?? EXAMPLE_SCOPES[0].exampleGitBaseUrl,
   };
 }
 
