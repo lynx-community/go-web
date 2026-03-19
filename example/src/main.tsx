@@ -363,7 +363,7 @@ function ColumnResizer({
   onWidthChange,
   reverse,
 }: {
-  widthRef: React.RefObject<number>;
+  widthRef: React.RefObject<number | null>;
   onWidthChange: (w: number) => void;
   reverse?: boolean;
 }) {
@@ -373,7 +373,9 @@ function ColumnResizer({
       const el = e.currentTarget as HTMLElement;
       el.setPointerCapture(e.pointerId);
       const startX = e.clientX;
-      const startW = widthRef.current!;
+      // If no pixel width yet (initial 25% mode), measure the adjacent column
+      const sibling = reverse ? el.nextElementSibling : el.previousElementSibling;
+      const startW = widthRef.current ?? (sibling as HTMLElement)?.offsetWidth ?? 200;
       const sign = reverse ? -1 : 1;
       const onPointerMove = (ev: PointerEvent) => {
         onWidthChange(Math.max(80, startW + (ev.clientX - startX) * sign));
@@ -535,16 +537,19 @@ function App() {
   const jsxPreRef = useRef<HTMLPreElement>(null);
   const [metadataHtml, setMetadataHtml] = useState('');
 
-  // Resizable column widths
-  const col1Ref = useRef(180);
-  const col2Ref = useRef(180);
-  const col4Ref = useRef(300);
-  const [col1W, setCol1W] = useState(180);
-  const [col2W, setCol2W] = useState(180);
-  const [col4W, setCol4W] = useState(300);
+  // Resizable column widths – null means "use flex: 1 1 0" (equal 25%)
+  const col1Ref = useRef<number | null>(null);
+  const col2Ref = useRef<number | null>(null);
+  const col3Ref = useRef<number | null>(null);
+  const col4Ref = useRef<number | null>(null);
+  const [col1W, setCol1W] = useState<number | null>(null);
+  const [col2W, setCol2W] = useState<number | null>(null);
+  const [col3W, setCol3W] = useState<number | null>(null);
+  const [col4W, setCol4W] = useState<number | null>(null);
 
   const setCol1 = useCallback((w: number) => { col1Ref.current = w; setCol1W(w); }, []);
   const setCol2 = useCallback((w: number) => { col2Ref.current = w; setCol2W(w); }, []);
+  const setCol3 = useCallback((w: number) => { col3Ref.current = w; setCol3W(w); }, []);
   const setCol4 = useCallback((w: number) => { col4Ref.current = w; setCol4W(w); }, []);
 
   const jsxString = useMemo(
@@ -856,12 +861,14 @@ function App() {
               background: 'var(--sb-bg)',
               display: 'flex',
               overflowX: 'auto',
+              minWidth: 0,
             }}
           >
             {/* Col 1: examples list */}
             <div
               style={{
-                flex: `0 0 ${col1W}px`,
+                flex: col1W != null ? `0 0 ${col1W}px` : '1 1 0',
+                minWidth: 140,
                 padding: '10px 12px',
                 overflow: 'auto',
                 maxHeight: 200,
@@ -963,7 +970,8 @@ function App() {
             {/* Col 2: entry list */}
             <div
               style={{
-                flex: `0 0 ${col2W}px`,
+                flex: col2W != null ? `0 0 ${col2W}px` : '1 1 0',
+                minWidth: 120,
                 padding: '10px 12px',
                 overflow: 'auto',
                 maxHeight: 200,
@@ -1052,8 +1060,8 @@ function App() {
             {/* Col 3: controls */}
             <div
               style={{
-                flex: '1 1 0',
-                minWidth: 120,
+                flex: col3W != null ? `0 0 ${col3W}px` : '1 1 0',
+                minWidth: 200,
                 padding: '10px 16px',
                 overflow: 'hidden',
                 display: 'grid',
@@ -1117,13 +1125,13 @@ function App() {
               />
             </div>
 
-            <ColumnResizer widthRef={col4Ref} onWidthChange={setCol4} reverse />
+            <ColumnResizer widthRef={col3Ref} onWidthChange={setCol3} />
 
             {/* Right: metadata JSON */}
             <div
               style={{
-                flex: `0 0 ${col4W}px`,
-                minWidth: 0,
+                flex: col4W != null ? `0 0 ${col4W}px` : '1 1 0',
+                minWidth: 160,
                 padding: '10px 16px',
                 overflow: 'auto',
                 maxHeight: 200,
