@@ -135,7 +135,7 @@ const StandaloneCodeBlock = ({
 declare global {
   interface ImportMeta {
     env: {
-      EXAMPLES: string[];
+      EXAMPLES: { name: string; version: string }[];
       SSG_PREVIEWS: Record<string, string>;
     };
   }
@@ -152,21 +152,25 @@ type PackagesSource = 'build' | 'fetching' | 'live' | 'error';
 function useExamplePackages() {
   // Initialize immediately from build-time data — zero latency on first render.
   // Build-time names like "vue-basic" must map back to their npm scope.
+  // Each entry now carries the version that was pinned at build time so the
+  // version dropdown is populated immediately (before the live npm fetch).
   const [packages, setPackages] = useState<NpmPackageInfo[]>(() =>
-    (import.meta.env.EXAMPLES ?? ['hello-world']).map((name: string) => {
-      const scopeConfig =
-        EXAMPLE_SCOPES.find((s) => s.prefix && name.startsWith(s.prefix)) ??
-        EXAMPLE_SCOPES[0];
-      const rawName = scopeConfig.prefix
-        ? name.slice(scopeConfig.prefix.length)
-        : name;
-      return {
-        name: `${scopeConfig.scope}${rawName}`,
-        shortName: name,
-        scope: scopeConfig,
-        version: '',
-      };
-    }),
+    (import.meta.env.EXAMPLES ?? [{ name: 'hello-world', version: '' }]).map(
+      ({ name, version }: { name: string; version: string }) => {
+        const scopeConfig =
+          EXAMPLE_SCOPES.find((s) => s.prefix && name.startsWith(s.prefix)) ??
+          EXAMPLE_SCOPES[0];
+        const rawName = scopeConfig.prefix
+          ? name.slice(scopeConfig.prefix.length)
+          : name;
+        return {
+          name: `${scopeConfig.scope}${rawName}`,
+          shortName: name,
+          scope: scopeConfig,
+          version,
+        };
+      },
+    ),
   );
   const [source, setSource] = useState<PackagesSource>('build');
 
@@ -191,6 +195,7 @@ function usePackageVersions(packageName: string) {
   const [loading, setLoading] = useState(false);
   useEffect(() => {
     if (!packageName) return;
+    setVersions([]);
     setLoading(true);
     fetchPackageVersions(packageName)
       .then(setVersions)
@@ -474,7 +479,7 @@ function ColumnResizer({
       const startW = widthRef.current!;
       const sign = reverse ? -1 : 1;
       const onPointerMove = (ev: PointerEvent) => {
-        onWidthChange(Math.max(80, startW + (ev.clientX - startX) * sign));
+        onWidthChange(Math.max(160, startW + (ev.clientX - startX) * sign));
       };
       const onPointerUp = () => {
         el.removeEventListener('pointermove', onPointerMove);
@@ -613,7 +618,13 @@ function App() {
   const [defaultFile, setDefaultFile] = useState(
     initial.file ?? ((initial.example ?? 'hello-world').startsWith('vue-') ? 'src/App.vue' : 'src/App.tsx'),
   );
-  const [version, setVersion] = useState<string | undefined>(initial.version);
+  const [version, setVersion] = useState<string | undefined>(
+    initial.version ??
+      ((import.meta.env.EXAMPLES ?? []).find(
+        (e: { name: string; version: string }) =>
+          e.name === (initial.example ?? 'hello-world'),
+      )?.version || undefined),
+  );
   const [copied, setCopied] = useState(false);
   const [exampleSearch, setExampleSearch] = useState('');
   const [entrySearch, setEntrySearch] = useState('');
@@ -629,6 +640,16 @@ function App() {
   const currentPkg = examplePackages.find((p) => p.shortName === example);
   const currentPkgName = currentPkg?.name ?? `@lynx-example/${example}`;
 
+  // The version that was pinned when this site was built (from build-time EXAMPLES).
+  const getBuildVersion = useCallback(
+    (name: string) =>
+      (import.meta.env.EXAMPLES ?? []).find(
+        (e: { name: string; version: string }) => e.name === name,
+      )?.version ?? '',
+    [],
+  );
+  const buildVersion = getBuildVersion(example);
+
   const { versions: packageVersions } = usePackageVersions(currentPkgName);
 
   // Auto-select the newest concrete version once packageVersions loads.
@@ -636,13 +657,13 @@ function App() {
   const effectiveVersion =
     version ?? currentPkg?.version ?? packageVersions[0]?.version;
 
-  // Once packageVersions is available, pin `version` state to a real semver
-  // so the dropdown shows a selected value and the URL gets a concrete version.
+  // Fallback: if no build version is known for this example (e.g. a newly
+  // published package not yet in the build), auto-select the newest live version.
   useEffect(() => {
-    if (!version && packageVersions.length > 0) {
+    if (!version && !buildVersion && packageVersions.length > 0) {
       setVersion(packageVersions[0].version);
     }
-  }, [version, packageVersions]);
+  }, [version, buildVersion, packageVersions]);
 
   // Metadata & entry state
   const [metadata, setMetadata] = useState<Record<string, any> | null>(null);
@@ -661,15 +682,18 @@ function App() {
   const [metadataHtml, setMetadataHtml] = useState('');
 
   // Resizable column widths
-  const col1Ref = useRef(180);
-  const col2Ref = useRef(180);
-  const col4Ref = useRef(300);
-  const [col1W, setCol1W] = useState(180);
-  const [col2W, setCol2W] = useState(180);
-  const [col4W, setCol4W] = useState(300);
+  const col1Ref = useRef(220);
+  const col2Ref = useRef(220);
+  const col3Ref = useRef(220);
+  const col4Ref = useRef(220);
+  const [col1W, setCol1W] = useState(220);
+  const [col2W, setCol2W] = useState(220);
+  const [col3W, setCol3W] = useState(220);
+  const [col4W, setCol4W] = useState(220);
 
   const setCol1 = useCallback((w: number) => { col1Ref.current = w; setCol1W(w); }, []);
   const setCol2 = useCallback((w: number) => { col2Ref.current = w; setCol2W(w); }, []);
+  const setCol3 = useCallback((w: number) => { col3Ref.current = w; setCol3W(w); }, []);
   const setCol4 = useCallback((w: number) => { col4Ref.current = w; setCol4W(w); }, []);
 
   const jsxString = useMemo(
@@ -1050,7 +1074,7 @@ function App() {
                     data-active={example === name}
                     onClick={() => {
                       setExample(name);
-                      setVersion(undefined);
+                      setVersion(getBuildVersion(name) || undefined);
                       setDefaultFile(
                         source === 'vue' ? 'src/App.vue' : 'src/App.tsx',
                       );
@@ -1133,13 +1157,14 @@ function App() {
                 style={{
                   ...panelLabelStyle,
                   padding: '0 4px',
-                  marginBottom: 2,
+                  marginBottom: 4,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 6,
+                  gap: 4,
+                  flexWrap: 'wrap',
                 }}
               >
-                <span>Entries</span>
+                <span style={{ flexShrink: 0 }}>Entries</span>
                 <input
                   type="text"
                   value={entrySearch}
@@ -1155,22 +1180,9 @@ function App() {
                     fontSize: 10,
                     fontFamily: 'inherit',
                     outline: 'none',
-                    minWidth: 0,
+                    minWidth: 40,
                   }}
                 />
-              </div>
-              <div
-                style={{
-                  padding: '0 4px',
-                  marginBottom: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
-              >
-                <span style={{ fontSize: 10, color: 'var(--sb-text-dim)', flexShrink: 0 }}>
-                  Version
-                </span>
                 <select
                   value={version ?? ''}
                   onChange={(e) => setVersion(e.target.value || undefined)}
@@ -1179,6 +1191,7 @@ function App() {
                     fontSize: 10,
                     padding: '1px 20px 1px 6px',
                     borderRadius: 4,
+                    flexShrink: 0,
                   }}
                 >
                   {packageVersions.length === 0 && (
@@ -1186,7 +1199,7 @@ function App() {
                   )}
                   {packageVersions.map((v) => (
                     <option key={v.version} value={v.version}>
-                      {v.version}
+                      {v.version}{v.version === buildVersion ? ' (build)' : ''}
                     </option>
                   ))}
                 </select>
@@ -1241,8 +1254,8 @@ function App() {
             {/* Col 3: controls */}
             <div
               style={{
-                flex: '1 1 0',
-                minWidth: 120,
+                flex: `0 0 ${col3W}px`,
+                minWidth: 160,
                 padding: '10px 16px',
                 overflow: 'hidden',
                 display: 'grid',
@@ -1306,9 +1319,9 @@ function App() {
               />
             </div>
 
-            <ColumnResizer widthRef={col4Ref} onWidthChange={setCol4} reverse />
+            <ColumnResizer widthRef={col3Ref} onWidthChange={setCol3} />
 
-            {/* Right: metadata JSON */}
+            {/* Col 4: metadata JSON */}
             <div
               style={{
                 flex: `0 0 ${col4W}px`,
@@ -1375,45 +1388,18 @@ function App() {
       </div>
 
       {/* ── Go component(s) — Desktop + Mobile ── */}
+      {/* App-level concern: don't render Go until we have a resolved CDN version.
+          This avoids the useCdn=false → useCdn=true double-mount when
+          effectiveVersion transitions from undefined to a real semver. */}
       <main>
         <PreviewErrorBoundary>
           <GoConfigProvider config={goConfig}>
-            <div className="dual-view">
-              {/* Desktop */}
-              <div style={{ flex: '1 1 500px', minWidth: 0 }}>
-                <Go
-                  key={`desktop-${example}-${selectedEntry}-${defaultTab}-${effectiveVersion}`}
-                  example={example}
-                  defaultFile={defaultFile}
-                  defaultTab={defaultTab}
-                  defaultEntryFile={defaultEntryFile || undefined}
-                  entry={entryFilter || undefined}
-                  highlight={highlight || undefined}
-                  img={img || undefined}
-                  schema={schema || undefined}
-                  version={effectiveVersion}
-                />
-                <div className="figure-caption">Desktop</div>
-              </div>
-              {/* Mobile — fixed 320×660 */}
-              <div
-                className="mobile-preview"
-                style={{
-                  flex: '0 0 320px',
-                  maxWidth: 320,
-                  overflow: 'hidden',
-                  containerType: 'inline-size' as any,
-                }}
-              >
-                <div
-                  style={{
-                    height: 660,
-                    overflow: 'hidden',
-                    borderRadius: 16,
-                  }}
-                >
+            {effectiveVersion ? (
+              <div className="dual-view">
+                {/* Desktop */}
+                <div style={{ flex: '1 1 500px', minWidth: 0 }}>
                   <Go
-                    key={`mobile-${example}-${selectedEntry}-${defaultTab}-${effectiveVersion}`}
+                    key={`desktop-${example}-${selectedEntry}-${defaultTab}-${effectiveVersion}`}
                     example={example}
                     defaultFile={defaultFile}
                     defaultTab={defaultTab}
@@ -1424,10 +1410,48 @@ function App() {
                     schema={schema || undefined}
                     version={effectiveVersion}
                   />
+                  <div className="figure-caption">Desktop</div>
                 </div>
-                <div className="figure-caption">Mobile (320 × 660)</div>
+                {/* Mobile — fixed 320×660 */}
+                <div
+                  className="mobile-preview"
+                  style={{
+                    flex: '0 0 320px',
+                    maxWidth: 320,
+                    overflow: 'hidden',
+                    containerType: 'inline-size' as any,
+                  }}
+                >
+                  <div
+                    style={{
+                      height: 660,
+                      overflow: 'hidden',
+                      borderRadius: 16,
+                    }}
+                  >
+                    <Go
+                      key={`mobile-${example}-${selectedEntry}-${defaultTab}-${effectiveVersion}`}
+                      example={example}
+                      defaultFile={defaultFile}
+                      defaultTab={defaultTab}
+                      defaultEntryFile={defaultEntryFile || undefined}
+                      entry={entryFilter || undefined}
+                      highlight={highlight || undefined}
+                      img={img || undefined}
+                      schema={schema || undefined}
+                      version={effectiveVersion}
+                    />
+                  </div>
+                  <div className="figure-caption">Mobile (320 × 660)</div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="dual-view" style={{ alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
+                <span style={{ color: 'var(--semi-color-text-2)', fontSize: 13 }}>
+                  Resolving package version…
+                </span>
+              </div>
+            )}
           </GoConfigProvider>
         </PreviewErrorBoundary>
       </main>
