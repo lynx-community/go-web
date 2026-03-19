@@ -113,6 +113,19 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
   const [defaultWebPreviewFile, setDefaultWebPreviewFile] = useState('');
   const [initState, setInitState] = useState(false);
   const storeRef = useRef<Record<string, string>>({});
+
+  // Reset internal state when the example changes so that
+  // stale data from the previous example is not shown.
+  useEffect(() => {
+    setCurrentName(defaultFile);
+    setCurrentFile('');
+    setIsAssetFile(isAssetFileType(defaultFile));
+    setCurrentEntry('');
+    setDefaultWebPreviewFile('');
+    setInitState(false);
+    storeRef.current = {};
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [example]);
   const highlightData = useMemo(() => {
     return typeof highlight === 'string'
       ? { [defaultFile]: highlight }
