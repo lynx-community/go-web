@@ -26,6 +26,7 @@ import { FileTree } from './file-tree';
 import { CodeView } from './code-view';
 import { SwitchSchema } from './switch-schema';
 import { PreviewImg } from './preview-img';
+import { LoadingOverlay } from './loading-overlay';
 import { SplitPane, type SplitPaneHandle } from './split-pane';
 
 import {
@@ -278,7 +279,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
               }
               second={
                 <div className={s['preview-wrap']}>
-                  <div className={s['preview-wrap-content']}>
+                  <div className={s['preview-wrap-content']} style={{ position: 'relative' }}>
                     <div className={s['preview-header']}>
                       <div style={{ width: 24, flexShrink: 0 }} />
                       <RadioGroup
@@ -341,6 +342,9 @@ export const ExampleContent: FC<ExampleContentProps> = ({
                         }}
                       />
                     </div>
+
+                    {/* Show loading overlay while metadata is fetching (before initState=true) */}
+                    <LoadingOverlay visible={!initState} />
 
                     {previewType === PreviewType.QRCode && currentEntry && (
                       <div className={s.qrcode}>
