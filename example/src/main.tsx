@@ -759,7 +759,7 @@ function App() {
                 color: 'var(--sb-text-dim)',
               }}
             >
-              {'<GO>'}
+              {'<Go> with Examples'}
             </span>
           </span>
 

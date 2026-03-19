@@ -1,7 +1,7 @@
 {
   "name": "@lynx-js/go-web",
   "version": "0.1.0",
-  "description": "Interactive Go component for Lynx documentation sites",
+  "description": "Interactive <Go> component for embedding live Lynx examples on the web. The example/ website doubles as the community example gallery.",
   "type": "module",
   "scripts": {
     "dev": "cd example && pnpm install && pnpm dev",
