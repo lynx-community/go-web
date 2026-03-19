@@ -1,8 +1,8 @@
-# go-web
+# Lynx Go Web
 
-The `<Go>` component for embedding live Lynx examples on the web — with code browsing, web preview, and QR code for on-device testing.
+The `<Go>` component for embedding live Lynx examples on the web — with code browsing, web preview, and QR code for on-device testing. Initially built for [lynxjs.org](https://lynxjs.org), now extracted for everyone to embed their Lynx apps.
 
-The `example/` website also serves as the **Lynx community example gallery**, showcasing examples from [`@lynx-example`](https://www.npmjs.com/search?q=%40lynx-example), [`@vue-lynx-example`](https://www.npmjs.com/search?q=%40vue-lynx-example), and more.
+The **[&lt;Go&gt; with Examples](https://go.lynxjs.org)** gallery showcases examples from [`@lynx-example`](https://www.npmjs.com/search?q=%40lynx-example), [`@vue-lynx-example`](https://www.npmjs.com/search?q=%40vue-lynx-example), and more.
 
 ## Usage
 
