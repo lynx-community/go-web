@@ -113,6 +113,28 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
   const [defaultWebPreviewFile, setDefaultWebPreviewFile] = useState('');
   const [initState, setInitState] = useState(false);
   const storeRef = useRef<Record<string, string>>({});
+  const [isExampleLoading, setIsExampleLoading] = useState(true);
+
+  // Reset internal state when the example changes so that
+  // we get a clean loading → ready transition with no stale data.
+  useEffect(() => {
+    setIsExampleLoading(true);
+    setCurrentName(defaultFile);
+    setCurrentFile('');
+    setIsAssetFile(isAssetFileType(defaultFile));
+    setCurrentEntry('');
+    setDefaultWebPreviewFile('');
+    setInitState(false);
+    storeRef.current = {};
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [example]);
+
+  // Hide the loading overlay once metadata and initial code are both ready.
+  useEffect(() => {
+    if (initState && currentFile) {
+      setIsExampleLoading(false);
+    }
+  }, [initState, currentFile]);
   const highlightData = useMemo(() => {
     return typeof highlight === 'string'
       ? { [defaultFile]: highlight }
@@ -249,6 +271,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       schemaOptions={schema ? undefined : schemaOptions}
       exampleGitBaseUrl={exampleData?.exampleGitBaseUrl}
       defaultTab={defaultTab}
+      loading={isExampleLoading}
     />
   );
 };

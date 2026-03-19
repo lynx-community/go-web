@@ -27,6 +27,7 @@ import { CodeView } from './code-view';
 import { SwitchSchema } from './switch-schema';
 import { PreviewImg } from './preview-img';
 import { SplitPane, type SplitPaneHandle } from './split-pane';
+import { LoadingOverlay } from './loading-overlay';
 
 import {
   IconGithub,
@@ -80,6 +81,8 @@ interface ExampleContentProps {
   exampleGitBaseUrl?: string;
   langAlias?: Record<string, string>;
   defaultTab?: PreviewTab;
+  /** Go-level loading state: true while metadata + initial code are being fetched. */
+  loading?: boolean;
 }
 
 export const ExampleContent: FC<ExampleContentProps> = ({
@@ -104,6 +107,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
   exampleGitBaseUrl,
   langAlias,
   defaultTab,
+  loading,
 }) => {
   const {
     explorerUrl,
@@ -208,6 +212,11 @@ export const ExampleContent: FC<ExampleContentProps> = ({
   return (
     <div className={`${s.box} ${fullscreenMode !== 'off' ? s['box-fullscreen'] : ''} ${!showCode ? s['box-code-collapsed'] : ''} ${hasPreview && !showPreview ? s['box-preview-collapsed'] : ''}`} ref={boxRef}>
       <div className={s.container} ref={containerRef}>
+        {loading && (
+          <div style={{ position: 'absolute', inset: 0, zIndex: 2 }}>
+            <LoadingOverlay visible />
+          </div>
+        )}
         <div className={s.content}>
           {hasPreview ? (
             <SplitPane
