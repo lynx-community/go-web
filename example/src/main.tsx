@@ -7,7 +7,15 @@ import React, {
 } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@douyinfe/semi-ui/dist/css/semi.min.css';
-import { GoConfigProvider, Go } from '../../src/index';
+import {
+  GoConfigProvider,
+  Go,
+  EXAMPLE_SCOPES,
+  searchExamplePackages,
+  fetchPackageVersions,
+  fetchExampleMetadata,
+} from '../../src/index';
+import type { NpmPackageInfo, PackageVersionInfo } from '../../src/index';
 import type { PreviewTab, GoConfig } from '../../src/config';
 import type { ShikiTransformer, BundledLanguage } from 'shiki';
 import './styles.css';
@@ -124,18 +132,113 @@ const StandaloneCodeBlock = ({
   );
 };
 
-// Build-time injected list of available examples and SSG previews
+// Build-time injected SSG previews (example list is now fetched at runtime)
 declare global {
   interface ImportMeta {
     env: {
-      EXAMPLES: string[];
+      EXAMPLES: { name: string; version: string }[];
       SSG_PREVIEWS: Record<string, string>;
     };
   }
 }
-const EXAMPLES: string[] = import.meta.env.EXAMPLES ?? ['hello-world'];
 const SSG_PREVIEWS: Record<string, string> =
   import.meta.env.SSG_PREVIEWS ?? {};
+
+// ---------------------------------------------------------------------------
+// Runtime example & version fetching hooks
+// ---------------------------------------------------------------------------
+
+type PackagesSource = 'build' | 'fetching' | 'live' | 'error';
+
+function useExamplePackages() {
+  // Initialize immediately from build-time data — zero latency on first render.
+  // Build-time names like "vue-basic" must map back to their npm scope.
+  // Each entry now carries the version that was pinned at build time so the
+  // version dropdown is populated immediately (before the live npm fetch).
+  const [packages, setPackages] = useState<NpmPackageInfo[]>(() =>
+    (import.meta.env.EXAMPLES ?? [{ name: 'hello-world', version: '' }]).map(
+      ({ name, version }: { name: string; version: string }) => {
+        const scopeConfig =
+          EXAMPLE_SCOPES.find((s) => s.prefix && name.startsWith(s.prefix)) ??
+          EXAMPLE_SCOPES[0];
+        const rawName = scopeConfig.prefix
+          ? name.slice(scopeConfig.prefix.length)
+          : name;
+        return {
+          name: `${scopeConfig.scope}${rawName}`,
+          shortName: name,
+          scope: scopeConfig,
+          version,
+        };
+      },
+    ),
+  );
+  const [source, setSource] = useState<PackagesSource>('build');
+
+  useEffect(() => {
+    setSource('fetching');
+    searchExamplePackages()
+      .then((pkgs) => {
+        setPackages(pkgs);
+        setSource('live');
+      })
+      .catch((err) => {
+        console.error('Failed to fetch example packages:', err);
+        setSource('error');
+      });
+  }, []);
+
+  return { packages, source };
+}
+
+function usePackageVersions(packageName: string) {
+  const [versions, setVersions] = useState<PackageVersionInfo[]>([]);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (!packageName) return;
+    setVersions([]);
+    setLoading(true);
+    fetchPackageVersions(packageName)
+      .then(setVersions)
+      .catch((err) =>
+        console.error(`Failed to fetch versions for ${packageName}:`, err),
+      )
+      .finally(() => setLoading(false));
+  }, [packageName]);
+  return { versions, loading };
+}
+
+// ---------------------------------------------------------------------------
+// SourceBadge — shows whether the example list is from build-time or npm live
+// ---------------------------------------------------------------------------
+
+const SOURCE_BADGE_CONFIG: Record<
+  PackagesSource,
+  { label: string; className: string; dot: boolean }
+> = {
+  build:    { label: 'static', className: 'source-badge-build',    dot: false },
+  fetching: { label: 'fetching', className: 'source-badge-fetching', dot: true  },
+  live:     { label: 'live',    className: 'source-badge-live',     dot: true  },
+  error:    { label: 'offline', className: 'source-badge-error',    dot: false },
+};
+
+function SourceBadge({ source, count }: { source: PackagesSource; count: number }) {
+  const { label, className, dot } = SOURCE_BADGE_CONFIG[source];
+  return (
+    <span
+      className={`source-badge ${className}`}
+      title={
+        source === 'build'    ? `Showing ${count} examples from build-time bundle` :
+        source === 'fetching' ? 'Fetching latest examples from npm registry…' :
+        source === 'live'     ? `Showing ${count} examples fetched live from npm` :
+                                'npm fetch failed — showing build-time bundle'
+      }
+    >
+      {dot && <span className={`source-dot${source === 'fetching' ? ' source-dot-fetching' : ''}`} />}
+      {label}
+    </span>
+  );
+}
 
 function getExampleSource(name: string): 'vue' | 'lynx' {
   return name.startsWith('vue-') ? 'vue' : 'lynx';
@@ -151,6 +254,7 @@ interface UrlState {
   tab?: PreviewTab;
   file?: string;
   example?: string;
+  version?: string;
 }
 
 function readUrlState(): UrlState {
@@ -376,7 +480,7 @@ function ColumnResizer({
       const startW = widthRef.current!;
       const sign = reverse ? -1 : 1;
       const onPointerMove = (ev: PointerEvent) => {
-        onWidthChange(Math.max(80, startW + (ev.clientX - startX) * sign));
+        onWidthChange(Math.max(160, startW + (ev.clientX - startX) * sign));
       };
       const onPointerUp = () => {
         el.removeEventListener('pointermove', onPointerMove);
@@ -515,9 +619,52 @@ function App() {
   const [defaultFile, setDefaultFile] = useState(
     initial.file ?? ((initial.example ?? 'hello-world').startsWith('vue-') ? 'src/App.vue' : 'src/App.tsx'),
   );
+  const [version, setVersion] = useState<string | undefined>(
+    initial.version ??
+      ((import.meta.env.EXAMPLES ?? []).find(
+        (e: { name: string; version: string }) =>
+          e.name === (initial.example ?? 'hello-world'),
+      )?.version || undefined),
+  );
   const [copied, setCopied] = useState(false);
   const [exampleSearch, setExampleSearch] = useState('');
   const [entrySearch, setEntrySearch] = useState('');
+
+  // Runtime: fetch example list and versions from npm
+  const { packages: examplePackages, source: packagesSource } =
+    useExamplePackages();
+  const EXAMPLES = useMemo(
+    () => examplePackages.map((p) => p.shortName),
+    [examplePackages],
+  );
+  // Derive the full package name from the packages list (scope-aware).
+  const currentPkg = examplePackages.find((p) => p.shortName === example);
+  const currentPkgName = currentPkg?.name ?? `@lynx-example/${example}`;
+
+  // The version that was pinned when this site was built (from build-time EXAMPLES).
+  const getBuildVersion = useCallback(
+    (name: string) =>
+      (import.meta.env.EXAMPLES ?? []).find(
+        (e: { name: string; version: string }) => e.name === name,
+      )?.version ?? '',
+    [],
+  );
+  const buildVersion = getBuildVersion(example);
+
+  const { versions: packageVersions } = usePackageVersions(currentPkgName);
+
+  // Auto-select the newest concrete version once packageVersions loads.
+  // Never pass the virtual 'latest' tag to jsdelivr; the data API requires real semver.
+  const effectiveVersion =
+    version ?? currentPkg?.version ?? packageVersions[0]?.version;
+
+  // Fallback: if no build version is known for this example (e.g. a newly
+  // published package not yet in the build), auto-select the newest live version.
+  useEffect(() => {
+    if (!version && !buildVersion && packageVersions.length > 0) {
+      setVersion(packageVersions[0].version);
+    }
+  }, [version, buildVersion, packageVersions]);
 
   // Metadata & entry state
   const [metadata, setMetadata] = useState<Record<string, any> | null>(null);
@@ -536,15 +683,18 @@ function App() {
   const [metadataHtml, setMetadataHtml] = useState('');
 
   // Resizable column widths
-  const col1Ref = useRef(180);
-  const col2Ref = useRef(180);
-  const col4Ref = useRef(300);
-  const [col1W, setCol1W] = useState(180);
-  const [col2W, setCol2W] = useState(180);
-  const [col4W, setCol4W] = useState(300);
+  const col1Ref = useRef(220);
+  const col2Ref = useRef(220);
+  const col3Ref = useRef(220);
+  const col4Ref = useRef(220);
+  const [col1W, setCol1W] = useState(220);
+  const [col2W, setCol2W] = useState(220);
+  const [col3W, setCol3W] = useState(220);
+  const [col4W, setCol4W] = useState(220);
 
   const setCol1 = useCallback((w: number) => { col1Ref.current = w; setCol1W(w); }, []);
   const setCol2 = useCallback((w: number) => { col2Ref.current = w; setCol2W(w); }, []);
+  const setCol3 = useCallback((w: number) => { col3Ref.current = w; setCol3W(w); }, []);
   const setCol4 = useCallback((w: number) => { col4Ref.current = w; setCol4W(w); }, []);
 
   const jsxString = useMemo(
@@ -600,8 +750,15 @@ function App() {
 
   // Persist state to URL hash
   useEffect(() => {
-    writeUrlState({ dark, lang, tab: defaultTab, file: defaultFile, example });
-  }, [dark, lang, defaultTab, defaultFile, example]);
+    writeUrlState({
+      dark,
+      lang,
+      tab: defaultTab,
+      file: defaultFile,
+      example,
+      version,
+    });
+  }, [dark, lang, defaultTab, defaultFile, example, version]);
 
   // Apply Semi UI dark/light mode
   useEffect(() => {
@@ -630,16 +787,18 @@ function App() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  // Fetch example metadata when example changes
+  // Fetch example metadata when example or version changes.
+  // Use effectiveVersion (resolved semver) because the jsdelivr data API
+  // does not accept dist-tags like 'latest'.
   useEffect(() => {
+    if (!effectiveVersion) return; // still resolving 'latest', wait
     setMetadata(null);
     setMetadataLoading(true);
     setEntrySearch('');
-    fetch(`/lynx-examples/${example}/example-metadata.json`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
+
+    const metadataPromise = fetchExampleMetadata(currentPkgName, effectiveVersion);
+
+    metadataPromise
       .then((data) => {
         setMetadata(data);
         const first = data.templateFiles?.[0];
@@ -660,7 +819,7 @@ function App() {
       })
       .catch(() => setMetadata(null))
       .finally(() => setMetadataLoading(false));
-  }, [example]);
+  }, [example, effectiveVersion]);
 
   // Highlight metadata JSON with shiki
   useEffect(() => {
@@ -704,7 +863,7 @@ function App() {
   }, []);
 
   const goConfig: GoConfig = {
-    exampleBasePath: '/lynx-examples',
+    exampleBasePath: '/lynx-examples', // fallback for non-versioned mode
     defaultTab,
     explorerUrl: {
       en: 'https://lynxjs.org/guide/start/quick-start.html#download-lynx-explorer',
@@ -881,6 +1040,7 @@ function App() {
                 }}
               >
                 <span>Examples</span>
+                <SourceBadge source={packagesSource} count={EXAMPLES.length} />
                 <input
                   type="text"
                   value={exampleSearch}
@@ -915,6 +1075,7 @@ function App() {
                     data-active={example === name}
                     onClick={() => {
                       setExample(name);
+                      setVersion(getBuildVersion(name) || undefined);
                       setDefaultFile(
                         source === 'vue' ? 'src/App.vue' : 'src/App.tsx',
                       );
@@ -953,6 +1114,27 @@ function App() {
                         Vue
                       </span>
                     )}
+                    {example === name && (() => {
+                      const pkg = examplePackages.find(p => p.shortName === name);
+                      const displayVer = version ?? pkg?.version;
+                      return displayVer ? (
+                        <span
+                          style={{
+                            fontSize: 9,
+                            padding: '0 4px',
+                            borderRadius: 3,
+                            lineHeight: '16px',
+                            fontWeight: 500,
+                            flexShrink: 0,
+                            background: 'rgba(255,255,255,0.25)',
+                            color: 'inherit',
+                            marginLeft: 'auto',
+                          }}
+                        >
+                          v{displayVer}
+                        </span>
+                      ) : null;
+                    })()}
                   </button>
                 );
               })}
@@ -979,10 +1161,11 @@ function App() {
                   marginBottom: 4,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 6,
+                  gap: 4,
+                  flexWrap: 'wrap',
                 }}
               >
-                <span>Entries</span>
+                <span style={{ flexShrink: 0 }}>Entries</span>
                 <input
                   type="text"
                   value={entrySearch}
@@ -998,9 +1181,29 @@ function App() {
                     fontSize: 10,
                     fontFamily: 'inherit',
                     outline: 'none',
-                    minWidth: 0,
+                    minWidth: 40,
                   }}
                 />
+                <select
+                  value={version ?? ''}
+                  onChange={(e) => setVersion(e.target.value || undefined)}
+                  style={{
+                    ...selectStyle,
+                    fontSize: 10,
+                    padding: '1px 20px 1px 6px',
+                    borderRadius: 4,
+                    flexShrink: 0,
+                  }}
+                >
+                  {packageVersions.length === 0 && (
+                    <option value="" disabled>Loading…</option>
+                  )}
+                  {packageVersions.map((v) => (
+                    <option key={v.version} value={v.version}>
+                      {v.version}{v.version === buildVersion ? ' (build)' : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
               {metadata?.templateFiles?.filter(
                 (t: any) =>
@@ -1052,8 +1255,8 @@ function App() {
             {/* Col 3: controls */}
             <div
               style={{
-                flex: '1 1 0',
-                minWidth: 120,
+                flex: `0 0 ${col3W}px`,
+                minWidth: 160,
                 padding: '10px 16px',
                 overflow: 'hidden',
                 display: 'grid',
@@ -1117,9 +1320,9 @@ function App() {
               />
             </div>
 
-            <ColumnResizer widthRef={col4Ref} onWidthChange={setCol4} reverse />
+            <ColumnResizer widthRef={col3Ref} onWidthChange={setCol3} />
 
-            {/* Right: metadata JSON */}
+            {/* Col 4: metadata JSON */}
             <div
               style={{
                 flex: `0 0 ${col4W}px`,
@@ -1186,44 +1389,18 @@ function App() {
       </div>
 
       {/* ── Go component(s) — Desktop + Mobile ── */}
+      {/* App-level concern: don't render Go until we have a resolved CDN version.
+          This avoids the useCdn=false → useCdn=true double-mount when
+          effectiveVersion transitions from undefined to a real semver. */}
       <main>
         <PreviewErrorBoundary>
           <GoConfigProvider config={goConfig}>
-            <div className="dual-view">
-              {/* Desktop */}
-              <div style={{ flex: '1 1 500px', minWidth: 0 }}>
-                <Go
-                  key={`desktop-${example}-${selectedEntry}-${defaultTab}`}
-                  example={example}
-                  defaultFile={defaultFile}
-                  defaultTab={defaultTab}
-                  defaultEntryFile={defaultEntryFile || undefined}
-                  entry={entryFilter || undefined}
-                  highlight={highlight || undefined}
-                  img={img || undefined}
-                  schema={schema || undefined}
-                />
-                <div className="figure-caption">Desktop</div>
-              </div>
-              {/* Mobile — fixed 320×660 */}
-              <div
-                className="mobile-preview"
-                style={{
-                  flex: '0 0 320px',
-                  maxWidth: 320,
-                  overflow: 'hidden',
-                  containerType: 'inline-size' as any,
-                }}
-              >
-                <div
-                  style={{
-                    height: 660,
-                    overflow: 'hidden',
-                    borderRadius: 16,
-                  }}
-                >
+            {effectiveVersion ? (
+              <div className="dual-view">
+                {/* Desktop */}
+                <div style={{ flex: '1 1 500px', minWidth: 0 }}>
                   <Go
-                    key={`mobile-${example}-${selectedEntry}-${defaultTab}`}
+                    key={`desktop-${example}-${selectedEntry}-${defaultTab}-${effectiveVersion}`}
                     example={example}
                     defaultFile={defaultFile}
                     defaultTab={defaultTab}
@@ -1232,11 +1409,50 @@ function App() {
                     highlight={highlight || undefined}
                     img={img || undefined}
                     schema={schema || undefined}
+                    version={effectiveVersion}
                   />
+                  <div className="figure-caption">Desktop</div>
                 </div>
-                <div className="figure-caption">Mobile (320 × 660)</div>
+                {/* Mobile — fixed 320×660 */}
+                <div
+                  className="mobile-preview"
+                  style={{
+                    flex: '0 0 320px',
+                    maxWidth: 320,
+                    overflow: 'hidden',
+                    containerType: 'inline-size' as any,
+                  }}
+                >
+                  <div
+                    style={{
+                      height: 660,
+                      overflow: 'hidden',
+                      borderRadius: 16,
+                    }}
+                  >
+                    <Go
+                      key={`mobile-${example}-${selectedEntry}-${defaultTab}-${effectiveVersion}`}
+                      example={example}
+                      defaultFile={defaultFile}
+                      defaultTab={defaultTab}
+                      defaultEntryFile={defaultEntryFile || undefined}
+                      entry={entryFilter || undefined}
+                      highlight={highlight || undefined}
+                      img={img || undefined}
+                      schema={schema || undefined}
+                      version={effectiveVersion}
+                    />
+                  </div>
+                  <div className="figure-caption">Mobile (320 × 660)</div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="dual-view" style={{ alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
+                <span style={{ color: 'var(--semi-color-text-2)', fontSize: 13 }}>
+                  Resolving package version…
+                </span>
+              </div>
+            )}
           </GoConfigProvider>
         </PreviewErrorBoundary>
       </main>

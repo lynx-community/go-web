@@ -7,6 +7,7 @@ import { isAssetFileType } from './utils/example-data';
 import type { SchemaOptionsData } from './hooks/use-switch-schema';
 import { useGoConfig } from '../config';
 import type { PreviewTab } from '../config';
+import { fetchExampleMetadata, getCdnBaseUrl } from '../npm-registry';
 
 const DefaultErrorWrap = ({
   example,
@@ -59,6 +60,12 @@ export interface ExamplePreviewProps {
    * - `'qrcode'`  — QR code for Lynx Explorer
    */
   defaultTab?: PreviewTab;
+  /**
+   * When set, fetches example files from the npm registry (via jsdelivr CDN)
+   * at the specified version instead of from local/static files.
+   * Use `'latest'` for the newest published version, or a specific semver string.
+   */
+  version?: string;
 }
 
 export interface ExampleMetadata {
@@ -100,7 +107,15 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     schemaOptions,
     langAlias,
     defaultTab: propsDefaultTab,
+    version,
   } = props;
+
+  // When version is set, use CDN URLs; otherwise use local static files.
+  const packageName = `@lynx-example/${example}`;
+  const useCdn = !!version;
+  const fileBase = useCdn
+    ? getCdnBaseUrl(packageName, version)
+    : `${EXAMPLE_BASE_URL}/${example}`;
 
   // Instance prop > config provider > undefined (let ExampleContent decide)
   const defaultTab = propsDefaultTab ?? configDefaultTab;
@@ -113,17 +128,29 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
   const [defaultWebPreviewFile, setDefaultWebPreviewFile] = useState('');
   const [initState, setInitState] = useState(false);
   const storeRef = useRef<Record<string, string>>({});
+  // Clear file content cache when version/example changes (fileBase encodes both)
+  const prevFileBase = useRef(fileBase);
+  if (prevFileBase.current !== fileBase) {
+    storeRef.current = {};
+    prevFileBase.current = fileBase;
+  }
   const highlightData = useMemo(() => {
     return typeof highlight === 'string'
       ? { [defaultFile]: highlight }
       : highlight || {};
   }, [highlight, defaultFile]);
 
+  // Metadata: from CDN (constructed from jsdelivr API) or from local static file
   const { error, data: exampleData } = useSWR<ExampleMetadata>(
-    `${EXAMPLE_BASE_URL}/${example}/example-metadata.json`,
+    useCdn
+      ? `cdn:${packageName}@${version}`
+      : `${EXAMPLE_BASE_URL}/${example}/example-metadata.json`,
 
-    async (url) => {
-      const response = await fetch(url);
+    async (key) => {
+      if (useCdn) {
+        return await fetchExampleMetadata(packageName, version);
+      }
+      const response = await fetch(key);
       if (!response.ok) {
         throw new Error(response.status.toString());
       }
@@ -133,7 +160,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
   );
 
   const { trigger } = useSWRMutation(
-    `${EXAMPLE_BASE_URL}/${example}/${currentName}`,
+    `${fileBase}/${currentName}`,
     async (url) => {
       const response = await fetch(url);
       if (!response.ok) {
@@ -149,7 +176,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
   };
   useEffect(() => {
     if (isAssetFile) {
-      setCurrentFile(`${EXAMPLE_BASE_URL}/${example}/${currentName}`);
+      setCurrentFile(`${fileBase}/${currentName}`);
     } else {
       if (storeRef.current[currentName]) {
         setCurrentFile(storeRef.current[currentName]);
@@ -160,14 +187,16 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
         });
       }
     }
-  }, [currentName, isAssetFile]);
+  }, [currentName, isAssetFile, fileBase]);
 
   const currentEntryFileUrl = useMemo(() => {
     const file = exampleData?.templateFiles?.find(
       (file) => file.name === currentEntry,
     );
     if (file) {
-      const url = `${window.location.origin}${EXAMPLE_BASE_URL}/${example}/${file?.file}`;
+      const url = useCdn
+        ? `${fileBase}/${file.file}`
+        : `${window.location.origin}${EXAMPLE_BASE_URL}/${example}/${file?.file}`;
       if (schema) {
         const schemaUrl = schema.replace('{{{url}}}', url);
         return schemaUrl;
@@ -175,7 +204,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       return url;
     }
     return '';
-  }, [exampleData, currentEntry, schema]);
+  }, [exampleData, currentEntry, schema, fileBase, useCdn]);
   useEffect(() => {
     if (exampleData?.templateFiles && exampleData?.templateFiles.length > 0) {
       let tmpEntry;
@@ -203,7 +232,9 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       }
       if (tmpEntry) {
         if (tmpEntry.webFile) {
-          const fullWebFile = `${window.location.origin}${EXAMPLE_BASE_URL}/${example}/${tmpEntry.webFile}`;
+          const fullWebFile = useCdn
+            ? `${fileBase}/${tmpEntry.webFile}`
+            : `${window.location.origin}${EXAMPLE_BASE_URL}/${example}/${tmpEntry.webFile}`;
           setDefaultWebPreviewFile(fullWebFile);
         }
         setCurrentEntry(tmpEntry.name);
@@ -233,7 +264,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       previewImage={
         img ||
         (exampleData?.previewImage
-          ? `${EXAMPLE_BASE_URL}/${example}/${exampleData?.previewImage}`
+          ? `${fileBase}/${exampleData?.previewImage}`
           : '')
       }
       langAlias={langAlias}
