@@ -8,6 +8,11 @@ declare module '*.module.scss' {
   export default classes;
 }
 
+// vant-touch.js is a self-executing script with no exports
+declare module '*/vant-touch.js' {
+  // Module has no exports - it self-executes on load
+}
+
 interface ImportMeta {
   readonly env: Record<string, unknown>;
 }
