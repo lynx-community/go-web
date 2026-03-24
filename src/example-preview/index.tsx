@@ -38,9 +38,11 @@ const DefaultErrorWrap = ({
   );
 };
 
+export type ExamplePreviewMode = 'linked' | 'preview-only' | 'source-only';
+
 export interface ExamplePreviewProps {
   example: string;
-  defaultFile: string;
+  defaultFile?: string;
   img?: string;
   defaultEntryFile?: string;
   defaultEntryName?: string;
@@ -50,6 +52,7 @@ export interface ExamplePreviewProps {
   rightFooter?: React.ReactNode;
   schemaOptions?: SchemaOptionsData;
   langAlias?: Record<string, string>;
+  mode?: ExamplePreviewMode;
   /**
    * Override the default preview tab for this instance.
    * Takes precedence over the site-level `GoConfig.defaultTab`.
@@ -100,6 +103,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     schemaOptions,
     langAlias,
     defaultTab: propsDefaultTab,
+    mode = 'linked',
   } = props;
 
   // Instance prop > config provider > undefined (let ExampleContent decide)
@@ -148,6 +152,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     setIsAssetFile(isAssetFileType(v));
   };
   useEffect(() => {
+    if (mode === 'preview-only') return;
     if (isAssetFile) {
       setCurrentFile(`${EXAMPLE_BASE_URL}/${example}/${currentName}`);
     } else {
@@ -160,7 +165,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
         });
       }
     }
-  }, [currentName, isAssetFile]);
+  }, [currentName, isAssetFile, mode]);
 
   const currentEntryFileUrl = useMemo(() => {
     const file = exampleData?.templateFiles?.find(
@@ -249,6 +254,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       schemaOptions={schema ? undefined : schemaOptions}
       exampleGitBaseUrl={exampleData?.exampleGitBaseUrl}
       defaultTab={defaultTab}
+      mode={mode}
     />
   );
 };

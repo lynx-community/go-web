@@ -151,6 +151,7 @@ interface UrlState {
   tab?: PreviewTab;
   file?: string;
   example?: string;
+  mode?: 'linked' | 'preview-only' | 'source-only';
 }
 
 function readUrlState(): UrlState {
@@ -416,6 +417,7 @@ function buildJsxString({
   highlight,
   img,
   schema,
+  mode,
 }: {
   example: string;
   defaultFile: string;
@@ -425,13 +427,14 @@ function buildJsxString({
   highlight: string;
   img: string;
   schema: string;
+  mode: 'linked' | 'preview-only' | 'source-only';
 }): string {
   const props: string[] = [`example="${example}"`];
-  if (defaultFile) props.push(`defaultFile="${defaultFile}"`);
-  if (defaultTab !== 'web') props.push(`defaultTab="${defaultTab}"`);
-  if (defaultEntryFile) props.push(`defaultEntryFile="${defaultEntryFile}"`);
-  if (highlight) props.push(`highlight="${highlight}"`);
-  if (entryFilter) {
+  if (defaultFile && mode !== 'preview-only') props.push(`defaultFile="${defaultFile}"`);
+  if (defaultTab !== 'web' && mode !== 'source-only') props.push(`defaultTab="${defaultTab}"`);
+  if (defaultEntryFile && mode !== 'source-only') props.push(`defaultEntryFile="${defaultEntryFile}"`);
+  if (highlight && mode !== 'preview-only') props.push(`highlight="${highlight}"`);
+  if (entryFilter && mode !== 'source-only') {
     if (entryFilter.includes(',')) {
       props.push(
         `entry={${JSON.stringify(entryFilter.split(',').map((s) => s.trim()))}}`,
@@ -440,8 +443,9 @@ function buildJsxString({
       props.push(`entry="${entryFilter}"`);
     }
   }
-  if (schema) props.push(`schema="${schema}"`);
-  if (img) props.push(`img="${img}"`);
+  if (schema && mode !== 'source-only') props.push(`schema="${schema}"`);
+  if (img && mode !== 'source-only') props.push(`img="${img}"`);
+  if (mode !== 'linked') props.push(`mode="${mode}"`);
 
   if (props.length <= 2) {
     return `<Go ${props.join(' ')} />`;
@@ -515,6 +519,9 @@ function App() {
   const [defaultFile, setDefaultFile] = useState(
     initial.file ?? ((initial.example ?? 'hello-world').startsWith('vue-') ? 'src/App.vue' : 'src/App.tsx'),
   );
+  const [mode, setMode] = useState<'linked' | 'preview-only' | 'source-only'>(
+    initial.mode ?? 'linked'
+  );
   const [copied, setCopied] = useState(false);
   const [exampleSearch, setExampleSearch] = useState('');
   const [entrySearch, setEntrySearch] = useState('');
@@ -558,6 +565,7 @@ function App() {
         highlight,
         img,
         schema,
+        mode,
       }),
     [
       example,
@@ -568,6 +576,7 @@ function App() {
       highlight,
       img,
       schema,
+      mode,
     ],
   );
 
@@ -600,8 +609,8 @@ function App() {
 
   // Persist state to URL hash
   useEffect(() => {
-    writeUrlState({ dark, lang, tab: defaultTab, file: defaultFile, example });
-  }, [dark, lang, defaultTab, defaultFile, example]);
+    writeUrlState({ dark, lang, tab: defaultTab, file: defaultFile, example, mode: mode === 'linked' ? undefined : mode });
+  }, [dark, lang, defaultTab, defaultFile, example, mode]);
 
   // Apply Semi UI dark/light mode
   useEffect(() => {
@@ -799,6 +808,18 @@ function App() {
                   { value: 'qrcode', label: 'QR' },
                 ]}
                 onChange={(v) => setDefaultTab(v as PreviewTab)}
+              />
+            </ControlGroup>
+
+            <ControlGroup label="Mode">
+              <AdaptiveControl
+                value={mode}
+                options={[
+                  { value: 'linked', label: 'Linked' },
+                  { value: 'preview-only', label: 'Preview Only' },
+                  { value: 'source-only', label: 'Source Only' },
+                ]}
+                onChange={(v) => setMode(v as 'linked' | 'preview-only' | 'source-only')}
               />
             </ControlGroup>
 
@@ -1193,7 +1214,7 @@ function App() {
               {/* Desktop */}
               <div style={{ flex: '1 1 500px', minWidth: 0 }}>
                 <Go
-                  key={`desktop-${example}-${selectedEntry}-${defaultTab}`}
+                  key={`desktop-${example}-${selectedEntry}-${defaultTab}-${mode}`}
                   example={example}
                   defaultFile={defaultFile}
                   defaultTab={defaultTab}
@@ -1202,6 +1223,7 @@ function App() {
                   highlight={highlight || undefined}
                   img={img || undefined}
                   schema={schema || undefined}
+                  mode={mode}
                 />
                 <div className="figure-caption">Desktop</div>
               </div>
@@ -1223,7 +1245,7 @@ function App() {
                   }}
                 >
                   <Go
-                    key={`mobile-${example}-${selectedEntry}-${defaultTab}`}
+                    key={`mobile-${example}-${selectedEntry}-${defaultTab}-${mode}`}
                     example={example}
                     defaultFile={defaultFile}
                     defaultTab={defaultTab}
@@ -1232,6 +1254,7 @@ function App() {
                     highlight={highlight || undefined}
                     img={img || undefined}
                     schema={schema || undefined}
+                    mode={mode}
                   />
                 </div>
                 <div className="figure-caption">Mobile (320 × 660)</div>
