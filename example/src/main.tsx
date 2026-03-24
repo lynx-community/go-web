@@ -151,7 +151,7 @@ interface UrlState {
   tab?: PreviewTab;
   file?: string;
   example?: string;
-  mode?: 'linked' | 'preview-only' | 'source-only';
+  mode?: 'linked' | 'preview' | 'source';
 }
 
 function readUrlState(): UrlState {
@@ -427,14 +427,14 @@ function buildJsxString({
   highlight: string;
   img: string;
   schema: string;
-  mode: 'linked' | 'preview-only' | 'source-only';
+  mode: 'linked' | 'preview' | 'source';
 }): string {
   const props: string[] = [`example="${example}"`];
-  if (defaultFile && mode !== 'preview-only') props.push(`defaultFile="${defaultFile}"`);
-  if (defaultTab !== 'web' && mode !== 'source-only') props.push(`defaultTab="${defaultTab}"`);
-  if (defaultEntryFile && mode !== 'source-only') props.push(`defaultEntryFile="${defaultEntryFile}"`);
-  if (highlight && mode !== 'preview-only') props.push(`highlight="${highlight}"`);
-  if (entryFilter && mode !== 'source-only') {
+  if (defaultFile && mode !== 'preview') props.push(`defaultFile="${defaultFile}"`);
+  if (defaultTab !== 'web' && mode !== 'source') props.push(`defaultTab="${defaultTab}"`);
+  if (defaultEntryFile && mode !== 'source') props.push(`defaultEntryFile="${defaultEntryFile}"`);
+  if (highlight && mode !== 'preview') props.push(`highlight="${highlight}"`);
+  if (entryFilter && mode !== 'source') {
     if (entryFilter.includes(',')) {
       props.push(
         `entry={${JSON.stringify(entryFilter.split(',').map((s) => s.trim()))}}`,
@@ -443,8 +443,8 @@ function buildJsxString({
       props.push(`entry="${entryFilter}"`);
     }
   }
-  if (schema && mode !== 'source-only') props.push(`schema="${schema}"`);
-  if (img && mode !== 'source-only') props.push(`img="${img}"`);
+  if (schema && mode !== 'source') props.push(`schema="${schema}"`);
+  if (img && mode !== 'source') props.push(`img="${img}"`);
   if (mode !== 'linked') props.push(`mode="${mode}"`);
 
   if (props.length <= 2) {
@@ -519,7 +519,7 @@ function App() {
   const [defaultFile, setDefaultFile] = useState(
     initial.file ?? ((initial.example ?? 'hello-world').startsWith('vue-') ? 'src/App.vue' : 'src/App.tsx'),
   );
-  const [mode, setMode] = useState<'linked' | 'preview-only' | 'source-only'>(
+  const [mode, setMode] = useState<'linked' | 'preview' | 'source'>(
     initial.mode ?? 'linked'
   );
   const [copied, setCopied] = useState(false);
@@ -816,10 +816,10 @@ function App() {
                 value={mode}
                 options={[
                   { value: 'linked', label: 'Linked' },
-                  { value: 'preview-only', label: 'Preview Only' },
-                  { value: 'source-only', label: 'Source Only' },
+                  { value: 'preview', label: 'Preview' },
+                  { value: 'source', label: 'Source' },
                 ]}
-                onChange={(v) => setMode(v as 'linked' | 'preview-only' | 'source-only')}
+                onChange={(v) => setMode(v as 'linked' | 'preview' | 'source')}
               />
             </ControlGroup>
 

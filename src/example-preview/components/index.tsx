@@ -123,8 +123,8 @@ export const ExampleContent: FC<ExampleContentProps> = ({
 
   const { treeData, doChangeExpand, selectedKeys, expandedKeys, entryData } =
     useTreeController({ fileNames, value: currentFileName, entry });
-  const [showPreview, setShowPreview] = useState(mode !== 'source-only');
-  const [showCode, setShowCode] = useState(mode !== 'preview-only');
+  const [showPreview, setShowPreview] = useState(mode !== 'source');
+  const [showCode, setShowCode] = useState(mode !== 'preview');
   const [showFileTree, setShowFileTree] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -425,9 +425,9 @@ export const ExampleContent: FC<ExampleContentProps> = ({
     <div className={`${s.box} ${fullscreenMode !== 'off' ? s['box-fullscreen'] : ''} ${!showCode ? s['box-code-collapsed'] : ''} ${hasPreview && !showPreview ? s['box-preview-collapsed'] : ''}`} ref={boxRef}>
       <div className={s.container} ref={containerRef}>
         <div className={s.content}>
-          {mode === 'preview-only' ? (
+          {mode === 'preview' ? (
             renderPreviewWrap()
-          ) : mode === 'source-only' ? (
+          ) : mode === 'source' ? (
             renderCodeWrap()
           ) : hasPreview ? (
             <SplitPane
@@ -460,7 +460,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
               whiteSpace: 'nowrap',
             }}
           >
-            {mode !== 'preview-only' && (
+            {mode !== 'preview' && (
               <Button
                 theme="borderless"
                 icon={<IconList style={{ color: 'var(--semi-color-text-2)' }} />}
@@ -477,7 +477,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
               >
                 {name}
               </Typography.Text>
-              {mode !== 'preview-only' && (
+              {mode !== 'preview' && (
                 <>
                   <IconChevronRightStroked
                     style={{ color: 'var(--semi-color-text-2)', fontSize: '12px' }}
@@ -494,7 +494,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
             </Space>
           </Space>
           <Space spacing={7}>
-            {mode !== 'preview-only' && (
+            {mode !== 'preview' && (
               <Button
                 theme="borderless"
                 icon={
@@ -552,7 +552,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
                 />
               </Space>
             )}
-            {mode !== 'preview-only' && (
+            {mode !== 'preview' && (
               <Button
                 theme="borderless"
                 icon={

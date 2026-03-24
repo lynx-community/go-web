@@ -38,7 +38,7 @@ const DefaultErrorWrap = ({
   );
 };
 
-export type ExamplePreviewMode = 'linked' | 'preview-only' | 'source-only';
+export type ExamplePreviewMode = 'linked' | 'preview' | 'source';
 
 export interface ExamplePreviewProps {
   example: string;
@@ -152,7 +152,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     setIsAssetFile(isAssetFileType(v));
   };
   useEffect(() => {
-    if (mode === 'preview-only') return;
+    if (mode === 'preview') return;
     if (isAssetFile) {
       setCurrentFile(`${EXAMPLE_BASE_URL}/${example}/${currentName}`);
     } else {
