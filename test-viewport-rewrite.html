@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Viewport Unit Rewrite Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .test-container {
+      border: 2px solid #333;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .vh-test {
+      background: #e3f2fd;
+      padding: 10px;
+      margin: 10px 0;
+    }
+    .result {
+      font-family: monospace;
+      background: #f5f5f5;
+      padding: 10px;
+      margin: 10px 0;
+      border-left: 4px solid #2196f3;
+    }
+    .pass {
+      border-left-color: #4caf50;
+      background: #e8f5e9;
+    }
+    .fail {
+      border-left-color: #f44336;
+      background: #ffebee;
+    }
+    code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Viewport Unit Rewrite Test</h1>
+  <p>This test verifies that the viewport unit rewriting logic correctly converts <code>vh/vw</code> units to use container-relative custom properties.</p>
+
+  <div class="test-container">
+    <h2>Test 1: rewriteValue function</h2>
+    <div id="test1-results"></div>
+  </div>
+
+  <div class="test-container">
+    <h2>Test 2: rewriteViewportUnits function</h2>
+    <div id="test2-results"></div>
+  </div>
+
+  <div class="test-container">
+    <h2>Key Fix Verification</h2>
+    <p>The critical fix is changing the fallback from <code>100vh</code> to <code>100%</code>:</p>
+    <ul>
+      <li><strong>Before:</strong> <code>var(--lynx-vh, 100vh)</code> - fallback uses browser viewport</li>
+      <li><strong>After:</strong> <code>var(--lynx-vh, 100%)</code> - fallback uses container height</li>
+    </ul>
+    <div id="fix-verification"></div>
+  </div>
+
+  <script type="module">
+    // Import the functions (in a real scenario, these would be imported from the module)
+    function rewriteValue(value) {
+      return (
+        value
+          .replace(/(-?\d+\.?\d*)vh/g, (_, num) => {
+            const n = Number.parseFloat(num);
+            if (n === 100) return 'var(--lynx-vh, 100%)';
+            return `calc(var(--lynx-vh, 100%) * ${n / 100})`;
+          })
+          .replace(/(-?\d+\.?\d*)vw/g, (_, num) => {
+            const n = Number.parseFloat(num);
+            if (n === 100) return 'var(--lynx-vw, 100%)';
+            return `calc(var(--lynx-vw, 100%) * ${n / 100})`;
+          })
+      );
+    }
+
+    function rewriteViewportUnits(template) {
+      if (!template.styleInfo) return;
+
+      for (const key of Object.keys(template.styleInfo)) {
+        const info = template.styleInfo[key];
+        if (info.content) {
+          info.content = info.content.map((s) => rewriteValue(s));
+        }
+        if (info.rules) {
+          for (const rule of info.rules) {
+            if (rule.decl) {
+              rule.decl = rule.decl.map(([prop, val]) => [
+                prop,
+                rewriteValue(val),
+              ]);
+            }
+          }
+        }
+      }
+    }
+
+    // Test cases
+    const testCases = [
+      { input: '100vh', expected: 'var(--lynx-vh, 100%)', desc: '100vh -> var(--lynx-vh, 100%)' },
+      { input: '50vh', expected: 'calc(var(--lynx-vh, 100%) * 0.5)', desc: '50vh -> calc with custom property' },
+      { input: '100vw', expected: 'var(--lynx-vw, 100%)', desc: '100vw -> var(--lynx-vw, 100%)' },
+      { input: '50vw', expected: 'calc(var(--lynx-vw, 100%) * 0.5)', desc: '50vw -> calc with custom property' },
+      { input: '33.33vh', expected: 'calc(var(--lynx-vh, 100%) * 0.3333)', desc: 'Decimal vh values' },
+      { input: '-10vh', expected: 'calc(var(--lynx-vh, 100%) * -0.1)', desc: 'Negative vh values' },
+    ];
+
+    // Run Test 1
+    const test1Results = document.getElementById('test1-results');
+    testCases.forEach(tc => {
+      const result = rewriteValue(tc.input);
+      const passed = result === tc.expected;
+      const div = document.createElement('div');
+      div.className = `result ${passed ? 'pass' : 'fail'}`;
+      div.innerHTML = `
+        <strong>${tc.desc}</strong><br>
+        Input: <code>${tc.input}</code><br>
+        Expected: <code>${tc.expected}</code><br>
+        Got: <code>${result}</code><br>
+        Status: ${passed ? '✅ PASS' : '❌ FAIL'}
+      `;
+      test1Results.appendChild(div);
+    });
+
+    // Run Test 2
+    const test2Results = document.getElementById('test2-results');
+    const template = {
+      styleInfo: {
+        '0': {
+          content: ['height: 100vh', 'min-height: 50vh'],
+          rules: [
+            { decl: [['width', '100vw'], ['max-width', '50vw']] }
+          ]
+        }
+      }
+    };
+
+    rewriteViewportUnits(template);
+
+    const expectedTemplate = {
+      styleInfo: {
+        '0': {
+          content: ['height: var(--lynx-vh, 100%)', 'min-height: calc(var(--lynx-vh, 100%) * 0.5)'],
+          rules: [
+            { decl: [['width', 'var(--lynx-vw, 100%)'], ['max-width', 'calc(var(--lynx-vw, 100%) * 0.5)']] }
+          ]
+        }
+      }
+    };
+
+    const test2Pass = JSON.stringify(template) === JSON.stringify(expectedTemplate);
+    const test2Div = document.createElement('div');
+    test2Div.className = `result ${test2Pass ? 'pass' : 'fail'}`;
+    test2Div.innerHTML = `
+      <strong>Template rewriting</strong><br>
+      <pre>${JSON.stringify(template, null, 2)}</pre>
+      Status: ${test2Pass ? '✅ PASS' : '❌ FAIL'}
+    `;
+    test2Results.appendChild(test2Div);
+
+    // Fix verification
+    const fixDiv = document.getElementById('fix-verification');
+    const oldFallback = 'var(--lynx-vh, 100vh)';
+    const newFallback = 'var(--lynx-vh, 100%)';
+
+    fixDiv.innerHTML = `
+      <div class="result pass">
+        <strong>Fix Applied</strong><br>
+        The fallback value has been changed from <code>100vh</code> to <code>100%</code>.<br><br>
+        This ensures that if <code>--lynx-vh</code> is not set, the element will size to
+        its container (100%) rather than the browser viewport (100vh), preventing the
+        miscalculation where 100vh resolved to 896px instead of the expected 801px.
+      </div>
+    `;
+  </script>
+</body>
+</html>

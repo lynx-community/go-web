@@ -4,6 +4,17 @@ import '@lynx-js/web-core/index.css';
 import '@lynx-js/web-elements/index.css';
 import type { LynxView } from '@lynx-js/web-core';
 import { LoadingOverlay } from './loading-overlay';
+import { rewriteViewportUnits } from '../utils/viewport-rewrite';
+
+// Touch event emulator for desktop browsers - dynamically imported to avoid SSR issues
+function ensureTouchEmulator(): void {
+  if (typeof window !== 'undefined' && !('ontouchstart' in window)) {
+    // Only load on non-touch devices
+    import('../../preinstalled/vant-touch.js').catch((err) => {
+      console.warn('[WebIframe] Failed to load touch emulator:', err);
+    });
+  }
+}
 
 declare global {
   namespace JSX {
@@ -39,47 +50,6 @@ function ensureRuntime() {
 // Matches .p=\"<anything>\" — handles empty, single-char, and multi-char paths
 const WEBPACK_PUBLIC_PATH_RE = /\.p=\\"[^"]*\\"/g;
 
-/**
- * Rewrite CSS viewport units (vh/vw) in a Lynx template's styleInfo to use
- * CSS custom properties (--lynx-vh / --lynx-vw). This fixes viewport-unit
- * sizing inside the <lynx-view> shadow DOM, where native CSS vh/vw resolve
- * to the browser viewport rather than the preview container.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function rewriteViewportUnits(template: any): void {
-  if (!template.styleInfo) return;
-
-  const rewrite = (value: string) =>
-    value
-      .replace(/(-?\d+\.?\d*)vh/g, (_, num) => {
-        const n = Number.parseFloat(num);
-        if (n === 100) return 'var(--lynx-vh, 100vh)';
-        return `calc(var(--lynx-vh, 100vh) * ${n / 100})`;
-      })
-      .replace(/(-?\d+\.?\d*)vw/g, (_, num) => {
-        const n = Number.parseFloat(num);
-        if (n === 100) return 'var(--lynx-vw, 100vw)';
-        return `calc(var(--lynx-vw, 100vw) * ${n / 100})`;
-      });
-
-  for (const key of Object.keys(template.styleInfo)) {
-    const info = template.styleInfo[key];
-    if (info.content) {
-      info.content = info.content.map((s: string) => rewrite(s));
-    }
-    if (info.rules) {
-      for (const rule of info.rules) {
-        if (rule.decl) {
-          rule.decl = rule.decl.map(([prop, val]: [string, string]) => [
-            prop,
-            rewrite(val),
-          ]);
-        }
-      }
-    }
-  }
-}
-
 // DEV: ?simulateError=runtime|template|shadow|render
 const simulateError =
   typeof window !== 'undefined'
@@ -108,6 +78,10 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
       setError('Failed to load Lynx runtime: simulated error');
       return;
     }
+
+    // Load touch emulator for desktop browsers
+    ensureTouchEmulator();
+
     ensureRuntime()
       .then(() => {
         console.log('[WebIframe] runtime ready', `${(performance.now() - t).toFixed(0)}ms`);
