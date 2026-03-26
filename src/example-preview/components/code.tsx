@@ -26,6 +26,11 @@ export const Code: FC<CodeProps> = ({
   const [highlightVal, setHighlightVal] = useState(highlight);
   const defaultValRef = useRef(val);
 
+  // Track whether shiki has finished rendering the current code.
+  // Hide the code block until highlighting is complete to avoid FOUC.
+  const [renderedVal, setRenderedVal] = useState('');
+  const isCodeReady = val !== '' && val === renderedVal;
+
   function scrollToFirstHighlightLine() {
     if (!val) {
       return;
@@ -81,10 +86,15 @@ export const Code: FC<CodeProps> = ({
     setHighlightVal(highlight);
   }, [highlight]);
   return (
-    <div ref={containerRef} className={styles.code}>
+    <div
+      ref={containerRef}
+      className={styles.code}
+      style={{ visibility: isCodeReady ? 'visible' : 'hidden' }}
+    >
       <CodeBlock
         lang={language}
         onRendered={() => {
+          setRenderedVal(val);
           scrollToFirstHighlightLine();
         }}
         code={val}
