@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "cd example && pnpm install && pnpm dev",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset publish"
   },
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -42,20 +45,21 @@
     }
   },
   "devDependencies": {
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@types/react-copy-to-clipboard": "^5.0.7",
-    "typescript": "^5.7.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "@changesets/cli": "^2.30.0",
     "@douyinfe/semi-icons": "^2.74.0",
     "@douyinfe/semi-ui": "^2.75.0",
     "@lynx-js/web-core": "npm:@lynx-js/web-core-canary@0.19.7-canary-20260126-5e7e43c5",
     "@lynx-js/web-elements": "^0.11.0",
     "@shikijs/transformers": "^3.4.2",
+    "@types/react": "^18.2.0",
+    "@types/react-copy-to-clipboard": "^5.0.7",
+    "@types/react-dom": "^18.2.0",
     "qrcode.react": "^4.2.0",
+    "react": "^18.2.0",
     "react-copy-to-clipboard": "^5.1.0",
+    "react-dom": "^18.2.0",
     "swr": "^2.2.5",
+    "typescript": "^5.7.0",
     "vscode-icons-js": "^11.6.1"
   }
 }
