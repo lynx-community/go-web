@@ -211,10 +211,7 @@ async function main() {
         ? JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'))
         : {};
 
-      fs.writeFileSync(
-        path.join(destDir, 'example-metadata.json'),
-        JSON.stringify(
-          {
+      const metadata = {
             name: pkg.repository?.directory || shortName,
             version: registryMeta.version,
             [scopeConfig.frameworkVersionKey]: registryMeta.frameworkVersion,
@@ -222,10 +219,16 @@ async function main() {
             previewImage,
             templateFiles,
             exampleGitBaseUrl: scopeConfig.exampleGitBaseUrl,
-          },
-          null,
-          2,
-        ),
+          };
+
+      // Persist pluginQRCode schema from package.json "go.schema" field
+      if (pkg.go?.schema) {
+        metadata.schema = pkg.go.schema;
+      }
+
+      fs.writeFileSync(
+        path.join(destDir, 'example-metadata.json'),
+        JSON.stringify(metadata, null, 2),
       );
 
       totalCount++;
