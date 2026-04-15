@@ -1,0 +1,64 @@
+name: Workflow / Test
+
+on:
+  workflow_call:
+
+env:
+  CI: 1
+
+jobs:
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup
+        uses: ./.github/actions/ci-setup
+
+      - name: Type Check
+        run: pnpm typecheck
+
+  build-example:
+    name: Build Example App
+    needs: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup
+        uses: ./.github/actions/ci-setup
+
+      - name: Build
+        run: cd example && pnpm install --frozen-lockfile && pnpm prepare:clean && pnpm build
+
+  build-rspress:
+    name: Build Rspress Example
+    needs: build-example
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup
+        uses: ./.github/actions/ci-setup
+
+      - name: Build
+        run: cd example-rspress && pnpm install --frozen-lockfile && pnpm prepare:clean && pnpm build

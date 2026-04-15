@@ -1,0 +1,107 @@
+name: Publish
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate
+    uses: ./.github/workflows/workflow-test.yml
+    permissions:
+      contents: read
+
+  detect-version-packages:
+    name: Detect Version Packages
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      version_packages: ${{ steps.vp.outputs.version_packages }}
+      reason: ${{ steps.vp.outputs.reason }}
+      pr_number: ${{ steps.vp.outputs.pr_number }}
+      head_ref: ${{ steps.vp.outputs.head_ref }}
+
+    steps:
+      - name: Detect Version Packages PR (squash merge)
+        id: vp
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREFIX: changeset-release/
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          pr_tsv="$(gh api -H "Accept: application/vnd.github+json" "/repos/$REPO/commits/$SHA/pulls" --jq '([.[] | select(.base.ref == "main")][0] // {}) as $p | [$p.number // "", $p.head.ref // "", (length|tostring)] | @tsv' 2>/dev/null || true)"
+          pr_number="$(printf '%s' "$pr_tsv" | cut -f1)"
+          head_ref="$(printf '%s' "$pr_tsv" | cut -f2)"
+          pr_count="$(printf '%s' "$pr_tsv" | cut -f3)"
+
+          if [ -z "$pr_number" ] || [ -z "$head_ref" ]; then
+            echo "version_packages=false" >> "$GITHUB_OUTPUT"
+            if [ -n "$pr_count" ] && [ "$pr_count" != "0" ]; then
+              echo "reason=pr_not_to_main" >> "$GITHUB_OUTPUT"
+            else
+              echo "reason=no_associated_pr" >> "$GITHUB_OUTPUT"
+            fi
+            exit 0
+          fi
+
+          case "$head_ref" in
+            "$PREFIX"*)
+              echo "version_packages=true" >> "$GITHUB_OUTPUT"
+              echo "reason=version_packages_pr" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "version_packages=false" >> "$GITHUB_OUTPUT"
+              echo "reason=head_ref_not_prefixed" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+          echo "head_ref=$head_ref" >> "$GITHUB_OUTPUT"
+
+  publish-packages:
+    name: Publish Packages
+    needs: detect-version-packages
+    if: ${{ needs.detect-version-packages.outputs.version_packages == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: npm
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup
+        uses: ./.github/actions/ci-setup
+        with:
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: 'false'
+
+      - name: Publish (Changesets)
+        id: changesets
+        uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1
+        with:
+          publish: pnpm changeset publish
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          NPM_CONFIG_PROVENANCE: 'true'
