@@ -1,8 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 
@@ -14,26 +12,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  typecheck:
-    name: Type Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      - uses: ./.github/actions/ci-setup
-      - run: pnpm typecheck
-
-  build-example:
-    name: Build Example App
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      - uses: ./.github/actions/ci-setup
-      - run: cd example && pnpm install --frozen-lockfile && pnpm prepare:clean && pnpm build
-
-  build-rspress:
-    name: Build Rspress Example
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      - uses: ./.github/actions/ci-setup
-      - run: cd example-rspress && pnpm install --frozen-lockfile && pnpm prepare:clean && pnpm build
+  validate:
+    name: Validate
+    uses: ./.github/workflows/workflow-test.yml
+    permissions:
+      contents: read

@@ -1,0 +1,47 @@
+name: Release PR
+
+on:
+  push:
+    branches:
+      - main
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-pr:
+    name: Release PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup
+        uses: ./.github/actions/ci-setup
+
+      - name: Get Current Date
+        id: date
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "date=$(date -u +'%Y-%m-%d %H:%M')" >> "$GITHUB_OUTPUT"
+
+      - name: Create Release Pull Request
+        id: changesets
+        uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1
+        with:
+          version: pnpm changeset version
+          title: 'chore: Release ${{ steps.date.outputs.date }}'
+          commit: 'chore: Release ${{ steps.date.outputs.date }}'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

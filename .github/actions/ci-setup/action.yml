@@ -1,5 +1,14 @@
 name: CI Setup
 description: Setup pnpm, Node.js, and install dependencies
+inputs:
+  registry-url:
+    description: npm registry url
+    required: false
+    default: 'https://registry.npmjs.org'
+  package-manager-cache:
+    description: Enable pnpm cache in setup-node
+    required: false
+    default: 'true'
 runs:
   using: composite
   steps:
@@ -7,14 +16,23 @@ runs:
       uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
 
     - name: Setup Node.js
+      if: ${{ inputs.package-manager-cache == 'true' }}
       uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6
       with:
         node-version: 24
+        registry-url: ${{ inputs.registry-url }}
         cache: pnpm
         cache-dependency-path: |
           pnpm-lock.yaml
           example/pnpm-lock.yaml
           example-rspress/pnpm-lock.yaml
+
+    - name: Setup Node.js (no cache)
+      if: ${{ inputs.package-manager-cache != 'true' }}
+      uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6
+      with:
+        node-version: 24
+        registry-url: ${{ inputs.registry-url }}
 
     - name: Install Dependencies
       shell: bash

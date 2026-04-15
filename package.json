@@ -28,11 +28,13 @@
     "*.{js,jsx,ts,tsx,md,mdx,json,yml,yaml,css,scss}": "prettier --write"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.30.0",
     "@douyinfe/semi-icons": "^2.74.0",
     "@douyinfe/semi-ui": "^2.75.0",
     "@lynx-js/web-core": "npm:@lynx-js/web-core-canary@0.19.7-canary-20260126-5e7e43c5",
     "@lynx-js/web-elements": "^0.11.0",
     "@shikijs/transformers": "^3.4.2",
+    "@svitejs/changesets-changelog-github-compact": "^1.2.0",
     "@types/node": "^24.0.0",
     "@types/react": "^18.2.0",
     "@types/react-copy-to-clipboard": "^5.0.7",
