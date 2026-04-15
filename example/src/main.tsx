@@ -1,3 +1,4 @@
+import '@douyinfe/semi-ui/dist/css/semi.min.css';
 import React, {
   useCallback,
   useEffect,
@@ -6,10 +7,9 @@ import React, {
   useState,
 } from 'react';
 import { createRoot } from 'react-dom/client';
-import '@douyinfe/semi-ui/dist/css/semi.min.css';
-import { GoConfigProvider, Go } from '../../src/index';
-import type { PreviewTab, GoConfig } from '../../src/config';
-import type { ShikiTransformer, BundledLanguage } from 'shiki';
+import type { BundledLanguage, ShikiTransformer } from 'shiki';
+import type { GoConfig, PreviewTab } from '../../src/config';
+import { Go, GoConfigProvider } from '../../src/index';
 import './styles.css';
 
 const LOGO_LIGHT =
@@ -50,8 +50,12 @@ const translations: Record<string, Record<string, string>> = {
 // Standalone CodeBlock (shiki-based syntax highlighting)
 // ---------------------------------------------------------------------------
 
-let _codeHighlighterP: ReturnType<typeof import('shiki').then> | null = null;
-function getCodeHighlighter() {
+type ShikiHighlighter = Awaited<
+  ReturnType<(typeof import('shiki'))['createHighlighter']>
+>;
+
+let _codeHighlighterP: Promise<ShikiHighlighter> | null = null;
+function getCodeHighlighter(): Promise<ShikiHighlighter> {
   if (!_codeHighlighterP) {
     _codeHighlighterP = import('shiki').then((mod) =>
       mod.createHighlighter({
@@ -126,16 +130,13 @@ const StandaloneCodeBlock = ({
 
 // Build-time injected list of available examples and SSG previews
 declare global {
-  interface ImportMeta {
-    env: {
-      EXAMPLES: string[];
-      SSG_PREVIEWS: Record<string, string>;
-    };
+  interface ImportMetaEnv {
+    readonly EXAMPLES?: string[];
+    readonly SSG_PREVIEWS?: Record<string, string>;
   }
 }
 const EXAMPLES: string[] = import.meta.env.EXAMPLES ?? ['hello-world'];
-const SSG_PREVIEWS: Record<string, string> =
-  import.meta.env.SSG_PREVIEWS ?? {};
+const SSG_PREVIEWS: Record<string, string> = import.meta.env.SSG_PREVIEWS ?? {};
 
 function getExampleSource(name: string): 'vue' | 'lynx' {
   return name.startsWith('vue-') ? 'vue' : 'lynx';
@@ -314,6 +315,7 @@ function AdaptiveControl<T extends string>(props: {
   if (isMobile) {
     return (
       <select
+        aria-label="Select option"
         value={props.value}
         onChange={(e) => props.onChange(e.target.value as T)}
         style={selectStyle}
@@ -430,9 +432,12 @@ function buildJsxString({
   mode: 'linked' | 'preview' | 'source';
 }): string {
   const props: string[] = [`example="${example}"`];
-  if (defaultFile && mode !== 'preview') props.push(`defaultFile="${defaultFile}"`);
-  if (defaultTab !== 'web' && mode !== 'source') props.push(`defaultTab="${defaultTab}"`);
-  if (defaultEntryFile && mode !== 'source') props.push(`defaultEntryFile="${defaultEntryFile}"`);
+  if (defaultFile && mode !== 'preview')
+    props.push(`defaultFile="${defaultFile}"`);
+  if (defaultTab !== 'web' && mode !== 'source')
+    props.push(`defaultTab="${defaultTab}"`);
+  if (defaultEntryFile && mode !== 'source')
+    props.push(`defaultEntryFile="${defaultEntryFile}"`);
   if (highlight && mode !== 'preview') props.push(`highlight="${highlight}"`);
   if (entryFilter && mode !== 'source') {
     if (entryFilter.includes(',')) {
@@ -517,10 +522,13 @@ function App() {
   );
   const [example, setExample] = useState(initial.example ?? 'hello-world');
   const [defaultFile, setDefaultFile] = useState(
-    initial.file ?? ((initial.example ?? 'hello-world').startsWith('vue-') ? 'src/App.vue' : 'src/App.tsx'),
+    initial.file ??
+      ((initial.example ?? 'hello-world').startsWith('vue-')
+        ? 'src/App.vue'
+        : 'src/App.tsx'),
   );
   const [mode, setMode] = useState<'linked' | 'preview' | 'source'>(
-    initial.mode ?? 'linked'
+    initial.mode ?? 'linked',
   );
   const [copied, setCopied] = useState(false);
   const [exampleSearch, setExampleSearch] = useState('');
@@ -550,9 +558,18 @@ function App() {
   const [col2W, setCol2W] = useState(180);
   const [col4W, setCol4W] = useState(300);
 
-  const setCol1 = useCallback((w: number) => { col1Ref.current = w; setCol1W(w); }, []);
-  const setCol2 = useCallback((w: number) => { col2Ref.current = w; setCol2W(w); }, []);
-  const setCol4 = useCallback((w: number) => { col4Ref.current = w; setCol4W(w); }, []);
+  const setCol1 = useCallback((w: number) => {
+    col1Ref.current = w;
+    setCol1W(w);
+  }, []);
+  const setCol2 = useCallback((w: number) => {
+    col2Ref.current = w;
+    setCol2W(w);
+  }, []);
+  const setCol4 = useCallback((w: number) => {
+    col4Ref.current = w;
+    setCol4W(w);
+  }, []);
 
   const jsxString = useMemo(
     () =>
@@ -609,7 +626,14 @@ function App() {
 
   // Persist state to URL hash
   useEffect(() => {
-    writeUrlState({ dark, lang, tab: defaultTab, file: defaultFile, example, mode: mode === 'linked' ? undefined : mode });
+    writeUrlState({
+      dark,
+      lang,
+      tab: defaultTab,
+      file: defaultFile,
+      example,
+      mode: mode === 'linked' ? undefined : mode,
+    });
   }, [dark, lang, defaultTab, defaultFile, example, mode]);
 
   // Apply Semi UI dark/light mode
@@ -1023,38 +1047,42 @@ function App() {
                   }}
                 />
               </div>
-              {metadata?.templateFiles?.filter(
-                (t: any) =>
-                  !entrySearch ||
-                  t.name.toLowerCase().includes(entrySearch.toLowerCase()),
-              ).map((t: any) => (
-                <button
-                  key={t.name}
-                  className="entry-list-btn"
-                  data-active={selectedEntry === t.name}
-                  onClick={() => handleEntryChange(t.name)}
-                  style={{
-                    padding: '3px 8px',
-                    borderRadius: 5,
-                    border: 'none',
-                    background:
-                      selectedEntry === t.name
-                        ? 'var(--sb-accent)'
-                        : 'transparent',
-                    color:
-                      selectedEntry === t.name ? '#fff' : 'var(--sb-text-dim)',
-                    fontSize: 11,
-                    fontFamily: 'var(--sb-font-mono)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    whiteSpace: 'nowrap',
-                    transition: 'background 0.12s, color 0.12s',
-                  }}
-                >
-                  {t.name}
-                  {t.webFile ? '' : ' *'}
-                </button>
-              ))}
+              {metadata?.templateFiles
+                ?.filter(
+                  (t: any) =>
+                    !entrySearch ||
+                    t.name.toLowerCase().includes(entrySearch.toLowerCase()),
+                )
+                .map((t: any) => (
+                  <button
+                    key={t.name}
+                    className="entry-list-btn"
+                    data-active={selectedEntry === t.name}
+                    onClick={() => handleEntryChange(t.name)}
+                    style={{
+                      padding: '3px 8px',
+                      borderRadius: 5,
+                      border: 'none',
+                      background:
+                        selectedEntry === t.name
+                          ? 'var(--sb-accent)'
+                          : 'transparent',
+                      color:
+                        selectedEntry === t.name
+                          ? '#fff'
+                          : 'var(--sb-text-dim)',
+                      fontSize: 11,
+                      fontFamily: 'var(--sb-font-mono)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      whiteSpace: 'nowrap',
+                      transition: 'background 0.12s, color 0.12s',
+                    }}
+                  >
+                    {t.name}
+                    {t.webFile ? '' : ' *'}
+                  </button>
+                ))}
               {!metadata && (
                 <span
                   style={{
@@ -1086,6 +1114,7 @@ function App() {
             >
               <span style={panelLabelStyle}>File</span>
               <input
+                aria-label="File"
                 type="text"
                 value={defaultFile}
                 onChange={(e) => setDefaultFile(e.target.value)}
@@ -1094,6 +1123,7 @@ function App() {
 
               <span style={panelLabelStyle}>Entry File</span>
               <input
+                aria-label="Entry File"
                 type="text"
                 value={defaultEntryFile}
                 onChange={(e) => setDefaultEntryFile(e.target.value)}
@@ -1103,6 +1133,7 @@ function App() {
 
               <span style={panelLabelStyle}>Entry Filter</span>
               <input
+                aria-label="Entry Filter"
                 type="text"
                 value={entryFilter}
                 onChange={(e) => setEntryFilter(e.target.value)}
@@ -1112,6 +1143,7 @@ function App() {
 
               <span style={panelLabelStyle}>Highlight</span>
               <input
+                aria-label="Highlight"
                 type="text"
                 value={highlight}
                 onChange={(e) => setHighlight(e.target.value)}
@@ -1150,7 +1182,15 @@ function App() {
                 maxHeight: 200,
               }}
             >
-              <div style={{ ...panelLabelStyle, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div
+                style={{
+                  ...panelLabelStyle,
+                  marginBottom: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
                 example-metadata.json
                 {metadata?.version && (
                   <span className="example-tag example-tag-version">
@@ -1170,12 +1210,12 @@ function App() {
                 {metadata?.templateFiles?.length > 0 && (
                   <span
                     className={`example-tag ${
-                      metadata.templateFiles.some((t: any) => t.webFile)
+                      metadata?.templateFiles?.some((t: any) => t.webFile)
                         ? 'example-tag-web'
                         : 'example-tag-no-web'
                     }`}
                   >
-                    {metadata.templateFiles.some((t: any) => t.webFile)
+                    {metadata?.templateFiles?.some((t: any) => t.webFile)
                       ? 'Web'
                       : 'No Web'}
                   </span>
@@ -1340,7 +1380,7 @@ function App() {
                 className="jsx-dialog-close"
                 onClick={() => setJsxDialogOpen(false)}
               >
-                ×
+                x
               </button>
             </div>
             <pre ref={jsxPreRef}>{jsxString}</pre>

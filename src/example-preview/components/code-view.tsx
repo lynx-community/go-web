@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
 import { Typography } from '@douyinfe/semi-ui';
+import { useState } from 'react';
 
-import { Code } from './code';
 import { getFileCodeLanguage, isImgType } from '../utils/example-data';
+import { Code } from './code';
 import s from './index.module.scss';
 
 interface CodeViewProps {

@@ -1,14 +1,19 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Go Web — Iframe Embed Test</title>
     <style>
-      * { box-sizing: border-box; margin: 0; padding: 0; }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
 
       body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
         background: #f0f0f0;
         color: #333;
         padding: 40px;
@@ -29,7 +34,7 @@
         height: 500px;
         border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
         margin-bottom: 32px;
       }
 
@@ -49,8 +54,14 @@
         font-size: 14px;
       }
 
-      button:hover { background: #f5f5f5; }
-      button.active { background: #0071e3; color: #fff; border-color: #0071e3; }
+      button:hover {
+        background: #f5f5f5;
+      }
+      button.active {
+        background: #0071e3;
+        color: #fff;
+        border-color: #0071e3;
+      }
 
       code {
         background: #e8e8e8;
@@ -86,34 +97,34 @@
         font-size: 14px;
         line-height: 1.5;
       }
-
     </style>
   </head>
   <body>
     <h1>Iframe Embed API Test</h1>
     <p>
       This page demonstrates the <code>@lynx-js/go-web</code> iframe embed API.
-      It loads the Go component inside an iframe via a pure JS <code>mount()</code> call —
-      no React dependency needed on the host page.
+      It loads the Go component inside an iframe via a pure JS
+      <code>mount()</code> call — no React dependency needed on the host page.
     </p>
 
     <div class="info">
-      <strong>How to test:</strong><br/>
-      1. Start dev server: <code>cd example && pnpm dev</code> (serves on <strong>localhost:5969</strong>)<br/>
-      2. Open this file in a browser (or <code>npx serve example-iframe-embed</code>)<br/>
-      Example data is proxied from <strong>go.lynxjs.org</strong> via <code>/proxy-lynx-examples</code>.
+      <strong>How to test:</strong><br />
+      1. Start dev server: <code>cd example && pnpm dev</code> (serves on
+      <strong>localhost:5969</strong>)<br />
+      2. Open this file in a browser (or
+      <code>npx serve example-iframe-embed</code>)<br />
+      Example data is proxied from <strong>go.lynxjs.org</strong> via
+      <code>/proxy-lynx-examples</code>.
     </div>
 
     <h2>Usage</h2>
-    <div class="code-block">&lt;div id="demo" style="height: 500px"&gt;&lt;/div&gt;
-&lt;script type="module"&gt;
-  import { mount } from 'https://go.lynxjs.org/embed.js';
-  mount('#demo', {
-    example: 'hello-world',
-    defaultFile: 'src/App.tsx',
-    exampleBasePath: 'https://go.lynxjs.org/lynx-examples',
-  });
-&lt;/script&gt;</div>
+    <div class="code-block">
+      &lt;div id="demo" style="height: 500px"&gt;&lt;/div&gt; &lt;script
+      type="module"&gt; import { mount } from 'https://go.lynxjs.org/embed.js';
+      mount('#demo', { example: 'hello-world', defaultFile: 'src/App.tsx',
+      exampleBasePath: 'https://go.lynxjs.org/lynx-examples', });
+      &lt;/script&gt;
+    </div>
 
     <h2>Live Demo</h2>
 
@@ -138,9 +149,10 @@
       // ---------------------------------------------------------------------------
 
       function mount(container, options) {
-        const el = typeof container === 'string'
-          ? document.querySelector(container)
-          : container;
+        const el =
+          typeof container === 'string'
+            ? document.querySelector(container)
+            : container;
 
         if (!el) throw new Error('Container not found: ' + container);
 
@@ -155,10 +167,13 @@
         function handleMessage(event) {
           if (event.source !== iframe.contentWindow) return;
           if (event.data?.type === 'go-embed:ready') {
-            iframe.contentWindow.postMessage({
-              type: 'go-embed:init',
-              options: currentOptions,
-            }, '*');
+            iframe.contentWindow.postMessage(
+              {
+                type: 'go-embed:init',
+                options: currentOptions,
+              },
+              '*',
+            );
           }
         }
 
@@ -170,10 +185,13 @@
           iframe,
           update(newOptions) {
             currentOptions = { ...currentOptions, ...newOptions };
-            iframe.contentWindow.postMessage({
-              type: 'go-embed:update',
-              options: newOptions,
-            }, '*');
+            iframe.contentWindow.postMessage(
+              {
+                type: 'go-embed:update',
+                options: newOptions,
+              },
+              '*',
+            );
           },
           destroy() {
             window.removeEventListener('message', handleMessage);
@@ -190,17 +208,28 @@
         // Try a few known examples; the production site doesn't expose a directory listing.
         // Requests go through the dev server proxy to avoid CORS.
         const knownExamples = [
-          'hello-world', 'text', 'view', 'image', 'css',
-          'scroll-view', 'list', 'navigator',
+          'hello-world',
+          'text',
+          'view',
+          'image',
+          'css',
+          'scroll-view',
+          'list',
+          'navigator',
         ];
 
         const available = [];
         await Promise.all(
           knownExamples.map(async (name) => {
             try {
-              const res = await fetch(`${EMBED_BASE}${EXAMPLE_BASE_PATH}/${name}/example-metadata.json`, { method: 'HEAD' });
+              const res = await fetch(
+                `${EMBED_BASE}${EXAMPLE_BASE_PATH}/${name}/example-metadata.json`,
+                { method: 'HEAD' },
+              );
               if (res.ok) available.push(name);
-            } catch { /* skip */ }
+            } catch {
+              /* skip */
+            }
           }),
         );
 
@@ -237,7 +266,9 @@
         btn.textContent = ex.name;
         if (i === 0) btn.classList.add('active');
         btn.addEventListener('click', () => {
-          controls.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          controls
+            .querySelectorAll('button')
+            .forEach((b) => b.classList.remove('active'));
           btn.classList.add('active');
           embed.destroy();
           embed = mount('#demo', {
@@ -249,7 +280,6 @@
         });
         controls.appendChild(btn);
       });
-
     </script>
   </body>
 </html>

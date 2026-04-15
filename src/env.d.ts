@@ -8,6 +8,12 @@ declare module '*.module.scss' {
   export default classes;
 }
 
+interface ImportMetaEnv extends Record<string, unknown> {
+  readonly SSG_MD?: boolean;
+  readonly EXAMPLES?: string[];
+  readonly SSG_PREVIEWS?: Record<string, string>;
+}
+
 interface ImportMeta {
-  readonly env: Record<string, unknown>;
+  readonly env: ImportMetaEnv;
 }

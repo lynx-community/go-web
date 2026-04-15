@@ -3,18 +3,18 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prepare": "node scripts/prepare-examples.js",
-    "prepare:clean": "node scripts/prepare-examples.js --clean",
+    "build": "rspress build",
     "dev": "rspress dev",
-    "build": "rspress build"
+    "prepare": "node scripts/prepare-examples.js",
+    "prepare:clean": "node scripts/prepare-examples.js --clean"
   },
   "dependencies": {
-    "@lynx-js/go-web": "file:..",
-    "@rspress/core": "^2.0.3",
     "@douyinfe/semi-icons": "^2.74.0",
     "@douyinfe/semi-ui": "^2.75.0",
+    "@lynx-js/go-web": "file:..",
     "@lynx-js/web-core": "npm:@lynx-js/web-core-canary@0.19.7-canary-20260126-5e7e43c5",
     "@lynx-js/web-elements": "^0.11.0",
+    "@rspress/core": "^2.0.3",
     "@shikijs/transformers": "^3.4.2",
     "qrcode.react": "^4.2.0",
     "react": "^18.2.0",
@@ -25,9 +25,10 @@
   },
   "devDependencies": {
     "@rsbuild/plugin-sass": "^1.3.0",
+    "@types/node": "^22.15.3",
     "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
     "@types/react-copy-to-clipboard": "^5.0.7",
+    "@types/react-dom": "^18.2.0",
     "typescript": "^5.7.0"
   }
 }

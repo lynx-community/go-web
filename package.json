@@ -2,27 +2,53 @@
   "name": "@lynx-js/go-web",
   "version": "0.1.0",
   "description": "Interactive <Go> component for embedding live Lynx examples on the web. The example/ website doubles as the community example gallery.",
-  "type": "module",
-  "scripts": {
-    "dev": "cd example && pnpm install && pnpm dev",
-    "typecheck": "tsc --noEmit"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lynx-community/go-web.git"
   },
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "license": "Apache-2.0",
+  "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./adapters/rspress": "./src/adapters/rspress.tsx",
     "./ssg": "./src/ssg.tsx",
     "./embed": "./src/embed.ts"
   },
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "files": [
     "src"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/lynx-community/go-web.git"
+  "scripts": {
+    "dev": "cd example && pnpm install && pnpm dev",
+    "prepare": "husky",
+    "typecheck": "tsc --noEmit"
   },
-  "license": "Apache-2.0",
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,md,mdx,json,yml,yaml,css,scss}": "prettier --write"
+  },
+  "devDependencies": {
+    "@douyinfe/semi-icons": "^2.74.0",
+    "@douyinfe/semi-ui": "^2.75.0",
+    "@lynx-js/web-core": "npm:@lynx-js/web-core-canary@0.19.7-canary-20260126-5e7e43c5",
+    "@lynx-js/web-elements": "^0.11.0",
+    "@shikijs/transformers": "^3.4.2",
+    "@types/node": "^22.15.3",
+    "@types/react": "^18.2.0",
+    "@types/react-copy-to-clipboard": "^5.0.7",
+    "@types/react-dom": "^18.2.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.3",
+    "prettier-plugin-packagejson": "^3.0.2",
+    "qrcode.react": "^4.2.0",
+    "react": "^18.2.0",
+    "react-copy-to-clipboard": "^5.1.0",
+    "react-dom": "^18.2.0",
+    "swr": "^2.2.5",
+    "typescript": "^5.7.0",
+    "vscode-icons-js": "^11.6.1"
+  },
   "peerDependencies": {
     "@douyinfe/semi-icons": ">=2.74.0",
     "@douyinfe/semi-ui": ">=2.75.0",
@@ -40,23 +66,6 @@
     "@rspress/core": {
       "optional": true
     }
-  },
-  "devDependencies": {
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@types/react-copy-to-clipboard": "^5.0.7",
-    "typescript": "^5.7.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "@douyinfe/semi-icons": "^2.74.0",
-    "@douyinfe/semi-ui": "^2.75.0",
-    "@lynx-js/web-core": "npm:@lynx-js/web-core-canary@0.19.7-canary-20260126-5e7e43c5",
-    "@lynx-js/web-elements": "^0.11.0",
-    "@shikijs/transformers": "^3.4.2",
-    "qrcode.react": "^4.2.0",
-    "react-copy-to-clipboard": "^5.1.0",
-    "swr": "^2.2.5",
-    "vscode-icons-js": "^11.6.1"
   },
   "packageManager": "pnpm@9.15.2+sha512.93e57b0126f0df74ce6bff29680394c0ba54ec47246b9cf321f0121d8d9bb03f750a705f24edc3c1180853afd7c2c3b94196d0a3d53d3e069d9e2793ef11f321"
 }

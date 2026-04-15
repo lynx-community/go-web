@@ -110,12 +110,17 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
     }
     ensureRuntime()
       .then(() => {
-        console.log('[WebIframe] runtime ready', `${(performance.now() - t).toFixed(0)}ms`);
+        console.log(
+          '[WebIframe] runtime ready',
+          `${(performance.now() - t).toFixed(0)}ms`,
+        );
         setReady(true);
       })
       .catch((err) => {
         console.error('[WebIframe] runtime load failed', err);
-        setError(`Failed to load Lynx runtime: ${err instanceof Error ? err.message : String(err)}`);
+        setError(
+          `Failed to load Lynx runtime: ${err instanceof Error ? err.message : String(err)}`,
+        );
       });
   }, []);
 
@@ -198,7 +203,9 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
           return template;
         } catch (err) {
           console.error(tag, 'template load failed', err);
-          setError(`Failed to load template: ${err instanceof Error ? err.message : String(err)}`);
+          setError(
+            `Failed to load template: ${err instanceof Error ? err.message : String(err)}`,
+          );
           throw err;
         }
       };
@@ -236,15 +243,24 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
       const markRendered = (source: string) => {
         if (renderedRef.current) return;
         if (simulateError === 'render') return; // simulate render timeout
-        console.log(tag, `rendered (${source})`, `+${(performance.now() - t0).toFixed(0)}ms`);
+        console.log(
+          tag,
+          `rendered (${source})`,
+          `+${(performance.now() - t0).toFixed(0)}ms`,
+        );
         renderedRef.current = true;
         setRendered(true);
       };
 
       const setupShadow = (shadow: ShadowRoot) => {
-        console.log(tag, 'shadow found', `+${(performance.now() - t0).toFixed(0)}ms`, {
-          childElementCount: shadow.childElementCount,
-        });
+        console.log(
+          tag,
+          'shadow found',
+          `+${(performance.now() - t0).toFixed(0)}ms`,
+          {
+            childElementCount: shadow.childElementCount,
+          },
+        );
 
         // If shadow already has children when we attach, we missed the mutation
         if (shadow.childElementCount > 0) {
@@ -265,7 +281,13 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
       };
 
       if (simulateError === 'shadow') {
-        setTimeout(() => setError('Preview timed out: shadow root was not created (simulated)'), 500);
+        setTimeout(
+          () =>
+            setError(
+              'Preview timed out: shadow root was not created (simulated)',
+            ),
+          500,
+        );
         return () => {};
       }
 
@@ -289,7 +311,11 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
       // Fallback: error if rendering doesn't complete within 5s
       const timer = setTimeout(() => {
         if (!renderedRef.current) {
-          console.error(tag, 'render timeout', `+${(performance.now() - t0).toFixed(0)}ms`);
+          console.error(
+            tag,
+            'render timeout',
+            `+${(performance.now() - t0).toFixed(0)}ms`,
+          );
           setError('Preview timed out: rendering did not complete within 5s');
         }
       }, 5000);

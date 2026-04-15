@@ -1,12 +1,8 @@
-import React, { useEffect } from 'react';
-import {
-  Go as GoBase,
-  GoConfigProvider,
-  type GoProps,
-} from '@lynx-js/go-web';
+import { Go as GoBase, GoConfigProvider, type GoProps } from '@lynx-js/go-web';
 import { rspressAdapter } from '@lynx-js/go-web/adapters/rspress';
 import { ExamplePreviewSSG } from '@lynx-js/go-web/ssg';
 import path from 'path';
+import { useEffect } from 'react';
 
 // Exclude useI18n — rspress's i18n doesn't have go.* keys.
 // go-web falls back to its built-in English strings.
