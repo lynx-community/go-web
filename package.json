@@ -33,7 +33,7 @@
     "@lynx-js/web-core": "npm:@lynx-js/web-core-canary@0.19.7-canary-20260126-5e7e43c5",
     "@lynx-js/web-elements": "^0.11.0",
     "@shikijs/transformers": "^3.4.2",
-    "@types/node": "^22.15.3",
+    "@types/node": "^24.0.0",
     "@types/react": "^18.2.0",
     "@types/react-copy-to-clipboard": "^5.0.7",
     "@types/react-dom": "^18.2.0",
@@ -67,5 +67,8 @@
       "optional": true
     }
   },
-  "packageManager": "pnpm@9.15.2+sha512.93e57b0126f0df74ce6bff29680394c0ba54ec47246b9cf321f0121d8d9bb03f750a705f24edc3c1180853afd7c2c3b94196d0a3d53d3e069d9e2793ef11f321"
+  "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319",
+  "engines": {
+    "node": "^22 || ^24"
+  }
 }
