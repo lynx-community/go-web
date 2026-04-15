@@ -6,48 +6,34 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   typecheck:
     name: Type Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - run: pnpm install --no-frozen-lockfile
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: ./.github/actions/ci-setup
       - run: pnpm typecheck
 
   build-example:
     name: Build Example App
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - run: pnpm install --no-frozen-lockfile
-      - run: cd example && pnpm install --no-frozen-lockfile && pnpm prepare:clean && pnpm build
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: ./.github/actions/ci-setup
+      - run: cd example && pnpm install --frozen-lockfile && pnpm prepare:clean && pnpm build
 
   build-rspress:
     name: Build Rspress Example
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - run: pnpm install --no-frozen-lockfile
-      - run: cd example-rspress && pnpm install --no-frozen-lockfile && pnpm prepare:clean && pnpm build
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: ./.github/actions/ci-setup
+      - run: cd example-rspress && pnpm install --frozen-lockfile && pnpm prepare:clean && pnpm build
