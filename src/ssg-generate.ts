@@ -41,11 +41,7 @@ export function generateSSGHTML(options: GenerateSSGHTMLOptions): string {
     langAlias,
   } = options;
 
-  const metadataPath = path.join(
-    exampleRoot,
-    example,
-    'example-metadata.json',
-  );
+  const metadataPath = path.join(exampleRoot, example, 'example-metadata.json');
   let metadata: ExampleMetadata | null = null;
   try {
     const content = fs.readFileSync(metadataPath, 'utf-8');
@@ -70,13 +66,17 @@ export function generateSSGHTML(options: GenerateSSGHTMLOptions): string {
 
   // Title
   parts.push(
-    '<p><strong>' + escapeHtml(TEXT[lang] ?? TEXT.en) + escapeHtml(example) + '</strong></p>',
+    '<p><strong>' +
+      escapeHtml(TEXT[lang] ?? TEXT.en) +
+      escapeHtml(example) +
+      '</strong></p>',
   );
 
   // Entry info
   if (metadata?.templateFiles?.[0]) {
     const entry = metadata.templateFiles[0];
-    let entryHtml = '<p><strong>Bundle:</strong> <code>' + escapeHtml(entry.file) + '</code>';
+    let entryHtml =
+      '<p><strong>Bundle:</strong> <code>' + escapeHtml(entry.file) + '</code>';
     if (entry.webFile) {
       entryHtml += ' | Web: <code>' + escapeHtml(entry.webFile) + '</code>';
     }
@@ -87,7 +87,11 @@ export function generateSSGHTML(options: GenerateSSGHTMLOptions): string {
   // Code block
   if (codeContent) {
     parts.push(
-      '<pre><code class="language-' + escapeHtml(codeLanguage) + '">' + escapeHtml(codeContent) + '</code></pre>',
+      '<pre><code class="language-' +
+        escapeHtml(codeLanguage) +
+        '">' +
+        escapeHtml(codeContent) +
+        '</code></pre>',
     );
   }
 

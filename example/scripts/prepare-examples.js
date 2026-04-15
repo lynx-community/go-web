@@ -31,16 +31,14 @@ const scopes = [
   {
     scope: '@lynx-example/',
     prefix: '',
-    exampleGitBaseUrl:
-      'https://github.com/lynx-family/lynx-examples/tree/main',
+    exampleGitBaseUrl: 'https://github.com/lynx-family/lynx-examples/tree/main',
     frameworkVersionKey: 'reactLynxVersion',
     frameworkDep: '@lynx-js/react',
   },
   {
     scope: '@vue-lynx-example/',
     prefix: 'vue-',
-    exampleGitBaseUrl:
-      'https://github.com/Huxpro/vue-lynx/tree/main',
+    exampleGitBaseUrl: 'https://github.com/Huxpro/vue-lynx/tree/main',
     frameworkVersionKey: 'vueLynxVersion',
     frameworkDep: 'vue-lynx',
     // npm search doesn't reliably index new scoped packages, so we maintain
@@ -92,16 +90,18 @@ async function fetchPackageMeta(pkgName, scopeConfig) {
   return {
     tarball: meta.dist.tarball,
     version: meta.version,
-    frameworkVersion:
-      meta.dependencies?.[scopeConfig.frameworkDep] ?? null,
+    frameworkVersion: meta.dependencies?.[scopeConfig.frameworkDep] ?? null,
   };
 }
 
 function downloadAndExtract(tarballUrl, destDir) {
   fs.mkdirSync(destDir, { recursive: true });
-  execSync(`curl -sL "${tarballUrl}" | tar xz -C "${destDir}" --strip-components=1`, {
-    stdio: 'pipe',
-  });
+  execSync(
+    `curl -sL "${tarballUrl}" | tar xz -C "${destDir}" --strip-components=1`,
+    {
+      stdio: 'pipe',
+    },
+  );
 }
 
 // --- file processing (unchanged logic) ---
@@ -151,7 +151,9 @@ function hasCache() {
 
 async function main() {
   if (!clean && hasCache()) {
-    console.log('Using cached examples in public/lynx-examples/ (use --clean to re-fetch).');
+    console.log(
+      'Using cached examples in public/lynx-examples/ (use --clean to re-fetch).',
+    );
     return;
   }
 

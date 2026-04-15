@@ -17,7 +17,10 @@ const exampleNames = fs.existsSync(examplesDir)
 // Read example files at build time to produce the same raw markdown that
 // ExamplePreviewSSG renders during rspress SSG. This lets the example app
 // show the real SSG output as a visual reference.
-function readSSGMarkdown(exampleName: string, defaultFile = 'src/App.tsx'): string | null {
+function readSSGMarkdown(
+  exampleName: string,
+  defaultFile = 'src/App.tsx',
+): string | null {
   try {
     const code = fs.readFileSync(
       path.join(examplesDir, exampleName, defaultFile),

@@ -16,8 +16,12 @@ import './styles.css';
 // Shiki CodeBlock (reused from main.tsx)
 // ---------------------------------------------------------------------------
 
-let _codeHighlighterP: ReturnType<typeof import('shiki').then> | null = null;
-function getCodeHighlighter() {
+type ShikiHighlighter = Awaited<
+  ReturnType<(typeof import('shiki'))['createHighlighter']>
+>;
+
+let _codeHighlighterP: Promise<ShikiHighlighter> | null = null;
+function getCodeHighlighter(): Promise<ShikiHighlighter> {
   if (!_codeHighlighterP) {
     _codeHighlighterP = import('shiki').then((mod) =>
       mod.createHighlighter({
@@ -163,7 +167,10 @@ function EmbedApp() {
         <Go
           key={`${options.exampleBasePath}/${options.example}`}
           example={options.example}
-          defaultFile={options.defaultFile ?? (options.example.startsWith('vue-') ? 'src/App.vue' : 'src/App.tsx')}
+          defaultFile={
+            options.defaultFile ??
+            (options.example.startsWith('vue-') ? 'src/App.vue' : 'src/App.tsx')
+          }
           defaultTab={options.defaultTab}
           img={options.img}
           defaultEntryFile={options.defaultEntryFile}

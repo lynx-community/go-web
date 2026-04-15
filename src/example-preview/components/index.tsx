@@ -282,17 +282,11 @@ export const ExampleContent: FC<ExampleContentProps> = ({
             {initState ? (
               <>
                 {previewImage && (
-                  <Radio value={PreviewType.Preview}>
-                    {t('go.preview')}
-                  </Radio>
+                  <Radio value={PreviewType.Preview}>{t('go.preview')}</Radio>
                 )}
-                {hasWebPreview && (
-                  <Radio value={PreviewType.Web}>Web</Radio>
-                )}
+                {hasWebPreview && <Radio value={PreviewType.Web}>Web</Radio>}
                 {currentEntry && (
-                  <Radio value={PreviewType.QRCode}>
-                    {t('go.qrcode')}
-                  </Radio>
+                  <Radio value={PreviewType.QRCode}>{t('go.qrcode')}</Radio>
                 )}
               </>
             ) : (
@@ -307,9 +301,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
                   style={{ color: 'var(--semi-color-text-2)' }}
                 />
               ) : (
-                <IconFullscreen
-                  style={{ color: 'var(--semi-color-text-2)' }}
-                />
+                <IconFullscreen style={{ color: 'var(--semi-color-text-2)' }} />
               )
             }
             type="tertiary"
@@ -340,9 +332,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
               <Typography.Text
                 link={{
                   href: withBaseFn(
-                    lang === 'zh'
-                      ? LYNX_EXPLORER_URL_CN
-                      : LYNX_EXPLORER_URL_EN,
+                    lang === 'zh' ? LYNX_EXPLORER_URL_CN : LYNX_EXPLORER_URL_EN,
                   ),
                   target: '_blank',
                 }}
@@ -422,7 +412,10 @@ export const ExampleContent: FC<ExampleContentProps> = ({
   );
 
   return (
-    <div className={`${s.box} ${fullscreenMode !== 'off' ? s['box-fullscreen'] : ''} ${!showCode ? s['box-code-collapsed'] : ''} ${hasPreview && !showPreview ? s['box-preview-collapsed'] : ''}`} ref={boxRef}>
+    <div
+      className={`${s.box} ${fullscreenMode !== 'off' ? s['box-fullscreen'] : ''} ${!showCode ? s['box-code-collapsed'] : ''} ${hasPreview && !showPreview ? s['box-preview-collapsed'] : ''}`}
+      ref={boxRef}
+    >
       <div className={s.container} ref={containerRef}>
         <div className={s.content}>
           {mode === 'preview' ? (
@@ -463,7 +456,9 @@ export const ExampleContent: FC<ExampleContentProps> = ({
             {mode !== 'preview' && (
               <Button
                 theme="borderless"
-                icon={<IconList style={{ color: 'var(--semi-color-text-2)' }} />}
+                icon={
+                  <IconList style={{ color: 'var(--semi-color-text-2)' }} />
+                }
                 type="tertiary"
                 size="small"
                 onClick={() => setShowFileTree(true)}
@@ -480,7 +475,10 @@ export const ExampleContent: FC<ExampleContentProps> = ({
               {mode !== 'preview' && (
                 <>
                   <IconChevronRightStroked
-                    style={{ color: 'var(--semi-color-text-2)', fontSize: '12px' }}
+                    style={{
+                      color: 'var(--semi-color-text-2)',
+                      fontSize: '12px',
+                    }}
                   />
                   <Typography.Text
                     size="small"
@@ -512,7 +510,11 @@ export const ExampleContent: FC<ExampleContentProps> = ({
             )}
             {hasPreview && mode === 'linked' && (
               <Space spacing={6}>
-                <Typography.Text size="small" type="tertiary" className={s['toggle-label']}>
+                <Typography.Text
+                  size="small"
+                  type="tertiary"
+                  className={s['toggle-label']}
+                >
                   Code
                 </Typography.Text>
                 <Switch
@@ -533,7 +535,11 @@ export const ExampleContent: FC<ExampleContentProps> = ({
             )}
             {hasPreview && mode === 'linked' && (
               <Space spacing={6}>
-                <Typography.Text size="small" type="tertiary" className={s['toggle-label']}>
+                <Typography.Text
+                  size="small"
+                  type="tertiary"
+                  className={s['toggle-label']}
+                >
                   {t('go.preview')}
                 </Typography.Text>
                 <Switch

@@ -11,9 +11,9 @@
 import fs from 'fs';
 import path from 'path';
 import { useMemo } from 'react';
-import type { ExamplePreviewProps, ExampleMetadata } from './example-preview';
-import { getFileCodeLanguage } from './example-preview/utils/example-data';
 import { useGoConfig } from './config';
+import type { ExampleMetadata, ExamplePreviewProps } from './example-preview';
+import { getFileCodeLanguage } from './example-preview/utils/example-data';
 
 export { generateSSGHTML } from './ssg-generate';
 export type { GenerateSSGHTMLOptions } from './ssg-generate';
@@ -124,7 +124,15 @@ export const ExamplePreviewSSG = ({
       parts.push('\n');
     }
     return parts.join('');
-  }, [lang, example, entry, entryFileInfo, codeContent, codeLanguage, highlightMeta]);
+  }, [
+    lang,
+    example,
+    entry,
+    entryFileInfo,
+    codeContent,
+    codeLanguage,
+    highlightMeta,
+  ]);
 
   return <p>{markdownContent}</p>;
 };

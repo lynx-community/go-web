@@ -17,7 +17,6 @@
     min-height: 0;
     padding: 8px;
     display: flex;
-
   }
 
   .code-wrap,
@@ -35,7 +34,10 @@
     height: 100%;
     min-width: 0;
     overflow: hidden;
-    background: var(--shiki-dark-bg, var(--rp-code-block-bg, var(--semi-color-bg-1)));
+    background: var(
+      --shiki-dark-bg,
+      var(--rp-code-block-bg, var(--semi-color-bg-1))
+    );
     :global {
       div[class^='language-'] {
         margin: 0;
@@ -63,7 +65,10 @@
       height: 100%;
       overflow: auto;
       min-height: 0;
-      background: var(--shiki-dark-bg, var(--rp-code-block-bg, var(--semi-color-bg-1)));
+      background: var(
+        --shiki-dark-bg,
+        var(--rp-code-block-bg, var(--semi-color-bg-1))
+      );
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
     }
@@ -273,8 +278,7 @@
   width: 100vw;
   border-radius: 0;
   border: none;
-  padding:
-    env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
     env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
   animation: fullscreen-enter 0.15s ease-out;
 

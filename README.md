@@ -15,7 +15,7 @@ const config = {
 
 <GoConfigProvider config={config}>
   <Go example="hello-world" defaultFile="src/App.tsx" />
-</GoConfigProvider>
+</GoConfigProvider>;
 ```
 
 ### With rspress
@@ -31,7 +31,7 @@ const config = {
 
 <GoConfigProvider config={config}>
   <Go example="hello-world" />
-</GoConfigProvider>
+</GoConfigProvider>;
 ```
 
 ### SSG (Static Site Generation)
@@ -57,7 +57,7 @@ const config = {
 
 <GoConfigProvider config={config}>
   <Go example="hello-world" defaultFile="src/App.tsx" />
-</GoConfigProvider>
+</GoConfigProvider>;
 ```
 
 #### Option B: Pure function (build-time injection)
@@ -102,16 +102,16 @@ For non-React sites (Hugo, Jekyll, plain HTML, etc.), use the iframe embed API. 
 
 Options:
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `example` | `string` | **Required.** Example folder name |
-| `defaultFile` | `string` | Initial file to display (default: `'src/App.tsx'`) |
-| `defaultTab` | `'preview' \| 'web' \| 'qrcode'` | Default preview tab |
-| `exampleBasePath` | `string` | Base path or full URL for example data |
-| `img` | `string` | Static preview image URL |
-| `defaultEntryFile` | `string` | Default entry file for web preview |
-| `highlight` | `string` | Line highlight spec, e.g. `'{1,3-5}'` |
-| `entry` | `string \| string[]` | Filter entry files in tree |
+| Option             | Type                             | Description                                        |
+| ------------------ | -------------------------------- | -------------------------------------------------- |
+| `example`          | `string`                         | **Required.** Example folder name                  |
+| `defaultFile`      | `string`                         | Initial file to display (default: `'src/App.tsx'`) |
+| `defaultTab`       | `'preview' \| 'web' \| 'qrcode'` | Default preview tab                                |
+| `exampleBasePath`  | `string`                         | Base path or full URL for example data             |
+| `img`              | `string`                         | Static preview image URL                           |
+| `defaultEntryFile` | `string`                         | Default entry file for web preview                 |
+| `highlight`        | `string`                         | Line highlight spec, e.g. `'{1,3-5}'`              |
+| `entry`            | `string \| string[]`             | Filter entry files in tree                         |
 
 ## Development
 
