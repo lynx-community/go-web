@@ -1,5 +1,11 @@
 # @lynx-js/go-web
 
+## 0.2.1
+
+### Patch Changes
+
+- Fix `<lynx-view>` unit scaling so `rpx`/`vh`/`vw` match mobile behavior in embedded contexts. ([#38](https://github.com/lynx-community/go-web/pull/38))
+
 ## 0.2.0
 
 ### Minor Changes
