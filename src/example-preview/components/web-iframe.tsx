@@ -1,6 +1,4 @@
-import type { LynxView } from '@lynx-js/web-core';
-import '@lynx-js/web-core/index.css';
-import '@lynx-js/web-elements/index.css';
+import type { LynxViewElement as LynxView } from '@lynx-js/web-core/client';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { LoadingOverlay } from './loading-overlay';
@@ -21,14 +19,11 @@ interface WebIframeProps {
   src: string;
 }
 
-// Shared promise so multiple WebIframe instances don't re-import
+// Shared promise so multiple WebIframe instances don't duplicate the dynamic import
 let runtimeReady: Promise<void> | null = null;
 function ensureRuntime() {
   if (!runtimeReady) {
-    runtimeReady = Promise.all([
-      import('@lynx-js/web-core'),
-      import('@lynx-js/web-elements/all'),
-    ]).then(() => {
+    runtimeReady = import('@lynx-js/web-core/client').then(() => {
       /* runtime loaded */
     });
   }

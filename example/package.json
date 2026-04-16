@@ -12,8 +12,7 @@
   "dependencies": {
     "@douyinfe/semi-icons": "^2.74.0",
     "@douyinfe/semi-ui": "^2.75.0",
-    "@lynx-js/web-core": "npm:@lynx-js/web-core-canary@0.19.7-canary-20260126-5e7e43c5",
-    "@lynx-js/web-elements": "^0.11.0",
+    "@lynx-js/web-core": "^0.20.1",
     "@shikijs/transformers": "^3.4.2",
     "qrcode.react": "^4.2.0",
     "react": "^18.2.0",
