@@ -19,6 +19,20 @@ interface WebIframeProps {
   src: string;
 }
 
+type CSSVarProperties = {
+  [key: `--${string}`]: string | number;
+};
+
+const LYNX_VIEW_STYLE: React.CSSProperties & CSSVarProperties = {
+  width: '100%',
+  height: '100%',
+  contain: 'strict',
+  containerType: 'size',
+  '--rpx-unit': 'calc(100cqw / 750)',
+  '--vh-unit': '1cqh',
+  '--vw-unit': '1cqw',
+};
+
 // Shared promise so multiple WebIframe instances don't duplicate the dynamic import
 let runtimeReady: Promise<void> | null = null;
 function ensureRuntime() {
@@ -130,19 +144,6 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
       pixelWidth: Math.round(w * window.devicePixelRatio),
       pixelHeight: Math.round(h * window.devicePixelRatio),
     };
-
-    const rule = `:host { --lynx-vh: ${h}px; --lynx-vw: ${w}px; }`;
-
-    // Set injectStyleRules for initial template load (before shadow DOM exists)
-    // @ts-ignore
-    lynxViewRef.current.injectStyleRules = [rule];
-
-    // Also set CSS custom properties directly on the host element's inline
-    // style for live resize updates. Inline custom properties on the host
-    // are inherited by shadow DOM descendants immediately.
-    const el = lynxViewRef.current as unknown as HTMLElement;
-    el.style.setProperty('--lynx-vh', `${h}px`);
-    el.style.setProperty('--lynx-vw', `${w}px`);
   }, []);
 
   // Set URL only after runtime is ready AND element is mounted
@@ -350,7 +351,10 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
       {show && src && (
         <lynx-view
           ref={lynxViewRef}
-          style={{ width: '100%', height: '100%' }}
+          style={LYNX_VIEW_STYLE}
+          lynx-group-id={2}
+          transform-vh={true}
+          transform-vw={true}
         />
       )}
     </div>
