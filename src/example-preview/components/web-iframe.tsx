@@ -6,18 +6,43 @@ import { LoadingOverlay } from './loading-overlay';
 declare global {
   namespace JSX {
     interface IntrinsicElements {
-      'lynx-view': React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement>,
-        HTMLElement
-      >;
+      'lynx-view': React.DetailedHTMLProps<LynxViewAttributes, HTMLElement>;
     }
   }
 }
+
+type LynxViewAttributes = React.HTMLAttributes<HTMLElement> & {
+  'lynx-group-id'?: number;
+  'transform-vh'?: boolean;
+  'transform-vw'?: boolean;
+};
 
 interface WebIframeProps {
   show: boolean;
   src: string;
 }
+
+type CSSVarProperties = {
+  [key: `--${string}`]: string | number;
+};
+
+// Container-relative unit hooks for Lynx runtime:
+// - `containerType: 'size'` enables `cqw/cqh` units based on the host element box.
+// - `--vh-unit/--vw-unit` make `vh/vw` behave like "container viewport" inside `<lynx-view>`.
+// - `--rpx-unit` aligns `rpx` scaling with a 750-wide design baseline (mobile-like behavior).
+// Note: web-core already applies `contain: content` internally; combined with `containerType: 'size'`
+// this effectively behaves like `contain: strict` without us overriding containment explicitly.
+const LYNX_VIEW_STYLE: React.CSSProperties & CSSVarProperties = {
+  width: '100%',
+  height: '100%',
+  containerType: 'size',
+  '--rpx-unit': 'calc(100cqw / 750)',
+  '--vh-unit': '1cqh',
+  '--vw-unit': '1cqw',
+};
+
+// Use a shared group so multiple Lynx views can reuse web workers.
+const LYNX_GROUP_ID = 42;
 
 // Shared promise so multiple WebIframe instances don't duplicate the dynamic import
 let runtimeReady: Promise<void> | null = null;
@@ -33,47 +58,6 @@ function ensureRuntime() {
 // Pre-compiled regex for webpack public path rewriting in customTemplateLoader
 // Matches .p=\"<anything>\" — handles empty, single-char, and multi-char paths
 const WEBPACK_PUBLIC_PATH_RE = /\.p=\\"[^"]*\\"/g;
-
-/**
- * Rewrite CSS viewport units (vh/vw) in a Lynx template's styleInfo to use
- * CSS custom properties (--lynx-vh / --lynx-vw). This fixes viewport-unit
- * sizing inside the <lynx-view> shadow DOM, where native CSS vh/vw resolve
- * to the browser viewport rather than the preview container.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function rewriteViewportUnits(template: any): void {
-  if (!template.styleInfo) return;
-
-  const rewrite = (value: string) =>
-    value
-      .replace(/(-?\d+\.?\d*)vh/g, (_, num) => {
-        const n = Number.parseFloat(num);
-        if (n === 100) return 'var(--lynx-vh, 100vh)';
-        return `calc(var(--lynx-vh, 100vh) * ${n / 100})`;
-      })
-      .replace(/(-?\d+\.?\d*)vw/g, (_, num) => {
-        const n = Number.parseFloat(num);
-        if (n === 100) return 'var(--lynx-vw, 100vw)';
-        return `calc(var(--lynx-vw, 100vw) * ${n / 100})`;
-      });
-
-  for (const key of Object.keys(template.styleInfo)) {
-    const info = template.styleInfo[key];
-    if (info.content) {
-      info.content = info.content.map((s: string) => rewrite(s));
-    }
-    if (info.rules) {
-      for (const rule of info.rules) {
-        if (rule.decl) {
-          rule.decl = rule.decl.map(([prop, val]: [string, string]) => [
-            prop,
-            rewrite(val),
-          ]);
-        }
-      }
-    }
-  }
-}
 
 // DEV: ?simulateError=runtime|template|shadow|render
 const simulateError =
@@ -130,19 +114,6 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
       pixelWidth: Math.round(w * window.devicePixelRatio),
       pixelHeight: Math.round(h * window.devicePixelRatio),
     };
-
-    const rule = `:host { --lynx-vh: ${h}px; --lynx-vw: ${w}px; }`;
-
-    // Set injectStyleRules for initial template load (before shadow DOM exists)
-    // @ts-ignore
-    lynxViewRef.current.injectStyleRules = [rule];
-
-    // Also set CSS custom properties directly on the host element's inline
-    // style for live resize updates. Inline custom properties on the host
-    // are inherited by shadow DOM descendants immediately.
-    const el = lynxViewRef.current as unknown as HTMLElement;
-    el.style.setProperty('--lynx-vh', `${h}px`);
-    el.style.setProperty('--lynx-vw', `${w}px`);
   }, []);
 
   // Set URL only after runtime is ready AND element is mounted
@@ -191,9 +162,6 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
                 `var __webpack_require__={p:"${baseUrl}"};` + root;
             }
           }
-
-          // Rewrite vh/vw units in CSS to use container-relative custom properties
-          rewriteViewportUnits(template);
 
           return template;
         } catch (err) {
@@ -350,7 +318,10 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
       {show && src && (
         <lynx-view
           ref={lynxViewRef}
-          style={{ width: '100%', height: '100%' }}
+          style={LYNX_VIEW_STYLE}
+          lynx-group-id={LYNX_GROUP_ID}
+          transform-vh={true}
+          transform-vw={true}
         />
       )}
     </div>
