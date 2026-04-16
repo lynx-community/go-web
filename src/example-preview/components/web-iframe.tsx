@@ -1,8 +1,8 @@
-import type React from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import type { LynxView } from '@lynx-js/web-core';
 import '@lynx-js/web-core/index.css';
 import '@lynx-js/web-elements/index.css';
-import type { LynxView } from '@lynx-js/web-core';
+import type React from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { LoadingOverlay } from './loading-overlay';
 
 declare global {

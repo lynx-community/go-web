@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useGoConfig, defaultUseDark } from '../../config';
+import { defaultUseDark, useGoConfig } from '../../config';
 
 const LOGO_LIGHT =
   'https://lf-lynx.tiktok-cdns.com/obj/lynx-artifacts-oss-sg/lynx-website/assets/lynx-dark-logo.svg';

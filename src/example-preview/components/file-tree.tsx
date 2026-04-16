@@ -1,7 +1,7 @@
-import React, { FC, useEffect } from 'react';
+import { useEffect } from 'react';
 
-import { RenderFullLabelProps } from '@douyinfe/semi-ui/lib/es/tree';
 import { Tree, Typography } from '@douyinfe/semi-ui';
+import { RenderFullLabelProps } from '@douyinfe/semi-ui/lib/es/tree';
 
 import { getFolderIcon } from '../utils/icon';
 import { TreeNode } from '../utils/transform';
@@ -15,21 +15,20 @@ interface FileTreeProps {
   expandedKeys: string[];
 }
 
-export const FileTree: FC<FileTreeProps> = ({
+export function FileTree({
   onSelect,
   entry,
   treeData,
   doChangeExpand,
   selectedKeys,
   expandedKeys,
-}) => {
+}: FileTreeProps) {
   const doRenderLabel = ({
     className,
     data,
     onClick,
     onExpand,
     expandIcon,
-    checkStatus,
   }: RenderFullLabelProps) => {
     const { label, icon, key, children, highlight } = data;
     const isLeaf = !children?.length;
@@ -56,7 +55,6 @@ export const FileTree: FC<FileTreeProps> = ({
           ...highStyle,
         }}
         id={selectedKeys[0] === key ? key : undefined}
-        role="treeitem"
         onClick={isLeaf ? onClick : onExpand}
       >
         {isLeaf ? (
@@ -78,7 +76,7 @@ export const FileTree: FC<FileTreeProps> = ({
         selectedNode.scrollIntoView({ behavior: 'auto', block: 'center' });
       }
     });
-  }, []);
+  }, [selectedKeys]);
 
   return (
     <Tree
@@ -100,4 +98,4 @@ export const FileTree: FC<FileTreeProps> = ({
       treeData={treeData}
     />
   );
-};
+}

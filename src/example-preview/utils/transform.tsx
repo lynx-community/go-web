@@ -1,4 +1,3 @@
-import React from 'react';
 import { getFileIcon, getFolderIcon } from './icon';
 
 export function pathNormalize(name: string) {

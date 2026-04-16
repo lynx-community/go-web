@@ -1,10 +1,10 @@
-import { FC, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { getHighlightLines } from '../utils/example-data';
 import { transformerNotationHighlight } from '@shikijs/transformers';
-import { transformerRuntimeMetaHighlight } from './shiki-transformer';
-import { useGoConfig, DefaultCodeBlock } from '../../config';
+import { DefaultCodeBlock, useGoConfig } from '../../config';
+import { getHighlightLines } from '../utils/example-data';
 import styles from './code.module.scss';
+import { transformerRuntimeMetaHighlight } from './shiki-transformer';
 
 interface CodeProps {
   val: string;
@@ -14,13 +14,13 @@ interface CodeProps {
   setIsFirstShowCode: (isFirstShowCode: boolean) => void;
 }
 
-export const Code: FC<CodeProps> = ({
+export function Code({
   val,
   language,
   highlight,
   isFirstShowCode,
   setIsFirstShowCode,
-}) => {
+}: CodeProps) {
   const { CodeBlock = DefaultCodeBlock } = useGoConfig();
   const containerRef = useRef<HTMLDivElement>(null);
   const [highlightVal, setHighlightVal] = useState(highlight);
@@ -103,4 +103,4 @@ export const Code: FC<CodeProps> = ({
       />
     </div>
   );
-};
+}

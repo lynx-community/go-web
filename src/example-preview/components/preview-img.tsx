@@ -1,4 +1,3 @@
-import React from 'react';
 import { isVideo } from '../utils/example-data';
 
 export const PreviewImg = ({
