@@ -6,13 +6,16 @@ import { LoadingOverlay } from './loading-overlay';
 declare global {
   namespace JSX {
     interface IntrinsicElements {
-      'lynx-view': React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement>,
-        HTMLElement
-      >;
+      'lynx-view': React.DetailedHTMLProps<LynxViewAttributes, HTMLElement>;
     }
   }
 }
+
+type LynxViewAttributes = React.HTMLAttributes<HTMLElement> & {
+  'lynx-group-id'?: number;
+  'transform-vh'?: boolean;
+  'transform-vw'?: boolean;
+};
 
 interface WebIframeProps {
   show: boolean;
@@ -27,10 +30,11 @@ type CSSVarProperties = {
 // - `containerType: 'size'` enables `cqw/cqh` units based on the host element box.
 // - `--vh-unit/--vw-unit` make `vh/vw` behave like "container viewport" inside `<lynx-view>`.
 // - `--rpx-unit` aligns `rpx` scaling with a 750-wide design baseline (mobile-like behavior).
+// Note: web-core already applies `contain: content` internally; combined with `containerType: 'size'`
+// this effectively behaves like `contain: strict` without us overriding containment explicitly.
 const LYNX_VIEW_STYLE: React.CSSProperties & CSSVarProperties = {
   width: '100%',
   height: '100%',
-  contain: 'strict',
   containerType: 'size',
   '--rpx-unit': 'calc(100cqw / 750)',
   '--vh-unit': '1cqh',
