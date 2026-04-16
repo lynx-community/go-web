@@ -13,14 +13,7 @@ import {
   Typography,
 } from '@douyinfe/semi-ui';
 import { QRCodeSVG } from 'qrcode.react';
-import React, {
-  FC,
-  Suspense,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { CodeView } from './code-view';
 import { FileTree } from './file-tree';
@@ -85,7 +78,7 @@ interface ExampleContentProps {
   mode?: ExamplePreviewMode;
 }
 
-export const ExampleContent: FC<ExampleContentProps> = ({
+export function ExampleContent({
   fileNames,
   previewImage,
   currentFileName,
@@ -108,7 +101,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
   langAlias,
   defaultTab,
   mode = 'linked',
-}) => {
+}: ExampleContentProps) {
   const {
     explorerUrl,
     explorerText,
@@ -621,4 +614,4 @@ export const ExampleContent: FC<ExampleContentProps> = ({
       </div>
     </div>
   );
-};
+}
