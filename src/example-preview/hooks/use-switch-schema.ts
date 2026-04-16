@@ -1,7 +1,5 @@
-import { useMemo } from 'react';
-import { useState } from 'react';
-import { getUrlFromMustacheSchema } from '../utils/tool';
-import { getCloneData } from '../utils/tool';
+import { useMemo, useState } from 'react';
+import { getCloneData, getUrlFromMustacheSchema } from '../utils/tool';
 
 export interface SchemaOptionType {
   type: string;

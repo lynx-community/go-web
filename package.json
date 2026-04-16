@@ -21,6 +21,8 @@
   ],
   "scripts": {
     "dev": "cd example && pnpm install && pnpm dev",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "prepare": "husky",
     "typecheck": "tsc --noEmit"
   },

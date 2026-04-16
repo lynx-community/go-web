@@ -2,11 +2,11 @@ import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
-import { ExampleContent } from './components';
-import { isAssetFileType } from './utils/example-data';
-import type { SchemaOptionsData } from './hooks/use-switch-schema';
-import { useGoConfig } from '../config';
 import type { PreviewTab } from '../config';
+import { useGoConfig } from '../config';
+import { ExampleContent } from './components';
+import type { SchemaOptionsData } from './hooks/use-switch-schema';
+import { isAssetFileType } from './utils/example-data';
 
 const DefaultErrorWrap = ({
   example,

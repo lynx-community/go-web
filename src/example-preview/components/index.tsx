@@ -1,44 +1,37 @@
-import React, {
-  FC,
-  Suspense,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { IconChevronRightStroked, IconList } from '@douyinfe/semi-icons';
 import {
-  Space,
-  Typography,
-  Switch,
   Button,
-  SideSheet,
-  RadioGroup,
   Radio,
+  RadioGroup,
   Select,
-  Toast,
-  Tabs,
+  SideSheet,
+  Space,
+  Switch,
   TabPane,
+  Tabs,
+  Toast,
+  Typography,
 } from '@douyinfe/semi-ui';
-import { IconList, IconChevronRightStroked } from '@douyinfe/semi-icons';
 import { QRCodeSVG } from 'qrcode.react';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
-import { FileTree } from './file-tree';
 import { CodeView } from './code-view';
-import { SwitchSchema } from './switch-schema';
+import { FileTree } from './file-tree';
 import { PreviewImg } from './preview-img';
 import { SplitPane, type SplitPaneHandle } from './split-pane';
+import { SwitchSchema } from './switch-schema';
 
+import type { PreviewTab } from '../../config';
+import { DEFAULT_I18N, DefaultNoSSR, useGoConfig } from '../../config';
+import type { SchemaOptionsData } from '../hooks/use-switch-schema';
+import { useTreeController } from '../hooks/use-tree-controller';
 import {
-  IconGithub,
   IconCopyLink,
-  IconFullscreen,
   IconExitFullscreen,
+  IconFullscreen,
+  IconGithub,
 } from '../utils/icon';
 import { tabScrollToTop } from '../utils/tool';
-import { useTreeController } from '../hooks/use-tree-controller';
-import type { SchemaOptionsData } from '../hooks/use-switch-schema';
-import { useGoConfig, DEFAULT_I18N, DefaultNoSSR } from '../../config';
-import type { PreviewTab } from '../../config';
 
 const WebIframe = React.lazy(() =>
   import('./web-iframe').then((module) => ({ default: module.WebIframe })),
@@ -85,7 +78,7 @@ interface ExampleContentProps {
   mode?: ExamplePreviewMode;
 }
 
-export const ExampleContent: FC<ExampleContentProps> = ({
+export function ExampleContent({
   fileNames,
   previewImage,
   currentFileName,
@@ -108,7 +101,7 @@ export const ExampleContent: FC<ExampleContentProps> = ({
   langAlias,
   defaultTab,
   mode = 'linked',
-}) => {
+}: ExampleContentProps) {
   const {
     explorerUrl,
     explorerText,
@@ -621,4 +614,4 @@ export const ExampleContent: FC<ExampleContentProps> = ({
       </div>
     </div>
   );
-};
+}

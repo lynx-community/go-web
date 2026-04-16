@@ -1,6 +1,5 @@
-import React from 'react';
-import { Select, Input } from '@douyinfe/semi-ui';
-import { useSwitchSchema, SchemaOptionsData } from '../hooks/use-switch-schema';
+import { Input, Select } from '@douyinfe/semi-ui';
+import { SchemaOptionsData, useSwitchSchema } from '../hooks/use-switch-schema';
 import s from './index.module.scss';
 
 export interface SwitchSchemaProps {

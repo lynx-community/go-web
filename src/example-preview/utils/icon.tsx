@@ -1,9 +1,9 @@
 import { SVGProps } from 'react';
 
 import {
-  getIconForFile,
   DEFAULT_FOLDER,
   DEFAULT_FOLDER_OPENED,
+  getIconForFile,
 } from 'vscode-icons-js';
 
 export function CarbonDocumentBlank(props: SVGProps<SVGSVGElement>) {
