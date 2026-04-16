@@ -19,15 +19,13 @@ interface WebIframeProps {
   src: string;
 }
 
-// Shared promise so multiple WebIframe instances don't re-import
+// Shared promise so multiple WebIframe instances don't duplicate the dynamic import
 let runtimeReady: Promise<void> | null = null;
 function ensureRuntime() {
   if (!runtimeReady) {
-    runtimeReady = Promise.all([import('@lynx-js/web-core/client')]).then(
-      () => {
-        /* runtime loaded */
-      },
-    );
+    runtimeReady = import('@lynx-js/web-core/client').then(() => {
+      /* runtime loaded */
+    });
   }
   return runtimeReady;
 }
