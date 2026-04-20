@@ -41,6 +41,24 @@ const LYNX_VIEW_STYLE: React.CSSProperties & CSSVarProperties = {
   '--vw-unit': '1cqw',
 };
 
+const MEASURE_CONTAINER: React.CSSProperties = {
+  position: 'relative',
+  width: '100%',
+  height: '100%',
+};
+
+const INNER_VISIBLE: React.CSSProperties = {
+  display: 'flex',
+  width: '100%',
+  height: '100%',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
+
+const INNER_HIDDEN: React.CSSProperties = {
+  display: 'none',
+};
+
 // Use a shared group so multiple Lynx views can reuse web workers.
 const LYNX_GROUP_ID = 42;
 
@@ -109,13 +127,20 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
   // Called on initial setup, SystemInfo cannot be updated after that.
   const setDimensions = useCallback(() => {
     if (!lynxViewRef.current || !containerRef.current) return;
-    const w = containerRef.current.clientWidth;
-    const h = containerRef.current.clientHeight;
+
+    const pixelRatio = window.devicePixelRatio;
+    const pixelWidth = Math.round(
+      containerRef.current.clientWidth * pixelRatio,
+    );
+    const pixelHeight = Math.round(
+      containerRef.current.clientHeight * pixelRatio,
+    );
+
     // @ts-ignore
     lynxViewRef.current.browserConfig = {
-      pixelWidth: Math.round(w * window.devicePixelRatio),
-      pixelHeight: Math.round(h * window.devicePixelRatio),
-      pixelRatio: window.devicePixelRatio,
+      pixelWidth,
+      pixelHeight,
+      pixelRatio,
     };
   }, []);
 
@@ -303,32 +328,26 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
   // Only show loading state when the view is actually visible
   const loading = show && (!ready || !rendered || !!error);
 
+  // Always mount <lynx-view> when src exists so the ref
+  // is always populated and shadow DOM persists
+  // across tab switches.
   return (
-    <div
-      ref={containerRef}
-      style={{
-        display: show ? 'flex' : 'none',
-        width: '100%',
-        height: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-      }}
-    >
-      <LoadingOverlay visible={loading} error={error} />
-      {/* Always mount <lynx-view> when src exists so the ref 
-          is always populated and shadow DOM persists
-          across tab switches. */}
-      {src && (
-        <lynx-view
-          key={src}
-          ref={lynxViewRef}
-          style={LYNX_VIEW_STYLE}
-          lynx-group-id={LYNX_GROUP_ID}
-          transform-vh={true}
-          transform-vw={true}
-        />
-      )}
+    // Outer: always in layout for dimension measurement
+    // Inner: controls visibility
+    <div style={MEASURE_CONTAINER} ref={containerRef}>
+      <div style={show ? INNER_VISIBLE : INNER_HIDDEN}>
+        <LoadingOverlay visible={loading} error={error} />
+        {src && (
+          <lynx-view
+            key={src}
+            ref={lynxViewRef}
+            style={LYNX_VIEW_STYLE}
+            lynx-group-id={LYNX_GROUP_ID}
+            transform-vh={true}
+            transform-vw={true}
+          />
+        )}
+      </div>
     </div>
   );
 };
