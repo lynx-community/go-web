@@ -72,15 +72,17 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
   const [rendered, setRendered] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const renderedRef = useRef(false);
+  const lastUrlRef = useRef<string>('');
 
   // Reset state when src changes
   useEffect(() => {
     setRendered(false);
     setError(null);
     renderedRef.current = false;
+    lastUrlRef.current = '';
   }, [src]);
 
-  // Load web-core + web-elements eagerly on mount
+  // Load web-core eagerly on mount
   useEffect(() => {
     const t = performance.now();
     if (simulateError === 'runtime') {
@@ -103,9 +105,9 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
       });
   }, []);
 
-  // Update lynx-view dimensions to match the container.
-  // Called on initial setup and on container resize.
-  const updateDimensions = useCallback(() => {
+  // Set lynx-view dimensions to match the container.
+  // Called on initial setup, SystemInfo cannot be updated after that.
+  const setDimensions = useCallback(() => {
     if (!lynxViewRef.current || !containerRef.current) return;
     const w = containerRef.current.clientWidth;
     const h = containerRef.current.clientHeight;
@@ -113,17 +115,23 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
     lynxViewRef.current.browserConfig = {
       pixelWidth: Math.round(w * window.devicePixelRatio),
       pixelHeight: Math.round(h * window.devicePixelRatio),
+      pixelRatio: window.devicePixelRatio,
     };
   }, []);
 
-  // Set URL only after runtime is ready AND element is mounted
+  // Set URL eagerly once runtime is ready and element is mounted.
+  // No longer gates on `show` — content is preloaded so tab switches are instant.
+  // `lastUrlRef` prevents redundant url assignments that could trigger reloads.
   useEffect(() => {
-    if (ready && show && src && lynxViewRef.current && containerRef.current) {
+    if (ready && src && lynxViewRef.current && containerRef.current) {
+      // Skip if URL hasn't changed
+      if (lastUrlRef.current === src) return;
+
       const t0 = performance.now();
       const tag = `[WebIframe ${src.split('/').pop()}]`;
-      console.log(tag, 'effect start', { ready, show, src });
+      console.log(tag, 'effect start', { ready, src });
 
-      updateDimensions();
+      setDimensions();
 
       // @ts-ignore
       lynxViewRef.current.customTemplateLoader = async (url: string) => {
@@ -175,6 +183,7 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
 
       console.log(tag, 'url set', `+${(performance.now() - t0).toFixed(0)}ms`);
       lynxViewRef.current.url = src;
+      lastUrlRef.current = src;
 
       // Workaround: web-core reads MouseEvent.x/.y (viewport-relative) for
       // tap event detail.x/.y. When the <lynx-view> is embedded at a non-zero
@@ -289,17 +298,9 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
         removeClickFix?.();
       };
     }
-  }, [ready, show, src, updateDimensions]);
+  }, [ready, src, setDimensions]);
 
-  // Keep lynx-view dimensions in sync when the container is resized
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el || !ready) return;
-    const ro = new ResizeObserver(() => updateDimensions());
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [ready, updateDimensions]);
-
+  // Only show loading state when the view is actually visible
   const loading = show && (!ready || !rendered || !!error);
 
   return (
@@ -315,8 +316,12 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
       }}
     >
       <LoadingOverlay visible={loading} error={error} />
-      {show && src && (
+      {/* Always mount <lynx-view> when src exists so the ref 
+          is always populated and shadow DOM persists
+          across tab switches. */}
+      {src && (
         <lynx-view
+          key={src}
           ref={lynxViewRef}
           style={LYNX_VIEW_STYLE}
           lynx-group-id={LYNX_GROUP_ID}
