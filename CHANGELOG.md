@@ -1,5 +1,11 @@
 # @lynx-js/go-web
 
+## 0.2.2
+
+### Patch Changes
+
+- Fix white flash when switching to Web preview tab by keeping `<lynx-view>` mounted and eagerly preloading content. ([#40](https://github.com/lynx-community/go-web/pull/40))
+
 ## 0.2.1
 
 ### Patch Changes
