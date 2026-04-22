@@ -171,67 +171,73 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
       lynxViewRef.current &&
       containerRef.current
     ) {
-      // Skip if URL hasn't changed
-      if (lastUrlRef.current === src) return;
+      // Skip URL assignment only, not the rest of initialization
+      const urlAlreadySet = lastUrlRef.current === src;
 
       const t0 = performance.now();
       const tag = `[WebIframe ${src.split('/').pop()}]`;
-      console.log(tag, 'effect start', { ready, src });
+      console.log(tag, 'effect start', { ready, src, urlAlreadySet });
 
       const initialized = setDimensions();
       if (!initialized) return;
 
-      // @ts-ignore
-      lynxViewRef.current.customTemplateLoader = async (url: string) => {
-        try {
-          if (simulateError === 'template') {
-            throw new Error('simulated template load error');
-          }
-          const res = await fetch(url);
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status} loading ${url}`);
-          }
-          const text = await res.text();
-
-          // Rewrite webpack's public path in the bundle JS so that asset
-          // URLs (images etc.) resolve relative to the bundle location,
-          // not the page URL.
-          const baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
-          const rewritten = text.replace(
-            WEBPACK_PUBLIC_PATH_RE,
-            `.p=\\"${baseUrl}\\"`,
-          );
-          const template = JSON.parse(rewritten);
-
-          // Workaround: when no template modules reference publicPath (no asset
-          // imports), rspack omits the local webpack runtime from lepusCode and
-          // emits a bare `__webpack_require__` reference. Inject a minimal shim
-          // so the entry-point executor (`__webpack_require__.x`) can run.
-          if (template.lepusCode?.root) {
-            const root = template.lepusCode.root;
-            if (
-              typeof root === 'string' &&
-              root.includes('__webpack_require__') &&
-              !root.includes('function __webpack_require__')
-            ) {
-              template.lepusCode.root =
-                `var __webpack_require__={p:"${baseUrl}"};` + root;
+      if (!urlAlreadySet) {
+        // @ts-ignore
+        lynxViewRef.current.customTemplateLoader = async (url: string) => {
+          try {
+            if (simulateError === 'template') {
+              throw new Error('simulated template load error');
             }
+            const res = await fetch(url);
+            if (!res.ok) {
+              throw new Error(`HTTP ${res.status} loading ${url}`);
+            }
+            const text = await res.text();
+
+            // Rewrite webpack's public path in the bundle JS so that asset
+            // URLs (images etc.) resolve relative to the bundle location,
+            // not the page URL.
+            const baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
+            const rewritten = text.replace(
+              WEBPACK_PUBLIC_PATH_RE,
+              `.p=\\"${baseUrl}\\"`,
+            );
+            const template = JSON.parse(rewritten);
+
+            // Workaround: when no template modules reference publicPath (no asset
+            // imports), rspack omits the local webpack runtime from lepusCode and
+            // emits a bare `__webpack_require__` reference. Inject a minimal shim
+            // so the entry-point executor (`__webpack_require__.x`) can run.
+            if (template.lepusCode?.root) {
+              const root = template.lepusCode.root;
+              if (
+                typeof root === 'string' &&
+                root.includes('__webpack_require__') &&
+                !root.includes('function __webpack_require__')
+              ) {
+                template.lepusCode.root =
+                  `var __webpack_require__={p:"${baseUrl}"};` + root;
+              }
+            }
+
+            return template;
+          } catch (err) {
+            console.error(tag, 'template load failed', err);
+            setError(
+              `Failed to load template: ${err instanceof Error ? err.message : String(err)}`,
+            );
+            throw err;
           }
+        };
 
-          return template;
-        } catch (err) {
-          console.error(tag, 'template load failed', err);
-          setError(
-            `Failed to load template: ${err instanceof Error ? err.message : String(err)}`,
-          );
-          throw err;
-        }
-      };
-
-      console.log(tag, 'url set', `+${(performance.now() - t0).toFixed(0)}ms`);
-      lynxViewRef.current.url = src;
-      lastUrlRef.current = src;
+        console.log(
+          tag,
+          'url set',
+          `+${(performance.now() - t0).toFixed(0)}ms`,
+        );
+        lynxViewRef.current.url = src;
+        lastUrlRef.current = src;
+      }
 
       // Workaround: web-core reads MouseEvent.x/.y (viewport-relative) for
       // tap event detail.x/.y. When the <lynx-view> is embedded at a non-zero
@@ -311,37 +317,49 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
         return () => {};
       }
 
-      const pollStart = performance.now();
-      const pollShadow = () => {
-        if (disposed) return;
-        if (performance.now() - pollStart > 3000) {
-          console.error(tag, 'shadow root timeout');
-          setError('Preview timed out: shadow root was not created');
-          return;
-        }
+      let timer: ReturnType<typeof setTimeout> | undefined;
+
+      if (!renderedRef.current) {
+        const pollStart = performance.now();
+        const pollShadow = () => {
+          if (disposed) return;
+          if (performance.now() - pollStart > 3000) {
+            console.error(tag, 'shadow root timeout');
+            setError('Preview timed out: shadow root was not created');
+            return;
+          }
+          const shadow = el.shadowRoot;
+          if (shadow) {
+            setupShadow(shadow);
+          } else {
+            requestAnimationFrame(pollShadow);
+          }
+        };
+        pollShadow();
+
+        // Fallback: error if rendering doesn't complete within 5s
+        timer = setTimeout(() => {
+          if (!renderedRef.current) {
+            console.error(
+              tag,
+              'render timeout',
+              `+${(performance.now() - t0).toFixed(0)}ms`,
+            );
+            setError('Preview timed out: rendering did not complete within 5s');
+          }
+        }, 5000);
+      } else {
         const shadow = el.shadowRoot;
         if (shadow) {
-          setupShadow(shadow);
-        } else {
-          requestAnimationFrame(pollShadow);
+          shadow.addEventListener('click', adjustClickCoords, true);
+          removeClickFix = () =>
+            shadow.removeEventListener('click', adjustClickCoords, true);
         }
-      };
-      pollShadow();
+      }
 
-      // Fallback: error if rendering doesn't complete within 5s
-      const timer = setTimeout(() => {
-        if (!renderedRef.current) {
-          console.error(
-            tag,
-            'render timeout',
-            `+${(performance.now() - t0).toFixed(0)}ms`,
-          );
-          setError('Preview timed out: rendering did not complete within 5s');
-        }
-      }, 5000);
       return () => {
         disposed = true;
-        clearTimeout(timer);
+        if (timer) clearTimeout(timer);
         mo?.disconnect();
         removeClickFix?.();
       };
