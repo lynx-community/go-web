@@ -1,17 +1,34 @@
+import { useEffect, useRef } from 'react';
 import { isVideo } from '../utils/example-data';
 
 export const PreviewImg = ({
-  show,
   previewImage,
+  active,
 }: {
-  show: boolean;
   previewImage: string;
+  active: boolean;
 }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Pause video when inactive to save CPU/battery, play when active
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (active) {
+      video.play().catch(() => {
+        /* ignore play interruptions */
+      });
+    } else {
+      video.pause();
+    }
+  }, [active]);
+
   return (
     <div
       style={{
         minHeight: '0px',
-        display: show ? 'flex' : 'none',
+        display: 'flex',
         width: '100%',
         height: '100%',
         alignItems: 'center',
@@ -20,10 +37,12 @@ export const PreviewImg = ({
     >
       {isVideo(previewImage) ? (
         <video
+          ref={videoRef}
           muted
           loop
           playsInline
-          autoPlay
+          autoPlay={active}
+          preload="auto"
           style={{
             maxWidth: '100%',
             maxHeight: '100%',
@@ -36,6 +55,8 @@ export const PreviewImg = ({
         <img
           src={previewImage}
           alt=""
+          loading="eager"
+          decoding="async"
           style={{
             maxWidth: '100%',
             maxHeight: '100%',

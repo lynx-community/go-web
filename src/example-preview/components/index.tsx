@@ -313,93 +313,120 @@ export function ExampleContent({
             }}
           />
         </div>
-
-        {previewType === PreviewType.QRCode && currentEntry && (
-          <div className={s.qrcode}>
-            <Typography.Text
-              size="small"
-              type="tertiary"
-              style={{ margin: '28px 12px', textAlign: 'center' }}
-            >
-              {t('go.scan.message-1')}
-              <Typography.Text
-                link={{
-                  href: withBaseFn(
-                    lang === 'zh' ? LYNX_EXPLORER_URL_CN : LYNX_EXPLORER_URL_EN,
-                  ),
-                  target: '_blank',
-                }}
-                size="small"
-                underline
-              >
-                {lynxExplorerText}
-              </Typography.Text>{' '}
-              {t('go.scan.message-2')}
-            </Typography.Text>
-            <div className={s['qrcode-svg']}>
-              <QRCodeSVG value={qrcodeUrl} />
-            </div>
-            <div style={{ marginBottom: '32px' }}>
-              <CopyToClipboard
-                onCopy={() => {
-                  Toast.success(t('go.qrcode.copied'));
-                }}
-                text={qrcodeUrl}
-              >
-                <Button
+        <div className={s['preview-body']}>
+          {previewType === PreviewType.QRCode && currentEntry && (
+            <div className={s['preview-panel']}>
+              <div className={s.qrcode}>
+                <Typography.Text
+                  size="small"
                   type="tertiary"
-                  style={{ fontSize: '12px' }}
-                  icon={<IconCopyLink style={{ fontSize: '16px' }} />}
+                  style={{ margin: '28px 12px', textAlign: 'center' }}
                 >
-                  {t('go.qrcode.copy-link')}
-                </Button>
-              </CopyToClipboard>
+                  {t('go.scan.message-1')}
+                  <Typography.Text
+                    link={{
+                      href: withBaseFn(
+                        lang === 'zh'
+                          ? LYNX_EXPLORER_URL_CN
+                          : LYNX_EXPLORER_URL_EN,
+                      ),
+                      target: '_blank',
+                    }}
+                    size="small"
+                    underline
+                  >
+                    {lynxExplorerText}
+                  </Typography.Text>{' '}
+                  {t('go.scan.message-2')}
+                </Typography.Text>
+                <div className={s['qrcode-svg']}>
+                  <QRCodeSVG value={qrcodeUrl} />
+                </div>
+                <div style={{ marginBottom: '32px' }}>
+                  <CopyToClipboard
+                    onCopy={() => {
+                      Toast.success(t('go.qrcode.copied'));
+                    }}
+                    text={qrcodeUrl}
+                  >
+                    <Button
+                      type="tertiary"
+                      style={{ fontSize: '12px' }}
+                      icon={<IconCopyLink style={{ fontSize: '16px' }} />}
+                    >
+                      {t('go.qrcode.copy-link')}
+                    </Button>
+                  </CopyToClipboard>
+                </div>
+                {schemaOptions && (
+                  <SwitchSchema
+                    optionsData={schemaOptions}
+                    currentEntryFileUrl={currentEntryFileUrl}
+                    onSwitchSchema={onSwitchSchema}
+                  />
+                )}
+                <div className={s['qrcode-entry']}>
+                  <Typography.Text
+                    size="small"
+                    type="tertiary"
+                    style={{ marginRight: '12px', flexShrink: 0 }}
+                  >
+                    {t('go.qrcode.entry')}
+                  </Typography.Text>
+                  <Select
+                    style={{ width: '100%', maxWidth: '200px' }}
+                    value={currentEntry}
+                    onChange={(v) => setCurrentEntry(v as string)}
+                  >
+                    {entryFiles?.map((file) => (
+                      <Select.Option key={file.name} value={file.name}>
+                        {file.name}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
             </div>
-            {schemaOptions && (
-              <SwitchSchema
-                optionsData={schemaOptions}
-                currentEntryFileUrl={currentEntryFileUrl}
-                onSwitchSchema={onSwitchSchema}
+          )}
+          {previewImage && (
+            <div
+              className={s['preview-panel']}
+              style={{
+                zIndex: previewType === PreviewType.Preview ? 1 : 0,
+                visibility:
+                  previewType === PreviewType.Preview ? 'visible' : 'hidden',
+                pointerEvents:
+                  previewType === PreviewType.Preview ? 'auto' : 'none',
+              }}
+            >
+              <PreviewImg
+                previewImage={previewImage}
+                active={previewType === PreviewType.Preview}
               />
-            )}
-            <div className={s['qrcode-entry']}>
-              <Typography.Text
-                size="small"
-                type="tertiary"
-                style={{ marginRight: '12px', flexShrink: 0 }}
-              >
-                {t('go.qrcode.entry')}
-              </Typography.Text>
-              <Select
-                style={{ width: '100%', maxWidth: '200px' }}
-                value={currentEntry}
-                onChange={(v) => setCurrentEntry(v as string)}
-              >
-                {entryFiles?.map((file) => (
-                  <Select.Option key={file.name} value={file.name}>
-                    {file.name}
-                  </Select.Option>
-                ))}
-              </Select>
             </div>
-          </div>
-        )}
-        {previewImage && (
-          <PreviewImg
-            show={previewType === PreviewType.Preview}
-            previewImage={previewImage}
-          />
-        )}
-        {hasWebPreview && (
-          <NoSSRComponent>
-            <Suspense fallback={<div>Loading...</div>}>
-              <WebIframe
-                show={previewType === PreviewType.Web}
-                src={defaultWebPreviewFile || ''}
-              />
-            </Suspense>
-          </NoSSRComponent>
-        )}
+          )}
+          {hasWebPreview && (
+            <div
+              className={s['preview-panel']}
+              style={{
+                zIndex: previewType === PreviewType.Web ? 1 : 0,
+                visibility:
+                  previewType === PreviewType.Web ? 'visible' : 'hidden',
+                pointerEvents:
+                  previewType === PreviewType.Web ? 'auto' : 'none',
+              }}
+            >
+              <NoSSRComponent>
+                <Suspense fallback={<div>Loading...</div>}>
+                  <WebIframe
+                    show={previewType === PreviewType.Web}
+                    src={defaultWebPreviewFile || ''}
+                  />
+                </Suspense>
+              </NoSSRComponent>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

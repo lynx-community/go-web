@@ -41,6 +41,24 @@ const LYNX_VIEW_STYLE: React.CSSProperties & CSSVarProperties = {
   '--vw-unit': '1cqw',
 };
 
+const MEASURE_CONTAINER: React.CSSProperties = {
+  position: 'relative',
+  width: '100%',
+  height: '100%',
+};
+
+const INNER_VISIBLE: React.CSSProperties = {
+  display: 'flex',
+  width: '100%',
+  height: '100%',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
+
+const INNER_HIDDEN: React.CSSProperties = {
+  display: 'none',
+};
+
 // Use a shared group so multiple Lynx views can reuse web workers.
 const LYNX_GROUP_ID = 42;
 
@@ -69,18 +87,21 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
   const lynxViewRef = useRef<LynxView>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
+  const [dimsReady, setDimsReady] = useState(false);
   const [rendered, setRendered] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const renderedRef = useRef(false);
+  const lastUrlRef = useRef<string>('');
 
   // Reset state when src changes
   useEffect(() => {
     setRendered(false);
     setError(null);
     renderedRef.current = false;
+    lastUrlRef.current = '';
   }, [src]);
 
-  // Load web-core + web-elements eagerly on mount
+  // Load web-core eagerly on mount
   useEffect(() => {
     const t = performance.now();
     if (simulateError === 'runtime') {
@@ -103,78 +124,120 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
       });
   }, []);
 
-  // Update lynx-view dimensions to match the container.
-  // Called on initial setup and on container resize.
-  const updateDimensions = useCallback(() => {
-    if (!lynxViewRef.current || !containerRef.current) return;
-    const w = containerRef.current.clientWidth;
-    const h = containerRef.current.clientHeight;
+  // Set lynx-view dimensions to match the container.
+  // Called on initial setup, SystemInfo cannot be updated after that.
+  const setDimensions = useCallback((): boolean => {
+    if (!lynxViewRef.current || !containerRef.current) return false;
+
+    const width = containerRef.current.clientWidth;
+    const height = containerRef.current.clientHeight;
+    if (width === 0 || height === 0) return false;
+
+    const pixelRatio = window.devicePixelRatio;
+    const pixelWidth = Math.round(width * pixelRatio);
+    const pixelHeight = Math.round(height * pixelRatio);
+
     // @ts-ignore
     lynxViewRef.current.browserConfig = {
-      pixelWidth: Math.round(w * window.devicePixelRatio),
-      pixelHeight: Math.round(h * window.devicePixelRatio),
+      pixelWidth,
+      pixelHeight,
+      pixelRatio,
     };
+    return true;
   }, []);
 
-  // Set URL only after runtime is ready AND element is mounted
   useEffect(() => {
-    if (ready && show && src && lynxViewRef.current && containerRef.current) {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const update = () => {
+      setDimsReady(el.clientWidth > 0 && el.clientHeight > 0);
+    };
+    update();
+
+    const ro = new ResizeObserver(() => update());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Set URL eagerly once runtime is ready and element is mounted.
+  // No longer gates on `show` — content is preloaded so tab switches are instant.
+  // `lastUrlRef` prevents redundant url assignments that could trigger reloads.
+  useEffect(() => {
+    if (
+      ready &&
+      dimsReady &&
+      src &&
+      lynxViewRef.current &&
+      containerRef.current
+    ) {
+      // Skip URL assignment only, not the rest of initialization
+      const urlAlreadySet = lastUrlRef.current === src;
+
       const t0 = performance.now();
       const tag = `[WebIframe ${src.split('/').pop()}]`;
-      console.log(tag, 'effect start', { ready, show, src });
+      console.log(tag, 'effect start', { ready, src, urlAlreadySet });
 
-      updateDimensions();
+      const initialized = setDimensions();
+      if (!initialized) return;
 
-      // @ts-ignore
-      lynxViewRef.current.customTemplateLoader = async (url: string) => {
-        try {
-          if (simulateError === 'template') {
-            throw new Error('simulated template load error');
-          }
-          const res = await fetch(url);
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status} loading ${url}`);
-          }
-          const text = await res.text();
-
-          // Rewrite webpack's public path in the bundle JS so that asset
-          // URLs (images etc.) resolve relative to the bundle location,
-          // not the page URL.
-          const baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
-          const rewritten = text.replace(
-            WEBPACK_PUBLIC_PATH_RE,
-            `.p=\\"${baseUrl}\\"`,
-          );
-          const template = JSON.parse(rewritten);
-
-          // Workaround: when no template modules reference publicPath (no asset
-          // imports), rspack omits the local webpack runtime from lepusCode and
-          // emits a bare `__webpack_require__` reference. Inject a minimal shim
-          // so the entry-point executor (`__webpack_require__.x`) can run.
-          if (template.lepusCode?.root) {
-            const root = template.lepusCode.root;
-            if (
-              typeof root === 'string' &&
-              root.includes('__webpack_require__') &&
-              !root.includes('function __webpack_require__')
-            ) {
-              template.lepusCode.root =
-                `var __webpack_require__={p:"${baseUrl}"};` + root;
+      if (!urlAlreadySet) {
+        // @ts-ignore
+        lynxViewRef.current.customTemplateLoader = async (url: string) => {
+          try {
+            if (simulateError === 'template') {
+              throw new Error('simulated template load error');
             }
+            const res = await fetch(url);
+            if (!res.ok) {
+              throw new Error(`HTTP ${res.status} loading ${url}`);
+            }
+            const text = await res.text();
+
+            // Rewrite webpack's public path in the bundle JS so that asset
+            // URLs (images etc.) resolve relative to the bundle location,
+            // not the page URL.
+            const baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
+            const rewritten = text.replace(
+              WEBPACK_PUBLIC_PATH_RE,
+              `.p=\\"${baseUrl}\\"`,
+            );
+            const template = JSON.parse(rewritten);
+
+            // Workaround: when no template modules reference publicPath (no asset
+            // imports), rspack omits the local webpack runtime from lepusCode and
+            // emits a bare `__webpack_require__` reference. Inject a minimal shim
+            // so the entry-point executor (`__webpack_require__.x`) can run.
+            if (template.lepusCode?.root) {
+              const root = template.lepusCode.root;
+              if (
+                typeof root === 'string' &&
+                root.includes('__webpack_require__') &&
+                !root.includes('function __webpack_require__')
+              ) {
+                template.lepusCode.root =
+                  `var __webpack_require__={p:"${baseUrl}"};` + root;
+              }
+            }
+
+            return template;
+          } catch (err) {
+            console.error(tag, 'template load failed', err);
+            setError(
+              `Failed to load template: ${err instanceof Error ? err.message : String(err)}`,
+            );
+            throw err;
           }
+        };
 
-          return template;
-        } catch (err) {
-          console.error(tag, 'template load failed', err);
-          setError(
-            `Failed to load template: ${err instanceof Error ? err.message : String(err)}`,
-          );
-          throw err;
-        }
-      };
-
-      console.log(tag, 'url set', `+${(performance.now() - t0).toFixed(0)}ms`);
-      lynxViewRef.current.url = src;
+        console.log(
+          tag,
+          'url set',
+          `+${(performance.now() - t0).toFixed(0)}ms`,
+        );
+        lynxViewRef.current.url = src;
+        lastUrlRef.current = src;
+      }
 
       // Workaround: web-core reads MouseEvent.x/.y (viewport-relative) for
       // tap event detail.x/.y. When the <lynx-view> is embedded at a non-zero
@@ -254,76 +317,78 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
         return () => {};
       }
 
-      const pollStart = performance.now();
-      const pollShadow = () => {
-        if (disposed) return;
-        if (performance.now() - pollStart > 3000) {
-          console.error(tag, 'shadow root timeout');
-          setError('Preview timed out: shadow root was not created');
-          return;
-        }
+      let timer: ReturnType<typeof setTimeout> | undefined;
+
+      if (!renderedRef.current) {
+        const pollStart = performance.now();
+        const pollShadow = () => {
+          if (disposed) return;
+          if (performance.now() - pollStart > 3000) {
+            console.error(tag, 'shadow root timeout');
+            setError('Preview timed out: shadow root was not created');
+            return;
+          }
+          const shadow = el.shadowRoot;
+          if (shadow) {
+            setupShadow(shadow);
+          } else {
+            requestAnimationFrame(pollShadow);
+          }
+        };
+        pollShadow();
+
+        // Fallback: error if rendering doesn't complete within 5s
+        timer = setTimeout(() => {
+          if (!renderedRef.current) {
+            console.error(
+              tag,
+              'render timeout',
+              `+${(performance.now() - t0).toFixed(0)}ms`,
+            );
+            setError('Preview timed out: rendering did not complete within 5s');
+          }
+        }, 5000);
+      } else {
         const shadow = el.shadowRoot;
         if (shadow) {
-          setupShadow(shadow);
-        } else {
-          requestAnimationFrame(pollShadow);
+          shadow.addEventListener('click', adjustClickCoords, true);
+          removeClickFix = () =>
+            shadow.removeEventListener('click', adjustClickCoords, true);
         }
-      };
-      pollShadow();
+      }
 
-      // Fallback: error if rendering doesn't complete within 5s
-      const timer = setTimeout(() => {
-        if (!renderedRef.current) {
-          console.error(
-            tag,
-            'render timeout',
-            `+${(performance.now() - t0).toFixed(0)}ms`,
-          );
-          setError('Preview timed out: rendering did not complete within 5s');
-        }
-      }, 5000);
       return () => {
         disposed = true;
-        clearTimeout(timer);
+        if (timer) clearTimeout(timer);
         mo?.disconnect();
         removeClickFix?.();
       };
     }
-  }, [ready, show, src, updateDimensions]);
+  }, [ready, dimsReady, src, setDimensions]);
 
-  // Keep lynx-view dimensions in sync when the container is resized
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el || !ready) return;
-    const ro = new ResizeObserver(() => updateDimensions());
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [ready, updateDimensions]);
-
+  // Only show loading state when the view is actually visible
   const loading = show && (!ready || !rendered || !!error);
 
+  // Always mount <lynx-view> when src exists so the ref
+  // is always populated and shadow DOM persists
+  // across tab switches.
   return (
-    <div
-      ref={containerRef}
-      style={{
-        display: show ? 'flex' : 'none',
-        width: '100%',
-        height: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-      }}
-    >
-      <LoadingOverlay visible={loading} error={error} />
-      {show && src && (
-        <lynx-view
-          ref={lynxViewRef}
-          style={LYNX_VIEW_STYLE}
-          lynx-group-id={LYNX_GROUP_ID}
-          transform-vh={true}
-          transform-vw={true}
-        />
-      )}
+    // Outer: always in layout for dimension measurement
+    // Inner: controls visibility
+    <div style={MEASURE_CONTAINER} ref={containerRef}>
+      <div style={show ? INNER_VISIBLE : INNER_HIDDEN}>
+        <LoadingOverlay visible={loading} error={error} />
+        {src && (
+          <lynx-view
+            key={src}
+            ref={lynxViewRef}
+            style={LYNX_VIEW_STYLE}
+            lynx-group-id={LYNX_GROUP_ID}
+            transform-vh={true}
+            transform-vw={true}
+          />
+        )}
+      </div>
     </div>
   );
 };
