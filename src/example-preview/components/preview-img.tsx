@@ -1,17 +1,11 @@
 import { isVideo } from '../utils/example-data';
 
-export const PreviewImg = ({
-  show,
-  previewImage,
-}: {
-  show: boolean;
-  previewImage: string;
-}) => {
+export const PreviewImg = ({ previewImage }: { previewImage: string }) => {
   return (
     <div
       style={{
         minHeight: '0px',
-        display: show ? 'flex' : 'none',
+        display: 'flex',
         width: '100%',
         height: '100%',
         alignItems: 'center',
@@ -24,6 +18,7 @@ export const PreviewImg = ({
           loop
           playsInline
           autoPlay
+          preload="auto"
           style={{
             maxWidth: '100%',
             maxHeight: '100%',
@@ -36,6 +31,8 @@ export const PreviewImg = ({
         <img
           src={previewImage}
           alt=""
+          loading="eager"
+          decoding="async"
           style={{
             maxWidth: '100%',
             maxHeight: '100%',
