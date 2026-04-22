@@ -399,7 +399,10 @@ export function ExampleContent({
                   previewType === PreviewType.Preview ? 'auto' : 'none',
               }}
             >
-              <PreviewImg previewImage={previewImage} />
+              <PreviewImg
+                previewImage={previewImage}
+                active={previewType === PreviewType.Preview}
+              />
             </div>
           )}
           {hasWebPreview && (
