@@ -245,14 +245,14 @@ function useWebIframeController({
     };
 
     if (simulateError === 'shadow') {
-      setTimeout(
-        () =>
-          setError(
-            'Preview timed out: shadow root was not created (simulated)',
-          ),
-        500,
-      );
-      return () => {};
+      const shadowErrorTimer = setTimeout(() => {
+        if (disposed) return;
+        setError('Preview timed out: shadow root was not created (simulated)');
+      }, 500);
+      return () => {
+        disposed = true;
+        clearTimeout(shadowErrorTimer);
+      };
     }
 
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -303,7 +303,7 @@ function useWebIframeController({
 
 export const WebIframe = ({ show, src }: WebIframeProps) => {
   const lynxViewRef = useRef<LynxView>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const { ready, rendered, error } = useWebIframeController({
     src,
     lynxViewRef,

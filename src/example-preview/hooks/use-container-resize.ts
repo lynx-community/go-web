@@ -12,7 +12,7 @@ type ResizeObserverCtor = new (
   callback: ResizeObserverCallback,
 ) => ResizeObserver;
 
-type useContainerResizeOptions<T> = {
+type UseContainerResizeOptions<T> = {
   ref: MutableRefObject<T | null>;
   ResizeObserverImpl?: ResizeObserverCtor;
   onResize?: (size: Size) => void;
@@ -22,7 +22,7 @@ function useContainerResize<T extends HTMLElement = HTMLElement>({
   ref,
   ResizeObserverImpl,
   onResize: onResizeProp,
-}: useContainerResizeOptions<T>): Size {
+}: UseContainerResizeOptions<T>): Size {
   const [size, setSize] = useState<Size>({});
   const prev = useRef<Size>({});
   const onResize = useEffectEvent(onResizeProp);
