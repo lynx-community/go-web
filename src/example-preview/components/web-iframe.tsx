@@ -223,7 +223,6 @@ function useWebIframeController({
       );
       renderedRef.current = true;
       setRendered(true);
-      console.log(`[WebIframe] rendered (${source})`);
     };
 
     const setupShadow = (shadow: ShadowRoot) => {
@@ -418,17 +417,20 @@ export const WebIframe = ({
     browserConfigSize,
   });
 
-  const { frame: fitFrameStyle, lynxView: fitLynxViewStyle } = deriveFitStyles(
-    containerWidth,
-    containerHeight,
-    designWidth,
-    designHeight,
-    enableFitTransition,
-  );
+  const fitStyles =
+    mode === 'fit'
+      ? deriveFitStyles(
+          containerWidth,
+          containerHeight,
+          designWidth,
+          designHeight,
+          enableFitTransition,
+        )
+      : null;
 
   const { stage: stageStyle, lynxView: lynxViewStyle } =
-    mode === 'fit'
-      ? { stage: STAGE_FIT_ANCHOR, lynxView: fitLynxViewStyle }
+    mode === 'fit' && fitStyles
+      ? { stage: STAGE_FIT_ANCHOR, lynxView: fitStyles.lynxView }
       : { stage: STAGE_RESPONSIVE, lynxView: LYNX_VIEW_STYLE_RESPONSIVE };
 
   const loading = show && (!ready || !rendered || !!error);
@@ -444,7 +446,8 @@ export const WebIframe = ({
     />
   );
 
-  const frameStyle = mode === 'fit' ? fitFrameStyle : FRAME_RESPONSIVE;
+  const frameStyle =
+    mode === 'fit' && fitStyles ? fitStyles.frame : FRAME_RESPONSIVE;
   // Always mount <lynx-view> when src exists so the ref
   // is always populated and shadow DOM persists
   // across tab switches.
