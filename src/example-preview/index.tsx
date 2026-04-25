@@ -7,6 +7,7 @@ import { useGoConfig } from '../config';
 import { ExampleContent } from './components';
 import type { SchemaOptionsData } from './hooks/use-switch-schema';
 import { isAssetFileType } from './utils/example-data';
+import type { WebPreviewMode } from './utils/resolve-web-preview';
 
 const DefaultErrorWrap = ({
   example,
@@ -53,6 +54,11 @@ export interface ExamplePreviewProps {
   schemaOptions?: SchemaOptionsData;
   langAlias?: Record<string, string>;
   mode?: ExamplePreviewMode;
+  webPreviewMode?: WebPreviewMode;
+  designWidth?: number;
+  designHeight?: number;
+  fitThresholdScale?: number;
+  fitMinScale?: number;
   /**
    * Override the default preview tab for this instance.
    * Takes precedence over the site-level `GoConfig.defaultTab`.
@@ -104,6 +110,11 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     langAlias,
     defaultTab: propsDefaultTab,
     mode = 'linked',
+    webPreviewMode = 'auto',
+    designWidth = 375,
+    designHeight = 812,
+    fitThresholdScale = 1.5,
+    fitMinScale = 0.6,
   } = props;
 
   // Instance prop > config provider > undefined (let ExampleContent decide)
@@ -255,6 +266,11 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       exampleGitBaseUrl={exampleData?.exampleGitBaseUrl}
       defaultTab={defaultTab}
       mode={mode}
+      webPreviewMode={webPreviewMode}
+      designWidth={designWidth}
+      designHeight={designHeight}
+      fitThresholdScale={fitThresholdScale}
+      fitMinScale={fitMinScale}
     />
   );
 };

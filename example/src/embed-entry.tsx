@@ -107,6 +107,11 @@ type EmbedOptions = {
   entry?: string | string[];
   seamless?: boolean;
   exampleBasePath?: string;
+  webPreviewMode?: 'fit' | 'responsive' | 'auto';
+  designWidth?: number;
+  designHeight?: number;
+  fitThresholdScale?: number;
+  fitMinScale?: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -176,6 +181,11 @@ function EmbedApp() {
           defaultEntryFile={options.defaultEntryFile}
           highlight={options.highlight}
           entry={options.entry}
+          webPreviewMode={options.webPreviewMode}
+          designWidth={options.designWidth}
+          designHeight={options.designHeight}
+          fitThresholdScale={options.fitThresholdScale}
+          fitMinScale={options.fitMinScale}
         />
       </div>
     </GoConfigProvider>

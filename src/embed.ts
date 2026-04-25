@@ -34,6 +34,16 @@ export type EmbedOptions = {
   entry?: string | string[];
   /** Hide the header bar for minimal embeds */
   seamless?: boolean;
+  /** Web preview viewport mode */
+  webPreviewMode?: 'fit' | 'responsive' | 'auto';
+  /** Design canvas width for fit mode */
+  designWidth?: number;
+  /** Design canvas height for fit mode */
+  designHeight?: number;
+  /** Auto mode width threshold multiplier */
+  fitThresholdScale?: number;
+  /** Auto mode height lower-bound multiplier */
+  fitMinScale?: number;
   /**
    * Base path (or full URL) for example assets.
    * Defaults to '/lynx-examples'. Use a full URL for cross-origin data,

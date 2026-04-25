@@ -31,6 +31,7 @@ import {
   IconFullscreen,
   IconGithub,
 } from '../utils/icon';
+import type { WebPreviewMode } from '../utils/resolve-web-preview';
 import { tabScrollToTop } from '../utils/tool';
 
 const WebIframe = React.lazy(() =>
@@ -76,6 +77,11 @@ interface ExampleContentProps {
   langAlias?: Record<string, string>;
   defaultTab?: PreviewTab;
   mode?: ExamplePreviewMode;
+  webPreviewMode?: WebPreviewMode;
+  designWidth?: number;
+  designHeight?: number;
+  fitThresholdScale?: number;
+  fitMinScale?: number;
 }
 
 export function ExampleContent({
@@ -101,6 +107,11 @@ export function ExampleContent({
   langAlias,
   defaultTab,
   mode = 'linked',
+  webPreviewMode = 'auto',
+  designWidth = 375,
+  designHeight = 812,
+  fitThresholdScale = 1.5,
+  fitMinScale = 0.6,
 }: ExampleContentProps) {
   const {
     explorerUrl,
@@ -421,6 +432,11 @@ export function ExampleContent({
                   <WebIframe
                     show={previewType === PreviewType.Web}
                     src={defaultWebPreviewFile || ''}
+                    webPreviewMode={webPreviewMode}
+                    designWidth={designWidth}
+                    designHeight={designHeight}
+                    fitThresholdScale={fitThresholdScale}
+                    fitMinScale={fitMinScale}
                   />
                 </Suspense>
               </NoSSRComponent>
