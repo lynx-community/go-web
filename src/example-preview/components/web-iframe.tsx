@@ -1,7 +1,15 @@
 import type { LynxViewElement as LynxView } from '@lynx-js/web-core/client';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+
 import { useContainerResize } from '../hooks/use-container-resize';
+import {
+  computeFrameOffset,
+  computeScaleRange,
+  lerpFitScale,
+} from '../utils/fit-scale';
+import { resolveWebPreviewMode } from '../utils/resolve-web-preview';
+import type { WebPreviewMode } from '../utils/resolve-web-preview';
 import { LoadingOverlay } from './loading-overlay';
 
 declare global {
@@ -18,22 +26,45 @@ type LynxViewAttributes = React.HTMLAttributes<HTMLElement> & {
   'transform-vw'?: boolean;
 };
 
-interface WebIframeProps {
+type CSSVarProperties = { [key: `--${string}`]: string | number };
+
+type WebIframeProps = {
   show: boolean;
   src: string;
-}
-
-type CSSVarProperties = {
-  [key: `--${string}`]: string | number;
+  webPreviewMode?: WebPreviewMode;
+  designWidth?: number;
+  designHeight?: number;
+  fitThresholdScale?: number;
+  fitMinScale?: number;
 };
 
+type UseWebIframeControllerArgs = {
+  src: string;
+  lynxViewRef: React.RefObject<LynxView>;
+  dimsReady: boolean;
+  containerSizeRef: React.MutableRefObject<{ width: number; height: number }>;
+  /**
+   * Override the pixel dimensions written to `browserConfig`.
+   * In `fit` mode this should be the design canvas size × pixelRatio,
+   * not the container size. Omit to use the container size (responsive mode).
+   */
+  browserConfigSize?: { width: number; height: number };
+};
+
+type UseWebIframeControllerResult = {
+  ready: boolean;
+  rendered: boolean;
+  error: string | null;
+};
+
+// Responsive mode: lynx-view fills the container, units track container size.
 // Container-relative unit hooks for Lynx runtime:
 // - `containerType: 'size'` enables `cqw/cqh` units based on the host element box.
 // - `--vh-unit/--vw-unit` make `vh/vw` behave like "container viewport" inside `<lynx-view>`.
 // - `--rpx-unit` aligns `rpx` scaling with a 750-wide design baseline (mobile-like behavior).
 // Note: web-core already applies `contain: content` internally; combined with `containerType: 'size'`
 // this effectively behaves like `contain: strict` without us overriding containment explicitly.
-const LYNX_VIEW_STYLE: React.CSSProperties & CSSVarProperties = {
+const LYNX_VIEW_STYLE_RESPONSIVE: React.CSSProperties & CSSVarProperties = {
   width: '100%',
   height: '100%',
   containerType: 'size',
@@ -56,28 +87,33 @@ const INNER_VISIBLE: React.CSSProperties = {
   justifyContent: 'center',
 };
 
-const INNER_HIDDEN: React.CSSProperties = {
-  display: 'none',
-};
+const INNER_HIDDEN: React.CSSProperties = { display: 'none' };
 
-const STAGE: React.CSSProperties = {
+// Responsive stage: fills parent.
+const STAGE_RESPONSIVE: React.CSSProperties = {
   position: 'relative',
   width: '100%',
   height: '100%',
 };
 
-// Use a shared group so multiple Lynx views can reuse web workers.
+const STAGE_FIT_ANCHOR: React.CSSProperties = {
+  position: 'relative',
+  width: 0,
+  height: 0,
+  overflow: 'visible',
+};
+
+const FRAME_RESPONSIVE: React.CSSProperties = {
+  position: 'relative',
+  width: '100%',
+  height: '100%',
+};
+
 const LYNX_GROUP_ID = 42;
 
-// Shared promise so multiple WebIframe instances don't duplicate the dynamic import
 let runtimeReady: Promise<void> | null = null;
 function ensureRuntime() {
-  if (!runtimeReady) {
-    runtimeReady = import('@lynx-js/web-core/client').then(() => {
-      /* runtime loaded */
-    });
-  }
-  return runtimeReady;
+  return (runtimeReady ??= import('@lynx-js/web-core/client').then(() => {}));
 }
 
 // DEV: ?simulateError=runtime|shadow|render
@@ -86,32 +122,27 @@ const simulateError =
     ? new URLSearchParams(window.location.search).get('simulateError')
     : null;
 
-type UseWebIframeControllerArgs = {
-  src: string;
-  lynxViewRef: React.RefObject<LynxView>;
-  containerRef: React.RefObject<HTMLDivElement>;
-};
-
 function useWebIframeController({
   src,
   lynxViewRef,
-  containerRef,
-}: UseWebIframeControllerArgs) {
+  dimsReady,
+  containerSizeRef,
+  browserConfigSize,
+}: UseWebIframeControllerArgs): UseWebIframeControllerResult {
   const [ready, setReady] = useState(false);
-  const [dimsReady, setDimsReady] = useState(false);
   const [rendered, setRendered] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const renderedRef = useRef(false);
+  const browserConfigInitializedRef = useRef(false);
   const lastUrlRef = useRef<string>('');
-  const containerSizeRef = useRef({ width: 0, height: 0 });
-  const dimsReadyRef = useRef(false);
 
   // Reset state when src changes
   useEffect(() => {
     setRendered(false);
     setError(null);
     renderedRef.current = false;
+    browserConfigInitializedRef.current = false;
     lastUrlRef.current = '';
   }, [src]);
 
@@ -138,50 +169,23 @@ function useWebIframeController({
       });
   }, []);
 
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const width = el.clientWidth;
-    const height = el.clientHeight;
-    containerSizeRef.current = { width, height };
-    const nextDimsReady = width > 0 && height > 0;
-    dimsReadyRef.current = nextDimsReady;
-    setDimsReady(nextDimsReady);
-  }, []);
-
-  useContainerResize({
-    ref: containerRef,
-    onResize: ({ width, height }) => {
-      const w = width ?? 0;
-      const h = height ?? 0;
-      containerSizeRef.current = { width: w, height: h };
-      const nextDimsReady = w > 0 && h > 0;
-      if (nextDimsReady !== dimsReadyRef.current) {
-        dimsReadyRef.current = nextDimsReady;
-        setDimsReady(nextDimsReady);
-      }
-    },
-  });
-
   // Set lynx-view dimensions to match the container.
   // Called on initial setup, SystemInfo cannot be updated after that.
   const setDimensions = useCallback((): boolean => {
     if (!lynxViewRef.current) return false;
-
-    const { width, height } = containerSizeRef.current;
+    if (browserConfigInitializedRef.current) return true;
+    // Use override size (fit mode: design canvas) or container size (responsive).
+    const { width, height } = browserConfigSize ?? containerSizeRef.current;
     if (width === 0 || height === 0) return false;
-
     const pixelRatio = window.devicePixelRatio;
-    const pixelWidth = Math.round(width * pixelRatio);
-    const pixelHeight = Math.round(height * pixelRatio);
-
     lynxViewRef.current.browserConfig = {
-      pixelWidth,
-      pixelHeight,
+      pixelWidth: Math.round(width * pixelRatio),
+      pixelHeight: Math.round(height * pixelRatio),
       pixelRatio,
     };
+    browserConfigInitializedRef.current = true;
     return true;
-  }, [lynxViewRef]);
+  }, [lynxViewRef, browserConfigSize, containerSizeRef]);
 
   // Set URL eagerly once runtime is ready and element is mounted.
   // No longer gates on `show` — content is preloaded so tab switches are instant.
@@ -219,6 +223,7 @@ function useWebIframeController({
       );
       renderedRef.current = true;
       setRendered(true);
+      console.log(`[WebIframe] rendered (${source})`);
     };
 
     const setupShadow = (shadow: ShadowRoot) => {
@@ -245,13 +250,15 @@ function useWebIframeController({
     };
 
     if (simulateError === 'shadow') {
-      const shadowErrorTimer = setTimeout(() => {
-        if (disposed) return;
-        setError('Preview timed out: shadow root was not created (simulated)');
+      const t = setTimeout(() => {
+        if (!disposed)
+          setError(
+            'Preview timed out: shadow root was not created (simulated)',
+          );
       }, 500);
       return () => {
         disposed = true;
-        clearTimeout(shadowErrorTimer);
+        clearTimeout(t);
       };
     }
 
@@ -298,21 +305,146 @@ function useWebIframeController({
     };
   }, [ready, dimsReady, src, setDimensions, lynxViewRef]);
 
-  return { ready, dimsReady, rendered, error };
+  return { ready, rendered, error };
 }
 
-export const WebIframe = ({ show, src }: WebIframeProps) => {
+function deriveFitStyles(
+  containerWidth: number,
+  containerHeight: number,
+  designWidth: number,
+  designHeight: number,
+  enableTransition: boolean,
+): {
+  frame: React.CSSProperties;
+  lynxView: React.CSSProperties & CSSVarProperties;
+} {
+  const scaleRange = computeScaleRange({
+    containerWidth,
+    containerHeight,
+    baseWidth: designWidth,
+    baseHeight: designHeight,
+  });
+  const scale = lerpFitScale(scaleRange, 0); // always contain
+  const { offsetX, offsetY } = computeFrameOffset({
+    baseWidth: designWidth,
+    baseHeight: designHeight,
+    scale,
+    ax: 0.5,
+    ay: 0.5,
+  });
+
+  return {
+    frame: {
+      position: 'absolute',
+      transformOrigin: 'top left',
+      width: designWidth,
+      height: designHeight,
+      transform: `translate(${offsetX}px, ${offsetY}px) scale(${scale})`,
+      // Smooth transition for fit→fit scale changes (container resize).
+      // Disabled for fit↔responsive mode switches (hard cut).
+      transition: enableTransition ? 'transform 0.2s ease' : undefined,
+    },
+    lynxView: {
+      width: designWidth,
+      height: designHeight,
+      containerType: 'size',
+      '--rpx-unit': `${designWidth / 750}px`,
+      '--vh-unit': `${designHeight / 100}px`,
+      '--vw-unit': `${designWidth / 100}px`,
+    },
+  };
+}
+
+export const WebIframe = ({
+  show,
+  src,
+  webPreviewMode = 'auto',
+  designWidth = 375,
+  designHeight = 812,
+  fitThresholdScale = 1.5,
+  fitMinScale = 0.6,
+}: WebIframeProps) => {
   const lynxViewRef = useRef<LynxView>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const containerSizeRef = useRef({ width: 0, height: 0 });
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const width = el.clientWidth;
+    const height = el.clientHeight;
+    containerSizeRef.current = { width, height };
+    setContainerWidth(width);
+    setContainerHeight(height);
+  }, []);
+
+  useContainerResize({
+    ref: containerRef,
+    onResize: ({ width, height }) => {
+      containerSizeRef.current = { width: width ?? 0, height: height ?? 0 };
+      setContainerWidth(width ?? 0);
+      setContainerHeight(height ?? 0);
+    },
+  });
+
+  const dimsReady = containerWidth > 0 && containerHeight > 0;
+
+  const mode = resolveWebPreviewMode({
+    webPreviewMode,
+    designWidth,
+    designHeight,
+    fitThresholdScale,
+    fitMinScale,
+    containerWidth,
+    containerHeight,
+  });
+
+  const browserConfigSize =
+    mode === 'fit' ? { width: designWidth, height: designHeight } : undefined;
+
+  const prevModeRef = useRef(mode);
+  const enableFitTransition = prevModeRef.current === 'fit' && mode === 'fit';
+  useEffect(() => {
+    prevModeRef.current = mode;
+  }, [mode]);
+
   const { ready, rendered, error } = useWebIframeController({
     src,
     lynxViewRef,
-    containerRef,
+    dimsReady,
+    containerSizeRef,
+    browserConfigSize,
   });
 
-  // Only show loading state when the view is actually visible
+  const { frame: fitFrameStyle, lynxView: fitLynxViewStyle } = deriveFitStyles(
+    containerWidth,
+    containerHeight,
+    designWidth,
+    designHeight,
+    enableFitTransition,
+  );
+
+  const { stage: stageStyle, lynxView: lynxViewStyle } =
+    mode === 'fit'
+      ? { stage: STAGE_FIT_ANCHOR, lynxView: fitLynxViewStyle }
+      : { stage: STAGE_RESPONSIVE, lynxView: LYNX_VIEW_STYLE_RESPONSIVE };
+
   const loading = show && (!ready || !rendered || !!error);
 
+  const lynxViewEl = src && (
+    <lynx-view
+      key={src}
+      ref={lynxViewRef}
+      style={lynxViewStyle}
+      lynx-group-id={LYNX_GROUP_ID}
+      transform-vh={true}
+      transform-vw={true}
+    />
+  );
+
+  const frameStyle = mode === 'fit' ? fitFrameStyle : FRAME_RESPONSIVE;
   // Always mount <lynx-view> when src exists so the ref
   // is always populated and shadow DOM persists
   // across tab switches.
@@ -322,18 +454,9 @@ export const WebIframe = ({ show, src }: WebIframeProps) => {
     <div style={MEASURE_CONTAINER} ref={containerRef}>
       <div style={show ? INNER_VISIBLE : INNER_HIDDEN}>
         <LoadingOverlay visible={loading} error={error} />
-        {src && (
-          <div style={STAGE}>
-            <lynx-view
-              key={src}
-              ref={lynxViewRef}
-              style={LYNX_VIEW_STYLE}
-              lynx-group-id={LYNX_GROUP_ID}
-              transform-vh={true}
-              transform-vw={true}
-            />
-          </div>
-        )}
+        <div style={stageStyle}>
+          <div style={frameStyle}>{lynxViewEl}</div>
+        </div>
       </div>
     </div>
   );
