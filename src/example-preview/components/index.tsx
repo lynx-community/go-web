@@ -82,6 +82,8 @@ interface ExampleContentProps {
   designHeight?: number;
   fitThresholdScale?: number;
   fitMinScale?: number;
+  deepLinkUrl?: string;
+  deepLinkTitle?: string;
 }
 
 export function ExampleContent({
@@ -112,6 +114,8 @@ export function ExampleContent({
   designHeight = 812,
   fitThresholdScale = 1.0,
   fitMinScale = 0.6,
+  deepLinkUrl,
+  deepLinkTitle,
 }: ExampleContentProps) {
   const {
     explorerUrl,
@@ -211,6 +215,27 @@ export function ExampleContent({
     setQrcodeUrlWithSchema(schema);
   };
   const qrcodeUrl = qrcodeUrlWithSchema || currentEntryFileUrl;
+  const deepLinkButtonTitle = useMemo(() => {
+    if (deepLinkTitle) return deepLinkTitle;
+    const translated = t('go.deeplink.open');
+    return translated === 'go.deeplink.open' ? 'Open in App' : translated;
+  }, [deepLinkTitle, t]);
+  const resolvedDeepLinkUrl = useMemo(() => {
+    if (!deepLinkUrl) return '';
+    const rawUrl = qrcodeUrl;
+    return deepLinkUrl
+      .split('{{{urlEncoded}}}')
+      .join(encodeURIComponent(rawUrl))
+      .split('{{{url}}}')
+      .join(rawUrl);
+  }, [deepLinkUrl, qrcodeUrl]);
+  const canOpenDeepLink = useMemo(() => {
+    if (!deepLinkUrl) return false;
+    const needsUrl =
+      deepLinkUrl.includes('{{{url}}}') ||
+      deepLinkUrl.includes('{{{urlEncoded}}}');
+    return needsUrl ? Boolean(qrcodeUrl) : true;
+  }, [deepLinkUrl, qrcodeUrl]);
 
   const showCodeTab = entryData && entryData?.length > 1;
 
@@ -267,36 +292,49 @@ export function ExampleContent({
     </div>
   );
 
+  const previewOptionCount = useMemo(
+    () =>
+      [
+        Boolean(previewImage),
+        Boolean(hasWebPreview),
+        Boolean(currentEntry),
+      ].filter(Boolean).length,
+    [previewImage, hasWebPreview, currentEntry],
+  );
+
   const renderPreviewWrap = () => (
     <div className={s['preview-wrap']}>
       <div className={s['preview-wrap-content']}>
         <div className={s['preview-header']}>
           <div style={{ width: 24, flexShrink: 0 }} />
-          <RadioGroup
-            onChange={(e) => setPreviewType(e.target.value)}
-            value={previewType}
-            type="button"
-            style={{
-              display: 'flex',
-              flex: 1,
-              minWidth: 0,
-              justifyContent: 'center',
-            }}
-          >
-            {initState ? (
-              <>
-                {previewImage && (
-                  <Radio value={PreviewType.Preview}>{t('go.preview')}</Radio>
-                )}
-                {hasWebPreview && <Radio value={PreviewType.Web}>Web</Radio>}
-                {currentEntry && (
-                  <Radio value={PreviewType.QRCode}>{t('go.qrcode')}</Radio>
-                )}
-              </>
-            ) : (
-              <div style={{ width: '100%', height: '32px' }}></div>
-            )}
-          </RadioGroup>
+          {/* Show tab switcher only if there are multiple preview options */}
+          {previewOptionCount >= 2 ? (
+            <RadioGroup
+              onChange={(e) => setPreviewType(e.target.value)}
+              value={previewType}
+              type="button"
+              style={{
+                display: 'flex',
+                flex: 1,
+                minWidth: 0,
+                justifyContent: 'center',
+              }}
+            >
+              {initState ? (
+                <>
+                  {previewImage && (
+                    <Radio value={PreviewType.Preview}>{t('go.preview')}</Radio>
+                  )}
+                  {hasWebPreview && <Radio value={PreviewType.Web}>Web</Radio>}
+                  {currentEntry && (
+                    <Radio value={PreviewType.QRCode}>{t('go.qrcode')}</Radio>
+                  )}
+                </>
+              ) : (
+                <div style={{ width: '100%', height: '32px' }}></div>
+              )}
+            </RadioGroup>
+          ) : null}
           <Button
             theme="borderless"
             icon={
@@ -328,10 +366,27 @@ export function ExampleContent({
           {previewType === PreviewType.QRCode && currentEntry && (
             <div className={s['preview-panel']}>
               <div className={s.qrcode}>
+                {deepLinkUrl && (
+                  <div style={{ margin: '16px 0 8px' }}>
+                    <Button
+                      type="primary"
+                      disabled={!canOpenDeepLink}
+                      onClick={() => {
+                        if (!canOpenDeepLink) return;
+                        window.location.href = resolvedDeepLinkUrl;
+                      }}
+                    >
+                      {deepLinkButtonTitle}
+                    </Button>
+                  </div>
+                )}
                 <Typography.Text
                   size="small"
                   type="tertiary"
-                  style={{ margin: '28px 12px', textAlign: 'center' }}
+                  style={{
+                    margin: deepLinkUrl ? '16px 12px' : '28px 12px',
+                    textAlign: 'center',
+                  }}
                 >
                   {t('go.scan.message-1')}
                   <Typography.Text
