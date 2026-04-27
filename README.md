@@ -122,6 +122,7 @@ Web preview bundle resolution is driven by `example-metadata.json` (`templateFil
 
 | Option              | Type                              | Default  | Description                                                                      |
 | ------------------- | --------------------------------- | -------- | -------------------------------------------------------------------------------- |
+| `webPreview`        | `boolean`                         | `true`   | Enable/disable the web preview tab even if `templateFiles[].webFile` exists      |
 | `webPreviewMode`    | `'fit' \| 'responsive' \| 'auto'` | `'auto'` | Viewport rendering mode                                                          |
 | `designWidth`       | `number`                          | `375`    | Design canvas width in pixels. Used in `fit` mode.                               |
 | `designHeight`      | `number`                          | `812`    | Design canvas height in pixels. Used in `fit` mode.                              |

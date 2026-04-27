@@ -39,6 +39,8 @@ export type EmbedOptions = {
   entry?: string | string[];
   /** Hide the header bar for minimal embeds */
   seamless?: boolean;
+  /** Enable/disable the web preview tab even if templateFiles[].webFile exists */
+  webPreview?: boolean;
   /** Web preview viewport mode */
   webPreviewMode?: 'fit' | 'responsive' | 'auto';
   /** Design canvas width for fit mode */

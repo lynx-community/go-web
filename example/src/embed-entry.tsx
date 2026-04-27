@@ -4,7 +4,7 @@
  * Listens for postMessage from the parent to receive example configuration,
  * then renders a Go component with GoConfigProvider.
  */
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@douyinfe/semi-ui/dist/css/semi.min.css';
 import { GoConfigProvider, Go } from '../../src/index';
@@ -108,6 +108,7 @@ type EmbedOptions = {
   entry?: string | string[];
   seamless?: boolean;
   exampleBasePath?: string;
+  webPreview?: boolean;
   webPreviewMode?: 'fit' | 'responsive' | 'auto';
   designWidth?: number;
   designHeight?: number;
@@ -183,6 +184,7 @@ function EmbedApp() {
           defaultEntryName={options.defaultEntryName}
           highlight={options.highlight}
           entry={options.entry}
+          webPreview={options.webPreview}
           webPreviewMode={options.webPreviewMode}
           designWidth={options.designWidth}
           designHeight={options.designHeight}
