@@ -82,6 +82,8 @@ interface ExampleContentProps {
   designHeight?: number;
   fitThresholdScale?: number;
   fitMinScale?: number;
+  deepLinkUrl?: string;
+  deepLinkTitle?: string;
 }
 
 export function ExampleContent({
@@ -112,6 +114,8 @@ export function ExampleContent({
   designHeight = 812,
   fitThresholdScale = 1.5,
   fitMinScale = 0.6,
+  deepLinkUrl,
+  deepLinkTitle,
 }: ExampleContentProps) {
   const {
     explorerUrl,
@@ -267,36 +271,47 @@ export function ExampleContent({
     </div>
   );
 
+  const previewOptionCount = useMemo(
+    () =>
+      [Boolean(previewImage), Boolean(hasWebPreview), Boolean(currentEntry)].filter(
+        Boolean,
+      ).length,
+    [previewImage, hasWebPreview, currentEntry],
+  );
+
   const renderPreviewWrap = () => (
     <div className={s['preview-wrap']}>
       <div className={s['preview-wrap-content']}>
         <div className={s['preview-header']}>
           <div style={{ width: 24, flexShrink: 0 }} />
-          <RadioGroup
-            onChange={(e) => setPreviewType(e.target.value)}
-            value={previewType}
-            type="button"
-            style={{
-              display: 'flex',
-              flex: 1,
-              minWidth: 0,
-              justifyContent: 'center',
-            }}
-          >
-            {initState ? (
-              <>
-                {previewImage && (
-                  <Radio value={PreviewType.Preview}>{t('go.preview')}</Radio>
-                )}
-                {hasWebPreview && <Radio value={PreviewType.Web}>Web</Radio>}
-                {currentEntry && (
-                  <Radio value={PreviewType.QRCode}>{t('go.qrcode')}</Radio>
-                )}
-              </>
-            ) : (
-              <div style={{ width: '100%', height: '32px' }}></div>
-            )}
-          </RadioGroup>
+          {/* Show tab switcher only if there are multiple preview options */}
+          {previewOptionCount >= 2 ? (
+            <RadioGroup
+              onChange={(e) => setPreviewType(e.target.value)}
+              value={previewType}
+              type="button"
+              style={{
+                display: 'flex',
+                flex: 1,
+                minWidth: 0,
+                justifyContent: 'center',
+              }}
+            >
+              {initState ? (
+                <>
+                  {previewImage && (
+                    <Radio value={PreviewType.Preview}>{t('go.preview')}</Radio>
+                  )}
+                  {hasWebPreview && <Radio value={PreviewType.Web}>Web</Radio>}
+                  {currentEntry && (
+                    <Radio value={PreviewType.QRCode}>{t('go.qrcode')}</Radio>
+                  )}
+                </>
+              ) : (
+                <div style={{ width: '100%', height: '32px' }}></div>
+              )}
+            </RadioGroup>
+          ) : null}
           <Button
             theme="borderless"
             icon={
@@ -414,6 +429,19 @@ export function ExampleContent({
                 previewImage={previewImage}
                 active={previewType === PreviewType.Preview}
               />
+            </div>
+          )}
+          {/* Show deep link button if deep link URL is provided */}
+          {deepLinkUrl && deepLinkTitle && (
+            <div style={{ padding: '16px', textAlign: 'center' }}>
+              <Button
+                type="primary"
+                onClick={() => {
+                  window.location.href = deepLinkUrl;
+                }}
+              >
+                {deepLinkTitle}
+              </Button>
             </div>
           )}
           {hasWebPreview && (
