@@ -1,5 +1,13 @@
 # @lynx-js/go-web
 
+## 0.3.1
+
+### Patch Changes
+
+- Lower default `fitThresholdScale` from `1.5` to `1.0` and document viewport mode props in README. ([#48](https://github.com/lynx-community/go-web/pull/48))
+
+- Improve WebIframe CSR rendering performance. ([#48](https://github.com/lynx-community/go-web/pull/48))
+
 ## 0.3.0
 
 ### Minor Changes

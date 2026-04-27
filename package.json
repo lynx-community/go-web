@@ -1,6 +1,6 @@
 {
   "name": "@lynx-js/go-web",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Interactive <Go> component for embedding live Lynx examples on the web. The example/ website doubles as the community example gallery.",
   "keywords": [
     "lynx",
