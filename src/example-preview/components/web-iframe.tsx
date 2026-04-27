@@ -369,16 +369,6 @@ export const WebIframe = ({
   const [containerWidth, setContainerWidth] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
 
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const width = el.clientWidth;
-    const height = el.clientHeight;
-    containerSizeRef.current = { width, height };
-    setContainerWidth(width);
-    setContainerHeight(height);
-  }, []);
-
   useContainerResize({
     ref: containerRef,
     onResize: ({ width, height }) => {
