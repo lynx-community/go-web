@@ -12,7 +12,7 @@
     "@douyinfe/semi-icons": "^2.74.0",
     "@douyinfe/semi-ui": "^2.75.0",
     "@lynx-js/go-web": "file:..",
-    "@lynx-js/web-core": "^0.20.1",
+    "@lynx-js/web-core": "^0.20.3",
     "@rspress/core": "^2.0.3",
     "@shikijs/transformers": "^3.4.2",
     "qrcode.react": "^4.2.0",

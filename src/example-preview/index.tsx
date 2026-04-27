@@ -55,6 +55,7 @@ export interface ExamplePreviewProps {
   langAlias?: Record<string, string>;
   mode?: ExamplePreviewMode;
   webPreviewMode?: WebPreviewMode;
+  webPreview?: boolean;
   designWidth?: number;
   designHeight?: number;
   fitThresholdScale?: number;
@@ -120,9 +121,10 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     defaultTab: propsDefaultTab,
     mode = 'linked',
     webPreviewMode = 'auto',
+    webPreview = true,
     designWidth = 375,
     designHeight = 812,
-    fitThresholdScale = 1.5,
+    fitThresholdScale = 1.0,
     fitMinScale = 0.6,
     deepLinkUrl,
     deepLinkTitle,
@@ -130,6 +132,8 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
 
   // Instance prop > config provider > undefined (let ExampleContent decide)
   const defaultTab = propsDefaultTab ?? configDefaultTab;
+  const resolvedDefaultTab =
+    webPreview === false && defaultTab === 'web' ? undefined : defaultTab;
 
   const [currentName, setCurrentName] = useState(defaultFile);
   const [currentFile, setCurrentFile] = useState('');
@@ -230,9 +234,11 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
         tmpEntry = exampleData?.templateFiles[0];
       }
       if (tmpEntry) {
-        if (tmpEntry.webFile) {
+        if (tmpEntry.webFile && webPreview !== false) {
           const fullWebFile = `${window.location.origin}${EXAMPLE_BASE_URL}/${example}/${tmpEntry.webFile}`;
           setDefaultWebPreviewFile(fullWebFile);
+        } else {
+          setDefaultWebPreviewFile('');
         }
         setCurrentEntry(tmpEntry.name);
       } else {
@@ -242,7 +248,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       }
       setInitState(true);
     }
-  }, [exampleData, defaultEntryFile, defaultEntryName]);
+  }, [exampleData, defaultEntryFile, defaultEntryName, webPreview]);
 
   if (error) {
     const ErrorComp = ErrorComponent || DefaultErrorWrap;
@@ -276,7 +282,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       rightFooter={rightFooter}
       schemaOptions={schema ? undefined : schemaOptions}
       exampleGitBaseUrl={exampleData?.exampleGitBaseUrl}
-      defaultTab={defaultTab}
+      defaultTab={resolvedDefaultTab}
       mode={mode}
       webPreviewMode={webPreviewMode}
       designWidth={designWidth}

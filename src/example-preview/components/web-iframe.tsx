@@ -360,7 +360,7 @@ export const WebIframe = ({
   webPreviewMode = 'auto',
   designWidth = 375,
   designHeight = 812,
-  fitThresholdScale = 1.5,
+  fitThresholdScale = 1.0,
   fitMinScale = 0.6,
 }: WebIframeProps) => {
   const lynxViewRef = useRef<LynxView>(null);
@@ -368,16 +368,6 @@ export const WebIframe = ({
   const containerSizeRef = useRef({ width: 0, height: 0 });
   const [containerWidth, setContainerWidth] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const width = el.clientWidth;
-    const height = el.clientHeight;
-    containerSizeRef.current = { width, height };
-    setContainerWidth(width);
-    setContainerHeight(height);
-  }, []);
 
   useContainerResize({
     ref: containerRef,
@@ -399,6 +389,18 @@ export const WebIframe = ({
     containerWidth,
     containerHeight,
   });
+
+  if (
+    mode === 'fit' &&
+    (!Number.isFinite(designWidth) ||
+      designWidth <= 0 ||
+      !Number.isFinite(designHeight) ||
+      designHeight <= 0)
+  ) {
+    throw new RangeError(
+      'WebIframe: designWidth and designHeight must be finite numbers > 0 when webPreviewMode resolves to "fit".',
+    );
+  }
 
   const browserConfigSize =
     mode === 'fit' ? { width: designWidth, height: designHeight } : undefined;

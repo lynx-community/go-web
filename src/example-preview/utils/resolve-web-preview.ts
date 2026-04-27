@@ -23,11 +23,27 @@ export function resolveWebPreviewMode({
   if (webPreviewMode === 'fit') return 'fit';
   if (webPreviewMode === 'responsive') return 'responsive';
 
-  if (containerWidth <= 0 || containerHeight <= 0) return 'responsive';
+  if (
+    !Number.isFinite(containerWidth) ||
+    containerWidth <= 0 ||
+    !Number.isFinite(containerHeight) ||
+    containerHeight <= 0
+  ) {
+    return 'responsive';
+  }
+  if (
+    !Number.isFinite(designWidth) ||
+    designWidth <= 0 ||
+    !Number.isFinite(designHeight) ||
+    designHeight <= 0
+  ) {
+    return 'responsive';
+  }
 
-  const shouldUseFit =
-    containerWidth < designWidth * fitThresholdScale ||
-    containerHeight < designHeight * fitMinScale;
+  const ratioW = containerWidth / designWidth;
+  const ratioH = containerHeight / designHeight;
+
+  const shouldUseFit = ratioW < fitThresholdScale || ratioH < fitMinScale;
 
   return shouldUseFit ? 'fit' : 'responsive';
 }
