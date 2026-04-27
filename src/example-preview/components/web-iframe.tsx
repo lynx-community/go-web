@@ -390,6 +390,18 @@ export const WebIframe = ({
     containerHeight,
   });
 
+  if (
+    mode === 'fit' &&
+    (!Number.isFinite(designWidth) ||
+      designWidth <= 0 ||
+      !Number.isFinite(designHeight) ||
+      designHeight <= 0)
+  ) {
+    throw new RangeError(
+      'WebIframe: designWidth and designHeight must be finite numbers > 0 when webPreviewMode resolves to "fit".',
+    );
+  }
+
   const browserConfigSize =
     mode === 'fit' ? { width: designWidth, height: designHeight } : undefined;
 

@@ -173,7 +173,7 @@ pnpm prepare
 pnpm prepare:clean
 ```
 
-CI always runs `prepare:clean` to ensure that examples are up todate.
+CI always runs `prepare:clean` to ensure that examples are up to date.
 
 ## CI
 
