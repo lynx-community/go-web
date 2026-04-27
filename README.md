@@ -102,20 +102,23 @@ For non-React sites (Hugo, Jekyll, plain HTML, etc.), use the iframe embed API. 
 
 Options:
 
-| Option             | Type                             | Description                                        |
-| ------------------ | -------------------------------- | -------------------------------------------------- |
-| `example`          | `string`                         | **Required.** Example folder name                  |
-| `defaultFile`      | `string`                         | Initial file to display (default: `'src/App.tsx'`) |
-| `defaultTab`       | `'preview' \| 'web' \| 'qrcode'` | Default preview tab                                |
-| `exampleBasePath`  | `string`                         | Base path or full URL for example data             |
-| `img`              | `string`                         | Static preview image URL                           |
-| `defaultEntryFile` | `string`                         | Default entry file for web preview                 |
-| `highlight`        | `string`                         | Line highlight spec, e.g. `'{1,3-5}'`              |
-| `entry`            | `string \| string[]`             | Filter entry files in tree                         |
+| Option             | Type                               | Description                                                                                                                                                                                                   |
+| ------------------ | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `example`          | `string`                           | **Required.** Example folder name, e.g. `'hello-world'`                                                                                                                                                       |
+| `defaultFile`      | `string`                           | Initial file to display (default: `'src/App.tsx'`)                                                                                                                                                            |
+| `defaultTab`       | `'preview' \| 'web' \| 'qrcode'`   | Default preview tab                                                                                                                                                                                           |
+| `exampleBasePath`  | `string`                           | Base path or full URL for example data, e.g. `'/lynx-examples'`                                                                                                                                               |
+| `img`              | `string`                           | Static preview image URL                                                                                                                                                                                      |
+| `defaultEntryFile` | `string`                           | Default entry bundle file path (relative to the example folder), e.g. `'dist/main.lynx.bundle'`. Must match `example-metadata.json` (`templateFiles[].file`). Prefix match is supported (e.g. `'dist/main'`). |
+| `defaultEntryName` | `string`                           | Default entry name (from `templateFiles[].name`), e.g. `'main'`. Convenience alternative to `defaultEntryFile` and only used when `defaultEntryFile` is not provided.                                         |
+| `highlight`        | `string \| Record<string, string>` | Line highlight spec, e.g. `'{1,3-5}'`. When passing a map, the key is the file path and the value is that file’s highlight spec.                                                                              |
+| `entry`            | `string \| string[]`               | Filter entry files in tree, useful for example with multiple entries, e.g. `'src/basic'`                                                                                                                      |
 
 #### Viewport Mode (Web Preview)
 
 These options control how `lynx-view` renders inside the web preview panel.
+
+Web preview bundle resolution is driven by `example-metadata.json` (`templateFiles[].webFile`) for the selected entry; it is not inferred from the Lynx bundle filename automatically.
 
 | Option              | Type                              | Default  | Description                                                                      |
 | ------------------- | --------------------------------- | -------- | -------------------------------------------------------------------------------- |

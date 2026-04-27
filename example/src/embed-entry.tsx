@@ -103,7 +103,8 @@ type EmbedOptions = {
   defaultTab?: 'preview' | 'web' | 'qrcode';
   img?: string;
   defaultEntryFile?: string;
-  highlight?: string;
+  defaultEntryName?: string;
+  highlight?: string | Record<string, string>;
   entry?: string | string[];
   seamless?: boolean;
   exampleBasePath?: string;
@@ -179,6 +180,7 @@ function EmbedApp() {
           defaultTab={options.defaultTab}
           img={options.img}
           defaultEntryFile={options.defaultEntryFile}
+          defaultEntryName={options.defaultEntryName}
           highlight={options.highlight}
           entry={options.entry}
           webPreviewMode={options.webPreviewMode}
