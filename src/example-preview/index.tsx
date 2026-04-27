@@ -70,6 +70,15 @@ export interface ExamplePreviewProps {
    * - `'qrcode'`  — QR code for Lynx Explorer
    */
   defaultTab?: PreviewTab;
+
+  /**
+   * Deep link URL for opening the app locally, e.g., lynxtron-go://
+   */
+  deepLinkUrl?: string;
+  /**
+   * Custom title for the deep link button
+   */
+  deepLinkTitle?: string;
 }
 
 export interface ExampleMetadata {
@@ -119,6 +128,8 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     fitThresholdScale = 1.0,
     fitMinScale = 0.5,
     fit = 'cover',
+    deepLinkUrl,
+    deepLinkTitle,
   } = props;
 
   // Instance prop > config provider > undefined (let ExampleContent decide)
@@ -198,6 +209,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     }
     return '';
   }, [exampleData, currentEntry, schema]);
+
   useEffect(() => {
     if (exampleData?.templateFiles && exampleData?.templateFiles.length > 0) {
       let tmpEntry;
@@ -280,6 +292,8 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       fitThresholdScale={fitThresholdScale}
       fitMinScale={fitMinScale}
       fit={fit}
+      deepLinkUrl={deepLinkUrl}
+      deepLinkTitle={deepLinkTitle}
     />
   );
 };
