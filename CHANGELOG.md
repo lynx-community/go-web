@@ -1,5 +1,11 @@
 # @lynx-js/go-web
 
+## 0.4.0
+
+### Minor Changes
+
+- Add `webPreview` prop to disable the Web preview tab. ([#50](https://github.com/lynx-community/go-web/pull/50))
+
 ## 0.3.1
 
 ### Patch Changes
