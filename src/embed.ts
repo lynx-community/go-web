@@ -24,6 +24,16 @@ export type EmbedOptions = {
   defaultFile?: string;
   /** Default preview tab */
   defaultTab?: 'preview' | 'web' | 'qrcode';
+  /**
+   * Deep link URL template for opening the app locally.
+   *
+   * Supports templating with the currently selected entry URL:
+   * - `{{{url}}}` - raw URL
+   * - `{{{urlEncoded}}}` - encodeURIComponent(URL)
+   */
+  deepLinkUrl?: string;
+  /** Custom title for the deep link button */
+  deepLinkTitle?: string;
   /** Static preview image URL */
   img?: string;
   /** Default entry file for web preview */

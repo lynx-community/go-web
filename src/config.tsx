@@ -15,6 +15,7 @@ const DEFAULT_I18N: Record<string, string> = {
   'go.qrcode.copy-link': 'Copy link',
   'go.qrcode.copied': 'Copied!',
   'go.qrcode.entry': 'Entry:',
+  'go.deeplink.open': 'Open in App',
 };
 
 /** Default CodeBlock — plain <pre><code> with no syntax highlighting. */

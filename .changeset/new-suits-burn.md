@@ -2,4 +2,4 @@
 '@lynx-js/go-web': minor
 ---
 
-This change enables users to open specific content directly via deep links.
+Adds an optional deep-link button to open the currently selected entry, with URL templating support via `deepLinkUrl`.

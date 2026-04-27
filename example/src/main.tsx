@@ -33,6 +33,7 @@ const translations: Record<string, Record<string, string>> = {
     'go.qrcode.copy-link': 'Copy Link',
     'go.qrcode.copied': 'Copied',
     'go.qrcode.entry': 'Entry',
+    'go.deeplink.open': 'Open in App',
   },
   zh: {
     'go.preview': '预览',
@@ -43,6 +44,7 @@ const translations: Record<string, Record<string, string>> = {
     'go.qrcode.copy-link': '复制链接',
     'go.qrcode.copied': '已复制',
     'go.qrcode.entry': '入口',
+    'go.deeplink.open': '在 App 中打开',
   },
 };
 

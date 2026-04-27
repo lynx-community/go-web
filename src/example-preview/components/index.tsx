@@ -215,6 +215,27 @@ export function ExampleContent({
     setQrcodeUrlWithSchema(schema);
   };
   const qrcodeUrl = qrcodeUrlWithSchema || currentEntryFileUrl;
+  const deepLinkButtonTitle = useMemo(() => {
+    if (deepLinkTitle) return deepLinkTitle;
+    const translated = t('go.deeplink.open');
+    return translated === 'go.deeplink.open' ? 'Open in App' : translated;
+  }, [deepLinkTitle, t]);
+  const resolvedDeepLinkUrl = useMemo(() => {
+    if (!deepLinkUrl) return '';
+    const rawUrl = qrcodeUrl;
+    return deepLinkUrl
+      .split('{{{urlEncoded}}}')
+      .join(encodeURIComponent(rawUrl))
+      .split('{{{url}}}')
+      .join(rawUrl);
+  }, [deepLinkUrl, qrcodeUrl]);
+  const canOpenDeepLink = useMemo(() => {
+    if (!deepLinkUrl) return false;
+    const needsUrl =
+      deepLinkUrl.includes('{{{url}}}') ||
+      deepLinkUrl.includes('{{{urlEncoded}}}');
+    return needsUrl ? Boolean(qrcodeUrl) : true;
+  }, [deepLinkUrl, qrcodeUrl]);
 
   const showCodeTab = entryData && entryData?.length > 1;
 
@@ -273,9 +294,11 @@ export function ExampleContent({
 
   const previewOptionCount = useMemo(
     () =>
-      [Boolean(previewImage), Boolean(hasWebPreview), Boolean(currentEntry)].filter(
-        Boolean,
-      ).length,
+      [
+        Boolean(previewImage),
+        Boolean(hasWebPreview),
+        Boolean(currentEntry),
+      ].filter(Boolean).length,
     [previewImage, hasWebPreview, currentEntry],
   );
 
@@ -343,10 +366,27 @@ export function ExampleContent({
           {previewType === PreviewType.QRCode && currentEntry && (
             <div className={s['preview-panel']}>
               <div className={s.qrcode}>
+                {deepLinkUrl && (
+                  <div style={{ margin: '16px 0 8px' }}>
+                    <Button
+                      type="primary"
+                      disabled={!canOpenDeepLink}
+                      onClick={() => {
+                        if (!canOpenDeepLink) return;
+                        window.location.href = resolvedDeepLinkUrl;
+                      }}
+                    >
+                      {deepLinkButtonTitle}
+                    </Button>
+                  </div>
+                )}
                 <Typography.Text
                   size="small"
                   type="tertiary"
-                  style={{ margin: '28px 12px', textAlign: 'center' }}
+                  style={{
+                    margin: deepLinkUrl ? '16px 12px' : '28px 12px',
+                    textAlign: 'center',
+                  }}
                 >
                   {t('go.scan.message-1')}
                   <Typography.Text
@@ -429,19 +469,6 @@ export function ExampleContent({
                 previewImage={previewImage}
                 active={previewType === PreviewType.Preview}
               />
-            </div>
-          )}
-          {/* Show deep link button if deep link URL is provided */}
-          {deepLinkUrl && deepLinkTitle && (
-            <div style={{ padding: '16px', textAlign: 'center' }}>
-              <Button
-                type="primary"
-                onClick={() => {
-                  window.location.href = deepLinkUrl;
-                }}
-              >
-                {deepLinkTitle}
-              </Button>
             </div>
           )}
           {hasWebPreview && (

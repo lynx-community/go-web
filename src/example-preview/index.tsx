@@ -69,7 +69,6 @@ export interface ExamplePreviewProps {
    * - `'qrcode'`  — QR code for Lynx Explorer
    */
   defaultTab?: PreviewTab;
-
   /**
    * Deep link URL for opening the app locally, e.g., lynxtron-go://
    */
