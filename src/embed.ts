@@ -28,8 +28,13 @@ export type EmbedOptions = {
   img?: string;
   /** Default entry file for web preview */
   defaultEntryFile?: string;
+  /**
+   * Default entry name from example-metadata.json (templateFiles[].name).
+   * Used when defaultEntryFile is not provided.
+   */
+  defaultEntryName?: string;
   /** Code highlight spec, e.g. '{1,3-5}' */
-  highlight?: string;
+  highlight?: string | Record<string, string>;
   /** Filter entry files in tree */
   entry?: string | string[];
   /** Hide the header bar for minimal embeds */

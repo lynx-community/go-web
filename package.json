@@ -48,7 +48,7 @@
     "@changesets/cli": "^2.30.0",
     "@douyinfe/semi-icons": "^2.74.0",
     "@douyinfe/semi-ui": "^2.75.0",
-    "@lynx-js/web-core": "^0.20.1",
+    "@lynx-js/web-core": "^0.20.3",
     "@shikijs/transformers": "^3.4.2",
     "@svitejs/changesets-changelog-github-compact": "^1.2.0",
     "@types/node": "^24.0.0",
