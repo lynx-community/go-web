@@ -113,6 +113,43 @@ Options:
 | `highlight`        | `string`                         | Line highlight spec, e.g. `'{1,3-5}'`              |
 | `entry`            | `string \| string[]`             | Filter entry files in tree                         |
 
+#### Viewport Mode (Web Preview)
+
+These options control how `lynx-view` renders inside the web preview panel.
+
+| Option              | Type                              | Default  | Description                                                                      |
+| ------------------- | --------------------------------- | -------- | -------------------------------------------------------------------------------- |
+| `webPreviewMode`    | `'fit' \| 'responsive' \| 'auto'` | `'auto'` | Viewport rendering mode                                                          |
+| `designWidth`       | `number`                          | `375`    | Design canvas width in pixels. Used in `fit` mode.                               |
+| `designHeight`      | `number`                          | `812`    | Design canvas height in pixels. Used in `fit` mode.                              |
+| `fitThresholdScale` | `number`                          | `1.0`    | Width upper bound for `auto` mode. Switches to `responsive` when wide enough     |
+| `fitMinScale`       | `number`                          | `0.6`    | Height lower bound for `auto` mode. Forces `fit` when the container is too short |
+
+Mode behavior:
+
+| Mode           | Behavior                                                                                                                                         |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `'responsive'` | `lynx-view` fills the container. `browserConfig` uses measured container dimensions.                                                             |
+| `'fit'`        | `lynx-view` is fixed at `designWidth × designHeight`. CSS `transform: scale` fits it into the container. `browserConfig` uses design dimensions. |
+| `'auto'`       | Switches based on container size. Behaves like `fit` for small/narrow containers, `responsive` for wide ones.                                    |
+
+Auto switching logic:
+
+```ts
+const ratioW = containerWidth / designWidth;
+const ratioH = containerHeight / designHeight;
+
+// Equivalent to:
+// - containerWidth < designWidth * fitThresholdScale
+// - containerHeight < designHeight * fitMinScale
+const shouldUseFit = ratioW < fitThresholdScale || ratioH < fitMinScale;
+```
+
+Transition behavior:
+
+- `fit → fit` on container resize: smooth `transform` transition
+- `fit ↔ responsive` mode switch: hard cut, no transition
+
 ## Development
 
 ```bash
@@ -133,7 +170,7 @@ pnpm prepare
 pnpm prepare:clean
 ```
 
-CI always runs `prepare:clean` to ensure examples are up-to-date.
+CI always runs `prepare:clean` to ensure that examples are up todate.
 
 ## CI
 

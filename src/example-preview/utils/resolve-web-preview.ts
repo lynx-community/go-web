@@ -24,10 +24,12 @@ export function resolveWebPreviewMode({
   if (webPreviewMode === 'responsive') return 'responsive';
 
   if (containerWidth <= 0 || containerHeight <= 0) return 'responsive';
+  if (designWidth <= 0 || designHeight <= 0) return 'responsive';
 
-  const shouldUseFit =
-    containerWidth < designWidth * fitThresholdScale ||
-    containerHeight < designHeight * fitMinScale;
+  const ratioW = containerWidth / designWidth;
+  const ratioH = containerHeight / designHeight;
+
+  const shouldUseFit = ratioW < fitThresholdScale || ratioH < fitMinScale;
 
   return shouldUseFit ? 'fit' : 'responsive';
 }

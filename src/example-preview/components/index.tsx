@@ -110,7 +110,7 @@ export function ExampleContent({
   webPreviewMode = 'auto',
   designWidth = 375,
   designHeight = 812,
-  fitThresholdScale = 1.5,
+  fitThresholdScale = 1.0,
   fitMinScale = 0.6,
 }: ExampleContentProps) {
   const {
