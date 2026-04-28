@@ -100,12 +100,14 @@ const StandaloneCodeBlock = ({
 type EmbedOptions = {
   example: string;
   defaultFile?: string;
+  mode?: 'linked' | 'preview' | 'source';
   defaultTab?: 'preview' | 'web' | 'qrcode';
   img?: string;
   defaultEntryFile?: string;
   defaultEntryName?: string;
   highlight?: string | Record<string, string>;
   entry?: string | string[];
+  schema?: string;
   seamless?: boolean;
   exampleBasePath?: string;
   webPreview?: boolean;
@@ -114,6 +116,7 @@ type EmbedOptions = {
   designHeight?: number;
   fitThresholdScale?: number;
   fitMinScale?: number;
+  fit?: 'contain' | 'cover' | 'auto';
 };
 
 // ---------------------------------------------------------------------------
@@ -178,18 +181,21 @@ function EmbedApp() {
             options.defaultFile ??
             (options.example.startsWith('vue-') ? 'src/App.vue' : 'src/App.tsx')
           }
+          mode={options.mode}
           defaultTab={options.defaultTab}
           img={options.img}
           defaultEntryFile={options.defaultEntryFile}
           defaultEntryName={options.defaultEntryName}
           highlight={options.highlight}
           entry={options.entry}
+          schema={options.schema}
           webPreview={options.webPreview}
           webPreviewMode={options.webPreviewMode}
           designWidth={options.designWidth}
           designHeight={options.designHeight}
           fitThresholdScale={options.fitThresholdScale}
           fitMinScale={options.fitMinScale}
+          fit={options.fit}
         />
       </div>
     </GoConfigProvider>
