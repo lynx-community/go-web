@@ -82,6 +82,7 @@ interface ExampleContentProps {
   designHeight?: number;
   fitThresholdScale?: number;
   fitMinScale?: number;
+  fit?: 'contain' | 'cover' | 'auto';
 }
 
 export function ExampleContent({
@@ -111,7 +112,8 @@ export function ExampleContent({
   designWidth = 375,
   designHeight = 812,
   fitThresholdScale = 1.0,
-  fitMinScale = 0.6,
+  fitMinScale = 0.5,
+  fit = 'cover',
 }: ExampleContentProps) {
   const {
     explorerUrl,
@@ -437,6 +439,7 @@ export function ExampleContent({
                     designHeight={designHeight}
                     fitThresholdScale={fitThresholdScale}
                     fitMinScale={fitMinScale}
+                    fit={fit}
                   />
                 </Suspense>
               </NoSSRComponent>

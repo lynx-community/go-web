@@ -22,6 +22,8 @@ export type EmbedOptions = {
   example: string;
   /** Initial file to display */
   defaultFile?: string;
+  /** Overall layout mode */
+  mode?: 'linked' | 'preview' | 'source';
   /** Default preview tab */
   defaultTab?: 'preview' | 'web' | 'qrcode';
   /** Static preview image URL */
@@ -37,6 +39,11 @@ export type EmbedOptions = {
   highlight?: string | Record<string, string>;
   /** Filter entry files in tree */
   entry?: string | string[];
+  /**
+   * URL schema template for Lynx Explorer QR code generation.
+   * Use `{{{url}}}` as a placeholder for the resolved entry URL.
+   */
+  schema?: string;
   /** Hide the header bar for minimal embeds */
   seamless?: boolean;
   /** Enable/disable the web preview tab even if templateFiles[].webFile exists */
@@ -51,6 +58,7 @@ export type EmbedOptions = {
   fitThresholdScale?: number;
   /** Auto mode height lower-bound multiplier */
   fitMinScale?: number;
+  fit?: 'contain' | 'cover' | 'auto';
   /**
    * Base path (or full URL) for example assets.
    * Defaults to '/lynx-examples'. Use a full URL for cross-origin data,

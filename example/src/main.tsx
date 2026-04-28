@@ -1297,7 +1297,7 @@ function App() {
                     mode={mode}
                   />
                 </div>
-                <div className="figure-caption">Mobile (320 × 660)</div>
+                <div className="figure-caption">Mobile (320 x 660)</div>
               </div>
             </div>
           </GoConfigProvider>

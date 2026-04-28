@@ -8,8 +8,13 @@ import {
   computeScaleRange,
   lerpFitScale,
 } from '../utils/fit-scale';
-import { resolveWebPreviewMode } from '../utils/resolve-web-preview';
-import type { WebPreviewMode } from '../utils/resolve-web-preview';
+import { isFinitePositive } from '../utils/number';
+import { resolveWebPreviewModeWithHysteresis } from '../utils/resolve-web-preview';
+import type {
+  WebPreviewMode,
+  ResolvedWebPreviewMode,
+  WebPreviewResolveReason,
+} from '../utils/resolve-web-preview';
 import { LoadingOverlay } from './loading-overlay';
 
 declare global {
@@ -36,6 +41,7 @@ type WebIframeProps = {
   designHeight?: number;
   fitThresholdScale?: number;
   fitMinScale?: number;
+  fit?: 'contain' | 'cover' | 'auto';
 };
 
 type UseWebIframeControllerArgs = {
@@ -47,6 +53,7 @@ type UseWebIframeControllerArgs = {
    * Override the pixel dimensions written to `browserConfig`.
    * In `fit` mode this should be the design canvas size × pixelRatio,
    * not the container size. Omit to use the container size (responsive mode).
+   * Known limitation: `browserConfig` is only initialized once per `src`.
    */
   browserConfigSize?: { width: number; height: number };
 };
@@ -85,6 +92,7 @@ const INNER_VISIBLE: React.CSSProperties = {
   height: '100%',
   alignItems: 'center',
   justifyContent: 'center',
+  overflow: 'hidden',
 };
 
 const INNER_HIDDEN: React.CSSProperties = { display: 'none' };
@@ -312,18 +320,59 @@ function deriveFitStyles(
   containerHeight: number,
   designWidth: number,
   designHeight: number,
+  fit: 'contain' | 'cover' | 'auto',
+  autoCoverBias: number,
   enableTransition: boolean,
 ): {
   frame: React.CSSProperties;
   lynxView: React.CSSProperties & CSSVarProperties;
 } {
+  const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+
+  const FIT_AUTO_MAX_CROP_RATIO = 0.5;
+  const FIT_AUTO_COVER_BIAS_EXP = 2;
+  const FIT_AUTO_MIN_READABLE_WIDTH = Math.max(
+    200,
+    Math.round(designWidth * 0.64),
+  );
+  const FIT_AUTO_MIN_READABLE_HEIGHT = Math.max(
+    240,
+    Math.round(designHeight * 0.4),
+  );
+
   const scaleRange = computeScaleRange({
     containerWidth,
     containerHeight,
     baseWidth: designWidth,
     baseHeight: designHeight,
   });
-  const scale = lerpFitScale(scaleRange, 0); // always contain
+  let fitProgress: number;
+  if (fit === 'contain') {
+    fitProgress = 0;
+  } else if (fit === 'cover') {
+    fitProgress = 1;
+  } else {
+    const cropRatio = 1 - scaleRange.contain / scaleRange.cover;
+    const normalizedCrop = clamp01(cropRatio / FIT_AUTO_MAX_CROP_RATIO);
+    fitProgress = 1 - Math.pow(normalizedCrop, FIT_AUTO_COVER_BIAS_EXP);
+  }
+  if (fit === 'auto') {
+    const t = clamp01(autoCoverBias);
+    fitProgress = fitProgress + (1 - fitProgress) * t;
+  }
+  let scale = lerpFitScale(scaleRange, fitProgress);
+  if (fit === 'auto') {
+    const widthFloorScale = FIT_AUTO_MIN_READABLE_WIDTH / designWidth;
+    const heightFloorScale = FIT_AUTO_MIN_READABLE_HEIGHT / designHeight;
+    const autoScaleFloor = Math.max(widthFloorScale, heightFloorScale);
+    const shouldForceReadable =
+      containerWidth < FIT_AUTO_MIN_READABLE_WIDTH ||
+      containerHeight < FIT_AUTO_MIN_READABLE_HEIGHT;
+    if (shouldForceReadable && scale < autoScaleFloor) {
+      fitProgress = 1;
+      scale = Math.max(scaleRange.cover, autoScaleFloor);
+    }
+  }
   const { offsetX, offsetY } = computeFrameOffset({
     baseWidth: designWidth,
     baseHeight: designHeight,
@@ -354,6 +403,49 @@ function deriveFitStyles(
   };
 }
 
+function useAutoCoverBias(args: {
+  fit: 'contain' | 'cover' | 'auto';
+  webPreviewMode: WebPreviewMode;
+  mode: ResolvedWebPreviewMode;
+  prevMode: ResolvedWebPreviewMode;
+  reason: WebPreviewResolveReason;
+  inHysteresisHold: boolean;
+  hysteresisProgress: number;
+}): number {
+  type AutoFitKind = 'width' | 'height' | null;
+  const autoFitKindRef = useRef<AutoFitKind>(null);
+
+  const {
+    fit,
+    webPreviewMode,
+    mode,
+    prevMode,
+    reason,
+    inHysteresisHold,
+    hysteresisProgress,
+  } = args;
+
+  if (fit !== 'auto' || webPreviewMode !== 'auto') {
+    autoFitKindRef.current = null;
+  } else if (prevMode === 'fit' && mode === 'responsive') {
+    autoFitKindRef.current = null;
+  } else if (mode === 'fit') {
+    // Keep the previous bound only while we are inside the hysteresis band.
+    if (reason === 'width_bound') autoFitKindRef.current = 'width';
+    else if (reason === 'height_bound') autoFitKindRef.current = 'height';
+  }
+
+  if (mode !== 'fit' || webPreviewMode !== 'auto' || fit !== 'auto') return 0;
+
+  if (autoFitKindRef.current === 'width') return 1;
+
+  if (autoFitKindRef.current === 'height') {
+    return inHysteresisHold ? Math.pow(hysteresisProgress, 2) : 0;
+  }
+
+  return 0;
+}
+
 export const WebIframe = ({
   show,
   src,
@@ -361,7 +453,8 @@ export const WebIframe = ({
   designWidth = 375,
   designHeight = 812,
   fitThresholdScale = 1.0,
-  fitMinScale = 0.6,
+  fitMinScale = 0.5,
+  fit = 'cover',
 }: WebIframeProps) => {
   const lynxViewRef = useRef<LynxView>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -380,22 +473,25 @@ export const WebIframe = ({
 
   const dimsReady = containerWidth > 0 && containerHeight > 0;
 
-  const mode = resolveWebPreviewMode({
-    webPreviewMode,
-    designWidth,
-    designHeight,
-    fitThresholdScale,
-    fitMinScale,
-    containerWidth,
-    containerHeight,
-  });
+  const prevResolvedModeRef = useRef<ResolvedWebPreviewMode>('responsive');
+  const prevResolvedMode = prevResolvedModeRef.current;
+  const resolved = resolveWebPreviewModeWithHysteresis(
+    {
+      webPreviewMode,
+      designWidth,
+      designHeight,
+      fitThresholdScale,
+      fitMinScale,
+      containerWidth,
+      containerHeight,
+    },
+    prevResolvedMode,
+  );
+  const mode = resolved.mode;
 
   if (
     mode === 'fit' &&
-    (!Number.isFinite(designWidth) ||
-      designWidth <= 0 ||
-      !Number.isFinite(designHeight) ||
-      designHeight <= 0)
+    (!isFinitePositive(designWidth) || !isFinitePositive(designHeight))
   ) {
     throw new RangeError(
       'WebIframe: designWidth and designHeight must be finite numbers > 0 when webPreviewMode resolves to "fit".',
@@ -405,10 +501,9 @@ export const WebIframe = ({
   const browserConfigSize =
     mode === 'fit' ? { width: designWidth, height: designHeight } : undefined;
 
-  const prevModeRef = useRef(mode);
-  const enableFitTransition = prevModeRef.current === 'fit' && mode === 'fit';
+  const enableFitTransition = prevResolvedMode === 'fit' && mode === 'fit';
   useEffect(() => {
-    prevModeRef.current = mode;
+    prevResolvedModeRef.current = mode;
   }, [mode]);
 
   const { ready, rendered, error } = useWebIframeController({
@@ -419,6 +514,16 @@ export const WebIframe = ({
     browserConfigSize,
   });
 
+  const autoCoverBias = useAutoCoverBias({
+    fit,
+    webPreviewMode,
+    mode,
+    prevMode: prevResolvedMode,
+    reason: resolved.reason,
+    inHysteresisHold: resolved.inHysteresisHold,
+    hysteresisProgress: resolved.hysteresisProgress,
+  });
+
   const fitStyles =
     mode === 'fit'
       ? deriveFitStyles(
@@ -426,6 +531,8 @@ export const WebIframe = ({
           containerHeight,
           designWidth,
           designHeight,
+          fit,
+          autoCoverBias,
           enableFitTransition,
         )
       : null;
