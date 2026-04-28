@@ -71,7 +71,13 @@ export interface ExamplePreviewProps {
    */
   defaultTab?: PreviewTab;
   /**
-   * Deep link URL for opening the app locally, e.g., lynxtron-go://
+   * Deep link URL template for opening the app locally.
+   *
+   * Supports templating with the currently selected entry URL:
+   * - `{{{url}}}` -- raw entry URL
+   * - `{{{urlEncoded}}}` -- `encodeURIComponent(entryUrl)`
+   *
+   * Example: `'lynxtron-go://open?url={{{urlEncoded}}}'`
    */
   deepLinkUrl?: string;
   /**

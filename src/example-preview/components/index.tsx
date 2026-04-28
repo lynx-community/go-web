@@ -224,20 +224,19 @@ export function ExampleContent({
   }, [deepLinkTitle, t]);
   const resolvedDeepLinkUrl = useMemo(() => {
     if (!deepLinkUrl) return '';
-    const rawUrl = qrcodeUrl;
     return deepLinkUrl
       .split('{{{urlEncoded}}}')
-      .join(encodeURIComponent(rawUrl))
+      .join(encodeURIComponent(currentEntryFileUrl))
       .split('{{{url}}}')
-      .join(rawUrl);
-  }, [deepLinkUrl, qrcodeUrl]);
+      .join(currentEntryFileUrl);
+  }, [deepLinkUrl, currentEntryFileUrl]);
   const canOpenDeepLink = useMemo(() => {
     if (!deepLinkUrl) return false;
     const needsUrl =
       deepLinkUrl.includes('{{{url}}}') ||
       deepLinkUrl.includes('{{{urlEncoded}}}');
-    return needsUrl ? Boolean(qrcodeUrl) : true;
-  }, [deepLinkUrl, qrcodeUrl]);
+    return needsUrl ? Boolean(currentEntryFileUrl) : true;
+  }, [deepLinkUrl, currentEntryFileUrl]);
 
   const showCodeTab = entryData && entryData?.length > 1;
 
@@ -336,7 +335,9 @@ export function ExampleContent({
                 <div style={{ width: '100%', height: '32px' }}></div>
               )}
             </RadioGroup>
-          ) : null}
+          ) : (
+            <div style={{ flex: 1 }} />
+          )}
           <Button
             theme="borderless"
             icon={
