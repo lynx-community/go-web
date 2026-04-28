@@ -7,6 +7,7 @@ export type WebPreviewResolveReason =
   | 'explicit_fit'
   | 'explicit_responsive'
   | 'invalid_dims'
+  | 'invalid_thresholds'
   | 'width_bound'
   | 'height_bound'
   | 'hysteresis_hold'
@@ -43,6 +44,9 @@ export function resolveWebPreviewMode({
   }
   if (!isFinitePositive(designWidth) || !isFinitePositive(designHeight)) {
     return { mode: 'responsive', reason: 'invalid_dims' };
+  }
+  if (!isFinitePositive(fitThresholdScale) || !isFinitePositive(fitMinScale)) {
+    return { mode: 'responsive', reason: 'invalid_thresholds' };
   }
 
   const ratioW = containerWidth / designWidth;
@@ -83,16 +87,20 @@ export function resolveWebPreviewModeWithHysteresis(
 
   const base = resolveWebPreviewMode(args);
 
-  const invalidDims = base.reason === 'invalid_dims';
+  const invalidBase =
+    base.reason === 'invalid_dims' || base.reason === 'invalid_thresholds';
   const isExplicit =
     base.reason === 'explicit_fit' || base.reason === 'explicit_responsive';
 
-  if (invalidDims || isExplicit) {
+  if (invalidBase || isExplicit) {
+    const ratioW = args.containerWidth / args.designWidth;
+    const ratioH = args.containerHeight / args.designHeight;
+
     return {
       mode: base.mode,
       reason: base.reason,
-      ratioW: NaN,
-      ratioH: NaN,
+      ratioW,
+      ratioH,
       enterThresholdScale: args.fitThresholdScale,
       enterMinScale: args.fitMinScale,
       exitThresholdScale: args.fitThresholdScale,
