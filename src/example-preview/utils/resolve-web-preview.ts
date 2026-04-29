@@ -2,6 +2,7 @@ import { isFinitePositive } from './number';
 
 export type WebPreviewMode = 'fit' | 'responsive' | 'auto';
 export type ResolvedWebPreviewMode = Exclude<WebPreviewMode, 'auto'>;
+export type ResolvedWebPreviewFitKind = 'width' | 'height' | null;
 
 export type WebPreviewResolveReason =
   | 'explicit_fit'
@@ -79,6 +80,7 @@ export function resolveWebPreviewMode({
 export type ResolveWebPreviewModeWithHysteresisResult = {
   mode: ResolvedWebPreviewMode;
   reason: WebPreviewResolveReason;
+  fitKind: ResolvedWebPreviewFitKind;
   ratioW: number;
   ratioH: number;
   enterThresholdScale: number;
@@ -92,8 +94,11 @@ export type ResolveWebPreviewModeWithHysteresisResult = {
 export function resolveWebPreviewModeWithHysteresis(
   args: ResolveWebPreviewModeArgs,
   prevMode: ResolvedWebPreviewMode,
+  prevFitKind: ResolvedWebPreviewFitKind,
 ): ResolveWebPreviewModeWithHysteresisResult {
   const AUTO_HYSTERESIS_FACTOR = 1.06;
+  const hasValidDesignSize =
+    isFinitePositive(args.designWidth) && isFinitePositive(args.designHeight);
 
   const base = resolveWebPreviewMode(args);
 
@@ -103,12 +108,17 @@ export function resolveWebPreviewModeWithHysteresis(
     base.reason === 'explicit_fit' || base.reason === 'explicit_responsive';
 
   if (invalidBase || isExplicit) {
-    const ratioW = args.containerWidth / args.designWidth;
-    const ratioH = args.containerHeight / args.designHeight;
+    const ratioW = hasValidDesignSize
+      ? args.containerWidth / args.designWidth
+      : 0;
+    const ratioH = hasValidDesignSize
+      ? args.containerHeight / args.designHeight
+      : 0;
 
     return {
       mode: base.mode,
       reason: base.reason,
+      fitKind: null,
       ratioW,
       ratioH,
       enterThresholdScale: args.fitThresholdScale,
@@ -168,9 +178,19 @@ export function resolveWebPreviewModeWithHysteresis(
     reason = 'none';
   }
 
+  const fitKind: ResolvedWebPreviewFitKind =
+    reason === 'width_bound'
+      ? 'width'
+      : reason === 'height_bound'
+        ? 'height'
+        : reason === 'hysteresis_hold'
+          ? prevFitKind
+          : null;
+
   return {
     mode,
     reason,
+    fitKind,
     ratioW,
     ratioH,
     enterThresholdScale,

@@ -11,9 +11,9 @@ import {
 import { isFinitePositive } from '../utils/number';
 import { resolveWebPreviewModeWithHysteresis } from '../utils/resolve-web-preview';
 import type {
+  ResolvedWebPreviewFitKind,
   WebPreviewMode,
   ResolvedWebPreviewMode,
-  WebPreviewResolveReason,
 } from '../utils/resolve-web-preview';
 import { LoadingOverlay } from './loading-overlay';
 
@@ -32,6 +32,11 @@ type LynxViewAttributes = React.HTMLAttributes<HTMLElement> & {
 };
 
 type CSSVarProperties = { [key: `--${string}`]: string | number };
+
+type AutoFitBiases = {
+  interiorContainPull: number;
+  interiorCoverPush: number;
+};
 
 type WebIframeProps = {
   show: boolean;
@@ -118,6 +123,10 @@ const FRAME_RESPONSIVE: React.CSSProperties = {
 };
 
 const LYNX_GROUP_ID = 42;
+const EMPTY_AUTO_FIT_BIASES: AutoFitBiases = {
+  interiorContainPull: 0,
+  interiorCoverPush: 0,
+};
 
 let runtimeReady: Promise<void> | null = null;
 function ensureRuntime() {
@@ -321,7 +330,7 @@ function deriveFitStyles(
   designWidth: number,
   designHeight: number,
   fit: 'contain' | 'cover' | 'auto',
-  autoCoverBias: number,
+  autoFitBiases: AutoFitBiases,
   enableTransition: boolean,
 ): {
   frame: React.CSSProperties;
@@ -350,12 +359,12 @@ function deriveFitStyles(
   const FIT_AUTO_MAX_CROP_RATIO = 0.5;
   const FIT_AUTO_COVER_BIAS_EXP = 2;
   const FIT_AUTO_MIN_READABLE_WIDTH = Math.max(
-    200,
-    Math.round(designWidth * 0.64),
+    180,
+    Math.round(designWidth * 0.58),
   );
   const FIT_AUTO_MIN_READABLE_HEIGHT = Math.max(
-    240,
-    Math.round(designHeight * 0.4),
+    220,
+    Math.round(designHeight * 0.36),
   );
 
   if (!isFinitePositive(containerWidth) || !isFinitePositive(containerHeight)) {
@@ -382,11 +391,12 @@ function deriveFitStyles(
   } else {
     const cropRatio = 1 - scaleRange.contain / scaleRange.cover;
     const normalizedCrop = clamp01(cropRatio / FIT_AUTO_MAX_CROP_RATIO);
-    fitProgress = 1 - Math.pow(normalizedCrop, FIT_AUTO_COVER_BIAS_EXP);
-  }
-  if (fit === 'auto') {
-    const t = clamp01(autoCoverBias);
-    fitProgress = fitProgress + (1 - fitProgress) * t;
+    const baseProgress = 1 - Math.pow(normalizedCrop, FIT_AUTO_COVER_BIAS_EXP);
+    const interiorContainPull = clamp01(autoFitBiases.interiorContainPull);
+    const interiorCoverPush = clamp01(autoFitBiases.interiorCoverPush);
+
+    fitProgress = baseProgress * (1 - interiorContainPull);
+    fitProgress = fitProgress + (1 - fitProgress) * interiorCoverPush;
   }
   let scale = lerpFitScale(scaleRange, fitProgress);
   if (fit === 'auto') {
@@ -411,47 +421,88 @@ function deriveFitStyles(
   return createStyles(scale, offsetX, offsetY);
 }
 
-function useAutoCoverBias(args: {
+function useAutoFitBiases(args: {
   fit: 'contain' | 'cover' | 'auto';
   webPreviewMode: WebPreviewMode;
   mode: ResolvedWebPreviewMode;
-  prevMode: ResolvedWebPreviewMode;
-  reason: WebPreviewResolveReason;
-  inHysteresisHold: boolean;
-  hysteresisProgress: number;
-}): number {
-  type AutoFitKind = 'width' | 'height' | null;
-  const autoFitKindRef = useRef<AutoFitKind>(null);
-
+  fitKind: ResolvedWebPreviewFitKind;
+  ratioW: number;
+  ratioH: number;
+  enterThresholdScale: number;
+  enterMinScale: number;
+}): AutoFitBiases {
   const {
     fit,
     webPreviewMode,
     mode,
-    prevMode,
-    reason,
-    inHysteresisHold,
-    hysteresisProgress,
+    fitKind,
+    ratioW,
+    ratioH,
+    enterThresholdScale,
+    enterMinScale,
   } = args;
+  const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+  const smoothstep01 = (v: number) => {
+    const t = clamp01(v);
+    return t * t * (3 - 2 * t);
+  };
 
-  if (fit !== 'auto' || webPreviewMode !== 'auto') {
-    autoFitKindRef.current = null;
-  } else if (prevMode === 'fit' && mode === 'responsive') {
-    autoFitKindRef.current = null;
-  } else if (mode === 'fit') {
-    // Keep the previous bound only while we are inside the hysteresis band.
-    if (reason === 'width_bound') autoFitKindRef.current = 'width';
-    else if (reason === 'height_bound') autoFitKindRef.current = 'height';
+  if (mode !== 'fit' || webPreviewMode !== 'auto' || fit !== 'auto') {
+    return EMPTY_AUTO_FIT_BIASES;
+  }
+  if (
+    !Number.isFinite(ratioW) ||
+    !Number.isFinite(ratioH) ||
+    !isFinitePositive(enterThresholdScale) ||
+    !isFinitePositive(enterMinScale)
+  ) {
+    return EMPTY_AUTO_FIT_BIASES;
   }
 
-  if (mode !== 'fit' || webPreviewMode !== 'auto' || fit !== 'auto') return 0;
+  let interiorContainPull = 0;
+  let interiorCoverPush = 0;
 
-  if (autoFitKindRef.current === 'width') return 1;
+  if (fitKind === 'width') {
+    const widthExtremeScale = Math.max(
+      enterMinScale,
+      enterThresholdScale * 0.62,
+    );
+    const widthRange = enterThresholdScale - widthExtremeScale;
 
-  if (autoFitKindRef.current === 'height') {
-    return inHysteresisHold ? Math.pow(hysteresisProgress, 2) : 0;
+    if (widthRange > 0) {
+      const widthNarrowness = clamp01(
+        (enterThresholdScale - ratioW) / widthRange,
+      );
+      const leftCoverPlateau =
+        1 - smoothstep01((widthNarrowness - 0.18) / 0.48);
+      const midContainWindow =
+        smoothstep01((widthNarrowness - 0.4) / 0.14) *
+        (1 - smoothstep01((widthNarrowness - 0.62) / 0.14));
+      const rightCoverPlateau = smoothstep01((widthNarrowness - 0.76) / 0.12);
+      const coverPlateau = Math.max(leftCoverPlateau, rightCoverPlateau);
+
+      // Shape the width-driven auto-fit response as:
+      // full-cover plateau -> smooth contain window -> full-cover plateau.
+      interiorContainPull = midContainWindow * (1 - coverPlateau) * 0.45;
+      interiorCoverPush = coverPlateau * 0.98;
+    }
+  } else if (fitKind === 'height') {
+    const widthContainSupport = smoothstep01(
+      (ratioW - enterThresholdScale * 0.98) / (enterThresholdScale * 0.22),
+    );
+    const heightShortness = smoothstep01(
+      (enterMinScale - ratioH) / (enterMinScale * 0.5),
+    );
+
+    // When width is already fairly wide but height is slightly short, lean a
+    // bit more toward contain instead of aggressively filling width.
+    interiorContainPull = widthContainSupport * heightShortness * 0.45;
   }
 
-  return 0;
+  return {
+    interiorContainPull,
+    interiorCoverPush,
+  };
 }
 
 export const WebIframe = ({
@@ -481,8 +532,14 @@ export const WebIframe = ({
 
   const dimsReady = containerWidth > 0 && containerHeight > 0;
 
-  const prevResolvedModeRef = useRef<ResolvedWebPreviewMode>('responsive');
-  const prevResolvedMode = prevResolvedModeRef.current;
+  const prevResolvedRef = useRef<{
+    mode: ResolvedWebPreviewMode;
+    fitKind: ResolvedWebPreviewFitKind;
+  }>({
+    mode: 'responsive',
+    fitKind: null,
+  });
+  const prevResolvedMode = prevResolvedRef.current.mode;
   const resolved = resolveWebPreviewModeWithHysteresis(
     {
       webPreviewMode,
@@ -494,11 +551,13 @@ export const WebIframe = ({
       containerHeight,
     },
     prevResolvedMode,
+    prevResolvedRef.current.fitKind,
   );
   const mode = resolved.mode;
+  const usesFitPath = mode === 'fit';
 
   if (
-    mode === 'fit' &&
+    usesFitPath &&
     (!isFinitePositive(designWidth) || !isFinitePositive(designHeight))
   ) {
     throw new RangeError(
@@ -506,13 +565,17 @@ export const WebIframe = ({
     );
   }
 
-  const browserConfigSize =
-    mode === 'fit' ? { width: designWidth, height: designHeight } : undefined;
+  const browserConfigSize = usesFitPath
+    ? { width: designWidth, height: designHeight }
+    : undefined;
 
-  const enableFitTransition = prevResolvedMode === 'fit' && mode === 'fit';
+  const enableFitTransition = prevResolvedMode === 'fit' && usesFitPath;
   useEffect(() => {
-    prevResolvedModeRef.current = mode;
-  }, [mode]);
+    prevResolvedRef.current = {
+      mode,
+      fitKind: resolved.fitKind,
+    };
+  }, [mode, resolved.fitKind]);
 
   const { ready, rendered, error } = useWebIframeController({
     src,
@@ -522,31 +585,35 @@ export const WebIframe = ({
     browserConfigSize,
   });
 
-  const autoCoverBias = useAutoCoverBias({
-    fit,
-    webPreviewMode,
-    mode,
-    prevMode: prevResolvedMode,
-    reason: resolved.reason,
-    inHysteresisHold: resolved.inHysteresisHold,
-    hysteresisProgress: resolved.hysteresisProgress,
-  });
+  // `webPreviewMode='responsive'` resolves to `usesFitPath === false`,
+  // which skips all fit-only interpolation and auto-fit bias logic.
+  const autoFitBiases = usesFitPath
+    ? useAutoFitBiases({
+        fit,
+        webPreviewMode,
+        mode,
+        fitKind: resolved.fitKind,
+        ratioW: resolved.ratioW,
+        ratioH: resolved.ratioH,
+        enterThresholdScale: resolved.enterThresholdScale,
+        enterMinScale: resolved.enterMinScale,
+      })
+    : EMPTY_AUTO_FIT_BIASES;
 
-  const fitStyles =
-    mode === 'fit'
-      ? deriveFitStyles(
-          containerWidth,
-          containerHeight,
-          designWidth,
-          designHeight,
-          fit,
-          autoCoverBias,
-          enableFitTransition,
-        )
-      : null;
+  const fitStyles = usesFitPath
+    ? deriveFitStyles(
+        containerWidth,
+        containerHeight,
+        designWidth,
+        designHeight,
+        fit,
+        autoFitBiases,
+        enableFitTransition,
+      )
+    : null;
 
   const { stage: stageStyle, lynxView: lynxViewStyle } =
-    mode === 'fit' && fitStyles
+    usesFitPath && fitStyles
       ? { stage: STAGE_FIT_ANCHOR, lynxView: fitStyles.lynxView }
       : { stage: STAGE_RESPONSIVE, lynxView: LYNX_VIEW_STYLE_RESPONSIVE };
 
@@ -564,7 +631,7 @@ export const WebIframe = ({
   );
 
   const frameStyle =
-    mode === 'fit' && fitStyles ? fitStyles.frame : FRAME_RESPONSIVE;
+    usesFitPath && fitStyles ? fitStyles.frame : FRAME_RESPONSIVE;
   // Always mount <lynx-view> when src exists so the ref
   // is always populated and shadow DOM persists
   // across tab switches.
