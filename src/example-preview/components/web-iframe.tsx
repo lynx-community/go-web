@@ -421,7 +421,7 @@ function deriveFitStyles(
   return createStyles(scale, offsetX, offsetY);
 }
 
-function useAutoFitBiases(args: {
+function computeAutoFitBiases(args: {
   fit: 'contain' | 'cover' | 'auto';
   webPreviewMode: WebPreviewMode;
   mode: ResolvedWebPreviewMode;
@@ -588,7 +588,7 @@ export const WebIframe = ({
   // `webPreviewMode='responsive'` resolves to `usesFitPath === false`,
   // which skips all fit-only interpolation and auto-fit bias logic.
   const autoFitBiases = usesFitPath
-    ? useAutoFitBiases({
+    ? computeAutoFitBiases({
         fit,
         webPreviewMode,
         mode,
