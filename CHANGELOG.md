@@ -1,5 +1,11 @@
 # @lynx-js/go-web
 
+## 0.5.0
+
+### Minor Changes
+
+- Improve web preview fit behavior and default `webPreviewMode` to `responsive`. ([#54](https://github.com/lynx-community/go-web/pull/54))
+
 ## 0.4.0
 
 ### Minor Changes
