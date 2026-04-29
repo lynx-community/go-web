@@ -1264,6 +1264,9 @@ function App() {
                   img={img || undefined}
                   schema={schema || undefined}
                   mode={mode}
+                  webPreviewMode={
+                    example.startsWith('lynx-ui') ? 'auto' : 'responsive'
+                  }
                 />
                 <div className="figure-caption">Desktop</div>
               </div>
@@ -1295,6 +1298,9 @@ function App() {
                     img={img || undefined}
                     schema={schema || undefined}
                     mode={mode}
+                    webPreviewMode={
+                      example.startsWith('lynx-ui') ? 'auto' : 'responsive'
+                    }
                   />
                 </div>
                 <div className="figure-caption">Mobile (320 x 660)</div>
