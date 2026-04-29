@@ -112,7 +112,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     langAlias,
     defaultTab: propsDefaultTab,
     mode = 'linked',
-    webPreviewMode = 'auto',
+    webPreviewMode = 'responsive',
     webPreview = true,
     designWidth = 375,
     designHeight = 812,

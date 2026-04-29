@@ -108,7 +108,7 @@ export function ExampleContent({
   langAlias,
   defaultTab,
   mode = 'linked',
-  webPreviewMode = 'auto',
+  webPreviewMode = 'responsive',
   designWidth = 375,
   designHeight = 812,
   fitThresholdScale = 1.0,

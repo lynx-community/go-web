@@ -449,7 +449,7 @@ function useAutoCoverBias(args: {
 export const WebIframe = ({
   show,
   src,
-  webPreviewMode = 'auto',
+  webPreviewMode = 'responsive',
   designWidth = 375,
   designHeight = 812,
   fitThresholdScale = 1.0,
