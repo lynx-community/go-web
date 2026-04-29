@@ -328,6 +328,24 @@ function deriveFitStyles(
   lynxView: React.CSSProperties & CSSVarProperties;
 } {
   const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+  const createStyles = (scale: number, offsetX = 0, offsetY = 0) => ({
+    frame: {
+      position: 'absolute' as const,
+      transformOrigin: 'top left' as const,
+      width: designWidth,
+      height: designHeight,
+      transform: `translate(${offsetX}px, ${offsetY}px) scale(${scale})`,
+      transition: enableTransition ? 'transform 0.2s ease' : undefined,
+    },
+    lynxView: {
+      width: designWidth,
+      height: designHeight,
+      containerType: 'size' as const,
+      '--rpx-unit': `${designWidth / 750}px`,
+      '--vh-unit': `${designHeight / 100}px`,
+      '--vw-unit': `${designWidth / 100}px`,
+    },
+  });
 
   const FIT_AUTO_MAX_CROP_RATIO = 0.5;
   const FIT_AUTO_COVER_BIAS_EXP = 2;
@@ -340,12 +358,22 @@ function deriveFitStyles(
     Math.round(designHeight * 0.4),
   );
 
+  if (!isFinitePositive(containerWidth) || !isFinitePositive(containerHeight)) {
+    return createStyles(0);
+  }
+
   const scaleRange = computeScaleRange({
     containerWidth,
     containerHeight,
     baseWidth: designWidth,
     baseHeight: designHeight,
   });
+  if (
+    !Number.isFinite(scaleRange.contain) ||
+    !isFinitePositive(scaleRange.cover)
+  ) {
+    return createStyles(0);
+  }
   let fitProgress: number;
   if (fit === 'contain') {
     fitProgress = 0;
@@ -380,27 +408,7 @@ function deriveFitStyles(
     ax: 0.5,
     ay: 0.5,
   });
-
-  return {
-    frame: {
-      position: 'absolute',
-      transformOrigin: 'top left',
-      width: designWidth,
-      height: designHeight,
-      transform: `translate(${offsetX}px, ${offsetY}px) scale(${scale})`,
-      // Smooth transition for fit→fit scale changes (container resize).
-      // Disabled for fit↔responsive mode switches (hard cut).
-      transition: enableTransition ? 'transform 0.2s ease' : undefined,
-    },
-    lynxView: {
-      width: designWidth,
-      height: designHeight,
-      containerType: 'size',
-      '--rpx-unit': `${designWidth / 750}px`,
-      '--vh-unit': `${designHeight / 100}px`,
-      '--vw-unit': `${designWidth / 100}px`,
-    },
-  };
+  return createStyles(scale, offsetX, offsetY);
 }
 
 function useAutoCoverBias(args: {

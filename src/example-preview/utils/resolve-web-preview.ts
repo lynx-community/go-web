@@ -23,6 +23,15 @@ export type ResolveWebPreviewModeArgs = {
   containerHeight: number;
 };
 
+function resolveFitReason(
+  widthBound: boolean,
+  heightBound: boolean,
+): WebPreviewResolveReason | null {
+  if (widthBound) return 'width_bound';
+  if (heightBound) return 'height_bound';
+  return null;
+}
+
 export function resolveWebPreviewMode({
   webPreviewMode,
   designWidth,
@@ -54,12 +63,13 @@ export function resolveWebPreviewMode({
 
   const widthBound = ratioW < fitThresholdScale;
   const heightBound = ratioH < fitMinScale;
-  const shouldUseFit = widthBound || heightBound;
+  const fitReason = resolveFitReason(widthBound, heightBound);
+  const shouldUseFit = fitReason !== null;
 
   if (shouldUseFit) {
     return {
       mode: 'fit',
-      reason: heightBound ? 'height_bound' : 'width_bound',
+      reason: fitReason,
     };
   }
 
@@ -120,7 +130,8 @@ export function resolveWebPreviewModeWithHysteresis(
 
   const enterWidthBound = ratioW < enterThresholdScale;
   const enterHeightBound = ratioH < enterMinScale;
-  const enterFit = enterWidthBound || enterHeightBound;
+  const enterReason = resolveFitReason(enterWidthBound, enterHeightBound);
+  const enterFit = enterReason !== null;
 
   const exitFit = ratioW >= exitThresholdScale && ratioH >= exitMinScale;
 
@@ -149,7 +160,7 @@ export function resolveWebPreviewModeWithHysteresis(
   let reason: WebPreviewResolveReason;
   if (mode === 'fit') {
     if (enterFit) {
-      reason = enterHeightBound ? 'height_bound' : 'width_bound';
+      reason = enterReason;
     } else {
       reason = 'hysteresis_hold';
     }
