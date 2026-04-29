@@ -122,23 +122,23 @@ These options control how `lynx-view` renders inside the web preview panel.
 
 Web preview bundle resolution is driven by `example-metadata.json` (`templateFiles[].webFile`) for the selected entry; it is not inferred from the Lynx bundle filename automatically.
 
-| Option              | Type                              | Default        | Description                                                                        |
-| ------------------- | --------------------------------- | -------------- | ---------------------------------------------------------------------------------- |
-| `webPreview`        | `boolean`                         | `true`         | Enable/disable the web preview tab even if `templateFiles[].webFile` exists        |
-| `webPreviewMode`    | `'fit' \| 'responsive' \| 'auto'` | `'responsive'` | Viewport rendering mode                                                            |
-| `designWidth`       | `number`                          | `375`          | Design canvas width in pixels. Used in `fit` mode.                                 |
-| `designHeight`      | `number`                          | `812`          | Design canvas height in pixels. Used in `fit` mode.                                |
-| `fitThresholdScale` | `number`                          | `1.0`          | Width upper bound for `auto` mode. Switches to `responsive` when wide enough       |
-| `fitMinScale`       | `number`                          | `0.5`          | Height lower bound for `auto` mode. Forces `fit` when the container is too short   |
-| `fit`               | `'contain' \| 'cover' \| 'auto'`  | `'cover'`      | Fit strategy inside `fit` mode. `auto` uses built-in heuristics (not configurable) |
+| Option              | Type                              | Default        | Description                                                                                                     |
+| ------------------- | --------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------- |
+| `webPreview`        | `boolean`                         | `true`         | Enable/disable the web preview tab even if `templateFiles[].webFile` exists                                     |
+| `webPreviewMode`    | `'fit' \| 'responsive' \| 'auto'` | `'responsive'` | Viewport rendering mode                                                                                         |
+| `designWidth`       | `number`                          | `375`          | Design canvas width in pixels. Used in `fit` mode.                                                              |
+| `designHeight`      | `number`                          | `812`          | Design canvas height in pixels. Used in `fit` mode.                                                             |
+| `fitThresholdScale` | `number`                          | `1.0`          | Width enter threshold for `webPreviewMode='auto'`. Exit back to `responsive` uses a built-in hysteresis band.   |
+| `fitMinScale`       | `number`                          | `0.5`          | Height enter threshold for `webPreviewMode='auto'`. Exit back to `responsive` uses a built-in hysteresis band.  |
+| `fit`               | `'contain' \| 'cover' \| 'auto'`  | `'cover'`      | Fit strategy inside the fit path. `auto` uses built-in heuristics, including hysteresis-aware mode transitions. |
 
 Mode behavior:
 
-| Mode           | Behavior                                                                                                                                         |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `'responsive'` | `lynx-view` fills the container. `browserConfig` uses measured container dimensions.                                                             |
-| `'fit'`        | `lynx-view` is fixed at `designWidth × designHeight`. CSS `transform: scale` fits it into the container. `browserConfig` uses design dimensions. |
-| `'auto'`       | Switches based on container size. Behaves like `fit` for small/narrow containers, `responsive` for wide ones.                                    |
+| Mode           | Behavior                                                                                                                                                                   |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `'responsive'` | `lynx-view` fills the container. `browserConfig` uses measured container dimensions.                                                                                       |
+| `'fit'`        | `lynx-view` is fixed at `designWidth × designHeight`. CSS `transform: scale` fits it into the container. `browserConfig` uses design dimensions.                           |
+| `'auto'`       | Switches based on container size. Behaves like `fit` for small/narrow containers and `responsive` for wide ones, with a built-in hysteresis band to reduce resize flicker. |
 
 Auto switching logic:
 
@@ -146,11 +146,14 @@ Auto switching logic:
 const ratioW = containerWidth / designWidth;
 const ratioH = containerHeight / designHeight;
 
-// Equivalent to:
+// Enter condition only:
 // - containerWidth < designWidth * fitThresholdScale
 // - containerHeight < designHeight * fitMinScale
 const shouldUseFit = ratioW < fitThresholdScale || ratioH < fitMinScale;
 ```
+
+Exit back to `responsive` uses slightly larger internal thresholds, so `auto`
+does not switch back and forth on every tiny resize near the boundary.
 
 Transition behavior:
 
