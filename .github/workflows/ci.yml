@@ -17,3 +17,15 @@ jobs:
     uses: ./.github/workflows/workflow-test.yml
     permissions:
       contents: read
+
+  done:
+    name: Done
+    needs:
+      - validate
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Fail If Any Job Did Not Succeed
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'skipped') || contains(needs.*.result, 'cancelled') }}
+        run: exit 1
