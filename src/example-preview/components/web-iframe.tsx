@@ -29,6 +29,7 @@ type LynxViewAttributes = React.HTMLAttributes<HTMLElement> & {
   'lynx-group-id'?: number;
   'transform-vh'?: boolean;
   'transform-vw'?: boolean;
+  url?: string;
 };
 
 type CSSVarProperties = { [key: `--${string}`]: string | number };
@@ -51,21 +52,25 @@ type WebIframeProps = {
 
 type UseWebIframeControllerArgs = {
   src: string;
-  lynxViewRef: React.RefObject<LynxView>;
-  dimsReady: boolean;
-  containerSizeRef: React.MutableRefObject<{ width: number; height: number }>;
-  /**
-   * Override the pixel dimensions written to `browserConfig`.
-   * In `fit` mode this should be the design canvas size × pixelRatio,
-   * not the container size. Omit to use the container size (responsive mode).
-   * Known limitation: `browserConfig` is only initialized once per `src`.
-   */
-  browserConfigSize?: { width: number; height: number };
+  lynxView: LynxView | null;
 };
 
 type UseWebIframeControllerResult = {
+  /**
+   * Lynx runtime module is loaded (web-core import resolved).
+   * This does not imply the bundle has been loaded or rendered.
+   */
   ready: boolean;
-  rendered: boolean;
+  /**
+   * A "mounted/started" marker: `<lynx-view>` is mounted and the controller
+   * has begun the startup path (next-tick after mount). There is currently no
+   * reliable public "rendered" (bundle successfully rendered) event to gate on.
+   */
+  started: boolean;
+  /**
+   * Error surfaced from runtime import failure or `<lynx-view>` error events.
+   * When set, the preview should be considered failed.
+   */
   error: string | null;
 };
 
@@ -133,41 +138,67 @@ function ensureRuntime() {
   return (runtimeReady ??= import('@lynx-js/web-core/client').then(() => {}));
 }
 
-// DEV: ?simulateError=runtime|shadow|render
+// DEV: ?simulateError=runtime|render
 const simulateError =
   typeof window !== 'undefined'
     ? new URLSearchParams(window.location.search).get('simulateError')
     : null;
 
+function formatLynxErrorMessage(value: unknown): string | null {
+  if (value == null) return null;
+  if (typeof value === 'string') return value;
+  if (value instanceof Error) return value.message || value.name;
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    const message = obj.message;
+    if (typeof message === 'string' && message) return message;
+    const nestedError = obj.error;
+    const nested = formatLynxErrorMessage(nestedError);
+    if (nested) return nested;
+    const name = obj.name;
+    const code = obj.code;
+    const parts: string[] = [];
+    if (typeof name === 'string' && name) parts.push(name);
+    if (
+      (typeof code === 'string' && code) ||
+      (typeof code === 'number' && Number.isFinite(code))
+    ) {
+      parts.push(`code: ${String(code)}`);
+    }
+    if (parts.length > 0) return parts.join(' ');
+    try {
+      const json = JSON.stringify(value);
+      if (typeof json === 'string' && json !== '{}' && json !== '[]')
+        return json;
+    } catch {}
+    return null;
+  }
+  return String(value);
+}
+
 function useWebIframeController({
   src,
-  lynxViewRef,
-  dimsReady,
-  containerSizeRef,
-  browserConfigSize,
+  lynxView,
 }: UseWebIframeControllerArgs): UseWebIframeControllerResult {
   const [ready, setReady] = useState(false);
-  const [rendered, setRendered] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [started, setStarted] = useState(false);
+  const [runtimeError, setRuntimeError] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
-  const renderedRef = useRef(false);
-  const browserConfigInitializedRef = useRef(false);
-  const lastUrlRef = useRef<string>('');
+  const startedRef = useRef(false);
 
   // Reset state when src changes
   useEffect(() => {
-    setRendered(false);
-    setError(null);
-    renderedRef.current = false;
-    browserConfigInitializedRef.current = false;
-    lastUrlRef.current = '';
+    setStarted(false);
+    setPreviewError(null);
+    startedRef.current = false;
   }, [src]);
 
   // Load web-core eagerly on mount
   useEffect(() => {
     const t = performance.now();
     if (simulateError === 'runtime') {
-      setError('Failed to load Lynx runtime: simulated error');
+      setRuntimeError('Failed to load Lynx runtime: simulated error');
       return;
     }
     ensureRuntime()
@@ -176,152 +207,67 @@ function useWebIframeController({
           '[WebIframe] runtime ready',
           `${(performance.now() - t).toFixed(0)}ms`,
         );
+        setRuntimeError(null);
         setReady(true);
       })
       .catch((err) => {
         console.error('[WebIframe] runtime load failed', err);
-        setError(
+        setRuntimeError(
           `Failed to load Lynx runtime: ${err instanceof Error ? err.message : String(err)}`,
         );
       });
   }, []);
 
-  // Set lynx-view dimensions to match the container.
-  // Called on initial setup, SystemInfo cannot be updated after that.
-  const setDimensions = useCallback((): boolean => {
-    if (!lynxViewRef.current) return false;
-    if (browserConfigInitializedRef.current) return true;
-    // Use override size (fit mode: design canvas) or container size (responsive).
-    const { width, height } = browserConfigSize ?? containerSizeRef.current;
-    if (width === 0 || height === 0) return false;
-    const pixelRatio = window.devicePixelRatio;
-    lynxViewRef.current.browserConfig = {
-      pixelWidth: Math.round(width * pixelRatio),
-      pixelHeight: Math.round(height * pixelRatio),
-      pixelRatio,
-    };
-    browserConfigInitializedRef.current = true;
-    return true;
-  }, [lynxViewRef, browserConfigSize, containerSizeRef]);
-
-  // Set URL eagerly once runtime is ready and element is mounted.
-  // No longer gates on `show` — content is preloaded so tab switches are instant.
-  // `lastUrlRef` prevents redundant url assignments that could trigger reloads.
   useEffect(() => {
-    const lynxView = lynxViewRef.current;
-    if (!ready || !dimsReady || !src || !lynxView) return;
-
-    const urlAlreadySet = lastUrlRef.current === src;
-
+    if (!ready || !src || !lynxView) return;
     const t0 = performance.now();
     const tag = `[WebIframe ${src.split('/').pop()}]`;
-    console.log(tag, 'effect start', { ready, src, urlAlreadySet });
 
-    const initialized = setDimensions();
-    if (!initialized) return;
-
-    if (!urlAlreadySet) {
-      console.log(tag, 'url set', `+${(performance.now() - t0).toFixed(0)}ms`);
-      lynxView.url = src;
-      lastUrlRef.current = src;
-    }
-
-    const el = lynxView as unknown as HTMLElement;
-    let disposed = false;
-    let mo: MutationObserver | undefined;
-
-    const markRendered = (source: string) => {
-      if (renderedRef.current) return;
-      if (simulateError === 'render') return;
-      console.log(
-        tag,
-        `rendered (${source})`,
-        `+${(performance.now() - t0).toFixed(0)}ms`,
-      );
-      renderedRef.current = true;
-      setRendered(true);
-    };
-
-    const setupShadow = (shadow: ShadowRoot) => {
-      console.log(
-        tag,
-        'shadow found',
-        `+${(performance.now() - t0).toFixed(0)}ms`,
-        {
-          childElementCount: shadow.childElementCount,
-        },
-      );
-
-      if (shadow.childElementCount > 0) {
-        markRendered('immediate');
-      } else {
-        mo = new MutationObserver(() => {
-          if (shadow.childElementCount > 0) {
-            markRendered('observer');
-            mo!.disconnect();
-          }
-        });
-        mo.observe(shadow, { childList: true, subtree: true });
-      }
-    };
-
-    if (simulateError === 'shadow') {
+    if (simulateError === 'render') {
       const t = setTimeout(() => {
-        if (!disposed)
-          setError(
-            'Preview timed out: shadow root was not created (simulated)',
-          );
-      }, 500);
+        setPreviewError('Preview failed: simulated render error');
+      }, 200);
       return () => {
-        disposed = true;
         clearTimeout(t);
       };
     }
 
-    let timer: ReturnType<typeof setTimeout> | undefined;
-
-    if (!renderedRef.current) {
-      const pollStart = performance.now();
-      const pollShadow = () => {
-        if (disposed) return;
-        if (performance.now() - pollStart > 3000) {
-          if (timer) clearTimeout(timer);
-          console.error(tag, 'shadow root timeout');
-          setError('Preview timed out: shadow root was not created');
-          return;
-        }
-        const shadow = el.shadowRoot;
-        if (shadow) {
-          setupShadow(shadow);
-        } else {
-          requestAnimationFrame(pollShadow);
-        }
-      };
-      pollShadow();
-
-      timer = setTimeout(() => {
-        if (!renderedRef.current) {
-          console.error(
-            tag,
-            'render timeout',
-            `+${(performance.now() - t0).toFixed(0)}ms`,
-          );
-          setError('Preview timed out: rendering did not complete within 5s');
-        }
-      }, 5000);
-    } else {
-      const shadow = el.shadowRoot;
-      if (shadow) setupShadow(shadow);
-    }
-
-    return () => {
-      disposed = true;
-      if (timer) clearTimeout(timer);
-      mo?.disconnect();
+    const markStarted = (source: string) => {
+      if (startedRef.current) return;
+      console.log(
+        tag,
+        `started (${source})`,
+        `+${(performance.now() - t0).toFixed(0)}ms`,
+      );
+      startedRef.current = true;
+      setStarted(true);
     };
-  }, [ready, dimsReady, src, setDimensions, lynxViewRef]);
 
-  return { ready, rendered, error };
+    const t = setTimeout(() => markStarted('tick'), 0);
+    return () => {
+      clearTimeout(t);
+    };
+  }, [ready, src, lynxView]);
+
+  useEffect(() => {
+    if (!lynxView) return;
+    const onError = (evt: Event) => {
+      const detail = (evt as CustomEvent<any>).detail;
+      const message =
+        formatLynxErrorMessage(detail?.error) ??
+        formatLynxErrorMessage(detail?.message) ??
+        (evt instanceof ErrorEvent ? evt.message : null) ??
+        'Lynx runtime error';
+      setPreviewError(message);
+    };
+    lynxView.addEventListener('error', onError as EventListener);
+    return () => {
+      lynxView.removeEventListener('error', onError as EventListener);
+    };
+  }, [lynxView]);
+
+  const error = runtimeError ?? previewError;
+  return { ready, started, error };
 }
 
 function deriveFitStyles(
@@ -515,22 +461,19 @@ export const WebIframe = ({
   fitMinScale = 0.5,
   fit = 'cover',
 }: WebIframeProps) => {
-  const lynxViewRef = useRef<LynxView>(null);
+  const [lynxView, setLynxView] = useState<LynxView | null>(null);
+  const browserConfigInitializedRef = useRef<WeakSet<LynxView>>(new WeakSet());
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const containerSizeRef = useRef({ width: 0, height: 0 });
   const [containerWidth, setContainerWidth] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
 
   useContainerResize({
     ref: containerRef,
     onResize: ({ width, height }) => {
-      containerSizeRef.current = { width: width ?? 0, height: height ?? 0 };
       setContainerWidth(width ?? 0);
       setContainerHeight(height ?? 0);
     },
   });
-
-  const dimsReady = containerWidth > 0 && containerHeight > 0;
 
   const prevResolvedRef = useRef<{
     mode: ResolvedWebPreviewMode;
@@ -565,10 +508,6 @@ export const WebIframe = ({
     );
   }
 
-  const browserConfigSize = usesFitPath
-    ? { width: designWidth, height: designHeight }
-    : undefined;
-
   const enableFitTransition = prevResolvedMode === 'fit' && usesFitPath;
   useEffect(() => {
     prevResolvedRef.current = {
@@ -577,12 +516,73 @@ export const WebIframe = ({
     };
   }, [mode, resolved.fitKind]);
 
-  const { ready, rendered, error } = useWebIframeController({
+  const browserConfigArgsRef = useRef({
+    usesFitPath,
+    designWidth,
+    designHeight,
+    containerWidth,
+    containerHeight,
+  });
+  useEffect(() => {
+    browserConfigArgsRef.current = {
+      usesFitPath,
+      designWidth,
+      designHeight,
+      containerWidth,
+      containerHeight,
+    };
+  });
+
+  const tryInitBrowserConfig = useCallback((el: LynxView): boolean => {
+    if (typeof window === 'undefined') return false;
+    if (browserConfigInitializedRef.current.has(el)) return true;
+
+    const args = browserConfigArgsRef.current;
+    const pixelRatio = window.devicePixelRatio;
+    const measured =
+      containerRef.current?.getBoundingClientRect() ??
+      el.getBoundingClientRect();
+
+    const width = args.usesFitPath
+      ? args.designWidth
+      : args.containerWidth || measured.width;
+    const height = args.usesFitPath
+      ? args.designHeight
+      : args.containerHeight || measured.height;
+
+    if (!isFinitePositive(width) || !isFinitePositive(height)) return false;
+
+    el.browserConfig = {
+      pixelWidth: Math.round(width * pixelRatio),
+      pixelHeight: Math.round(height * pixelRatio),
+      pixelRatio,
+    };
+    browserConfigInitializedRef.current.add(el);
+    return true;
+  }, []);
+
+  const handleLynxViewRef = useCallback((el: LynxView | null) => {
+    setLynxView(el);
+    if (!el) return;
+    tryInitBrowserConfig(el);
+  }, []);
+
+  useEffect(() => {
+    if (!lynxView) return;
+    tryInitBrowserConfig(lynxView);
+  }, [
+    lynxView,
+    containerWidth,
+    containerHeight,
+    usesFitPath,
+    designWidth,
+    designHeight,
+    tryInitBrowserConfig,
+  ]);
+
+  const { ready, started, error } = useWebIframeController({
     src,
-    lynxViewRef,
-    dimsReady,
-    containerSizeRef,
-    browserConfigSize,
+    lynxView,
   });
 
   // `webPreviewMode='responsive'` resolves to `usesFitPath === false`,
@@ -617,12 +617,13 @@ export const WebIframe = ({
       ? { stage: STAGE_FIT_ANCHOR, lynxView: fitStyles.lynxView }
       : { stage: STAGE_RESPONSIVE, lynxView: LYNX_VIEW_STYLE_RESPONSIVE };
 
-  const loading = show && (!ready || !rendered || !!error);
+  const loading = show && (!ready || !started || !!error);
 
-  const lynxViewEl = src && (
+  const lynxViewNode = ready && src && (
     <lynx-view
       key={src}
-      ref={lynxViewRef}
+      ref={handleLynxViewRef}
+      url={src}
       style={lynxViewStyle}
       lynx-group-id={LYNX_GROUP_ID}
       transform-vh={true}
@@ -632,9 +633,6 @@ export const WebIframe = ({
 
   const frameStyle =
     usesFitPath && fitStyles ? fitStyles.frame : FRAME_RESPONSIVE;
-  // Always mount <lynx-view> when src exists so the ref
-  // is always populated and shadow DOM persists
-  // across tab switches.
   return (
     // Outer: always in layout for dimension measurement
     // Inner: controls visibility
@@ -642,7 +640,7 @@ export const WebIframe = ({
       <div style={show ? INNER_VISIBLE : INNER_HIDDEN}>
         <LoadingOverlay visible={loading} error={error} />
         <div style={stageStyle}>
-          <div style={frameStyle}>{lynxViewEl}</div>
+          <div style={frameStyle}>{lynxViewNode}</div>
         </div>
       </div>
     </div>
