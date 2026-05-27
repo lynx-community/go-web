@@ -211,21 +211,24 @@ async function main() {
         ? JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'))
         : {};
 
+      const metadata = {
+        name: pkg.repository?.directory || shortName,
+        version: registryMeta.version,
+        [scopeConfig.frameworkVersionKey]: registryMeta.frameworkVersion,
+        files: sorted,
+        previewImage,
+        templateFiles,
+        exampleGitBaseUrl: scopeConfig.exampleGitBaseUrl,
+      };
+
+      // Persist pluginQRCode schema from package.json "go.schema" field
+      if (pkg.go?.schema) {
+        metadata.schema = pkg.go.schema;
+      }
+
       fs.writeFileSync(
         path.join(destDir, 'example-metadata.json'),
-        JSON.stringify(
-          {
-            name: pkg.repository?.directory || shortName,
-            version: registryMeta.version,
-            [scopeConfig.frameworkVersionKey]: registryMeta.frameworkVersion,
-            files: sorted,
-            previewImage,
-            templateFiles,
-            exampleGitBaseUrl: scopeConfig.exampleGitBaseUrl,
-          },
-          null,
-          2,
-        ),
+        JSON.stringify(metadata, null, 2),
       );
 
       totalCount++;

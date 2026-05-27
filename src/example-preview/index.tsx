@@ -7,7 +7,9 @@ import { useGoConfig } from '../config';
 import { ExampleContent } from './components';
 import type { SchemaOptionsData } from './hooks/use-switch-schema';
 import { isAssetFileType } from './utils/example-data';
+import { resolveSchema } from './utils/resolve-schema';
 import type { WebPreviewMode } from './utils/resolve-web-preview';
+import { getUrlFromMustacheSchema } from './utils/tool';
 
 const DefaultErrorWrap = ({
   example,
@@ -82,6 +84,8 @@ export interface ExampleMetadata {
   }>;
   previewImage?: string;
   exampleGitBaseUrl?: string;
+  /** QR code URL schema template from pluginQRCode config (e.g. `lynxexplorer://open?url={{{url}}}`) */
+  schema?: string;
 }
 
 export const ExamplePreview = (props: ExamplePreviewProps) => {
@@ -184,20 +188,22 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     }
   }, [currentName, isAssetFile, mode]);
 
+  // Priority: schema prop > metadata schema > raw URL
+  const effectiveSchema = resolveSchema(schema, exampleData?.schema);
+
   const currentEntryFileUrl = useMemo(() => {
     const file = exampleData?.templateFiles?.find(
       (file) => file.name === currentEntry,
     );
     if (file) {
       const url = `${window.location.origin}${EXAMPLE_BASE_URL}/${example}/${file?.file}`;
-      if (schema) {
-        const schemaUrl = schema.replace('{{{url}}}', url);
-        return schemaUrl;
+      if (effectiveSchema) {
+        return getUrlFromMustacheSchema(effectiveSchema, url);
       }
       return url;
     }
     return '';
-  }, [exampleData, currentEntry, schema]);
+  }, [exampleData, currentEntry, effectiveSchema]);
   useEffect(() => {
     if (exampleData?.templateFiles && exampleData?.templateFiles.length > 0) {
       let tmpEntry;
@@ -270,7 +276,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       defaultWebPreviewFile={defaultWebPreviewFile}
       initState={initState}
       rightFooter={rightFooter}
-      schemaOptions={schema ? undefined : schemaOptions}
+      schemaOptions={effectiveSchema ? undefined : schemaOptions}
       exampleGitBaseUrl={exampleData?.exampleGitBaseUrl}
       defaultTab={resolvedDefaultTab}
       mode={mode}
