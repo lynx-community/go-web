@@ -9,6 +9,7 @@ import type { SchemaOptionsData } from './hooks/use-switch-schema';
 import { isAssetFileType } from './utils/example-data';
 import { resolveSchema } from './utils/resolve-schema';
 import type { WebPreviewMode } from './utils/resolve-web-preview';
+import { getUrlFromMustacheSchema } from './utils/tool';
 
 const DefaultErrorWrap = ({
   example,
@@ -197,8 +198,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     if (file) {
       const url = `${window.location.origin}${EXAMPLE_BASE_URL}/${example}/${file?.file}`;
       if (effectiveSchema) {
-        const schemaUrl = effectiveSchema.replace('{{{url}}}', url);
-        return schemaUrl;
+        return getUrlFromMustacheSchema(effectiveSchema, url);
       }
       return url;
     }

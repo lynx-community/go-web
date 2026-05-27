@@ -212,14 +212,14 @@ async function main() {
         : {};
 
       const metadata = {
-            name: pkg.repository?.directory || shortName,
-            version: registryMeta.version,
-            [scopeConfig.frameworkVersionKey]: registryMeta.frameworkVersion,
-            files: sorted,
-            previewImage,
-            templateFiles,
-            exampleGitBaseUrl: scopeConfig.exampleGitBaseUrl,
-          };
+        name: pkg.repository?.directory || shortName,
+        version: registryMeta.version,
+        [scopeConfig.frameworkVersionKey]: registryMeta.frameworkVersion,
+        files: sorted,
+        previewImage,
+        templateFiles,
+        exampleGitBaseUrl: scopeConfig.exampleGitBaseUrl,
+      };
 
       // Persist pluginQRCode schema from package.json "go.schema" field
       if (pkg.go?.schema) {
