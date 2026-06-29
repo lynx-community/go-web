@@ -33,6 +33,7 @@ const translations: Record<string, Record<string, string>> = {
     'go.qrcode.copy-link': 'Copy Link',
     'go.qrcode.copied': 'Copied',
     'go.qrcode.entry': 'Entry',
+    'go.deeplink.open': 'Open in Lynxtron Go',
   },
   zh: {
     'go.preview': '预览',
@@ -43,6 +44,7 @@ const translations: Record<string, Record<string, string>> = {
     'go.qrcode.copy-link': '复制链接',
     'go.qrcode.copied': '已复制',
     'go.qrcode.entry': '入口',
+    'go.deeplink.open': '在 Lynxtron Go 中打开',
   },
 };
 
@@ -543,6 +545,9 @@ function App() {
   const [highlight, setHighlight] = useState('');
   const [img, setImg] = useState('');
   const [schema, setSchema] = useState('');
+  const [deepLinkUrl, setDeepLinkUrl] = useState('');
+  const [deepLinkTitle, setDeepLinkTitle] = useState('');
+  const [appDownloadUrl, setAppDownloadUrl] = useState('');
   const [propsOpen, setPropsOpen] = useState(true);
   const [ssgOpen, setSsgOpen] = useState(false);
   const [jsxDialogOpen, setJsxDialogOpen] = useState(false);
@@ -1168,6 +1173,36 @@ function App() {
                 style={panelInputStyle}
                 placeholder="lynx://..."
               />
+
+              <span style={panelLabelStyle}>Deep Link</span>
+              <input
+                aria-label="Deep Link URL"
+                type="text"
+                value={deepLinkUrl}
+                onChange={(e) => setDeepLinkUrl(e.target.value)}
+                style={panelInputStyle}
+                placeholder="lynxtron://open?url={{{urlEncoded}}}"
+              />
+
+              <span style={panelLabelStyle}>Deep Link Title</span>
+              <input
+                aria-label="Deep Link Title"
+                type="text"
+                value={deepLinkTitle}
+                onChange={(e) => setDeepLinkTitle(e.target.value)}
+                style={panelInputStyle}
+                placeholder="Open in Lynxtron Go"
+              />
+
+              <span style={panelLabelStyle}>App Download</span>
+              <input
+                aria-label="App Download URL"
+                type="text"
+                value={appDownloadUrl}
+                onChange={(e) => setAppDownloadUrl(e.target.value)}
+                style={panelInputStyle}
+                placeholder="https://lynxjs.org/download"
+              />
             </div>
 
             <ColumnResizer widthRef={col4Ref} onWidthChange={setCol4} reverse />
@@ -1267,6 +1302,9 @@ function App() {
                   webPreviewMode={
                     example.startsWith('lynx-ui') ? 'auto' : 'responsive'
                   }
+                  deepLinkUrl={deepLinkUrl || undefined}
+                  deepLinkTitle={deepLinkTitle || undefined}
+                  appDownloadUrl={appDownloadUrl || undefined}
                 />
                 <div className="figure-caption">Desktop</div>
               </div>
@@ -1301,6 +1339,9 @@ function App() {
                     webPreviewMode={
                       example.startsWith('lynx-ui') ? 'auto' : 'responsive'
                     }
+                    deepLinkUrl={deepLinkUrl || undefined}
+                    deepLinkTitle={deepLinkTitle || undefined}
+                    appDownloadUrl={appDownloadUrl || undefined}
                   />
                 </div>
                 <div className="figure-caption">Mobile (320 x 660)</div>

@@ -117,6 +117,9 @@ type EmbedOptions = {
   fitThresholdScale?: number;
   fitMinScale?: number;
   fit?: 'contain' | 'cover' | 'auto';
+  deepLinkUrl?: string;
+  deepLinkTitle?: string;
+  appDownloadUrl?: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -196,6 +199,9 @@ function EmbedApp() {
           fitThresholdScale={options.fitThresholdScale}
           fitMinScale={options.fitMinScale}
           fit={options.fit}
+          deepLinkUrl={options.deepLinkUrl}
+          deepLinkTitle={options.deepLinkTitle}
+          appDownloadUrl={options.appDownloadUrl}
         />
       </div>
     </GoConfigProvider>

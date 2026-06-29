@@ -65,6 +65,19 @@ export type EmbedOptions = {
    * e.g. 'https://go.lynxjs.org/lynx-examples'.
    */
   exampleBasePath?: string;
+  /**
+   * Deep link URL template to open the bundle in a desktop app
+   * (e.g. Lynxtron Go). Supports `{{{url}}}` and `{{{urlEncoded}}}`
+   * placeholders that are replaced with the currently selected entry URL.
+   */
+  deepLinkUrl?: string;
+  /** Custom title for the deep link button. Defaults to i18n `go.deeplink.open`. */
+  deepLinkTitle?: string;
+  /**
+   * Optional fallback URL to download the desktop app. Used when the
+   * deep link does not appear to launch a registered handler within ~3s.
+   */
+  appDownloadUrl?: string;
 };
 
 export type EmbedControl = {

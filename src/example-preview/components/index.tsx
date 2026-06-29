@@ -64,8 +64,13 @@ interface ExampleContentProps {
   name: string;
   directory?: string;
   currentEntryFileUrl: string;
+  /**
+   * Resolved Lynxtron desktop bundle URL for the current entry.
+   * Empty when the entry only has a Lynx (mobile) bundle.
+   */
+  currentEntryLynxtronFileUrl?: string;
   currentEntry: string;
-  entryFiles?: { name: string; file: string }[];
+  entryFiles?: { name: string; file: string; lynxtronFile?: string }[];
   setCurrentEntry: (v: string) => void;
   highlight?: string;
   entry?: string | string[];
@@ -83,6 +88,9 @@ interface ExampleContentProps {
   fitThresholdScale?: number;
   fitMinScale?: number;
   fit?: 'contain' | 'cover' | 'auto';
+  deepLinkUrl?: string;
+  deepLinkTitle?: string;
+  appDownloadUrl?: string;
 }
 
 export function ExampleContent({
@@ -95,6 +103,7 @@ export function ExampleContent({
   name,
   directory,
   currentEntryFileUrl,
+  currentEntryLynxtronFileUrl,
   currentEntry,
   setCurrentEntry,
   entryFiles,
@@ -114,6 +123,9 @@ export function ExampleContent({
   fitThresholdScale = 1.0,
   fitMinScale = 0.5,
   fit = 'cover',
+  deepLinkUrl,
+  deepLinkTitle,
+  appDownloadUrl,
 }: ExampleContentProps) {
   const {
     explorerUrl,
@@ -162,17 +174,34 @@ export function ExampleContent({
     }
   }, [defaultTab, defaultWebPreviewFile]);
 
+  // If currently on QR but the entry has no scannable Lynx bundle,
+  // fall back to whichever preview is available.
+  useEffect(() => {
+    if (!initState) return;
+    if (previewType === PreviewType.QRCode && !currentEntryFileUrl) {
+      if (previewImage) setPreviewType(PreviewType.Preview);
+      else if (defaultWebPreviewFile) setPreviewType(PreviewType.Web);
+    }
+  }, [
+    initState,
+    previewType,
+    currentEntryFileUrl,
+    previewImage,
+    defaultWebPreviewFile,
+  ]);
+
   const [qrcodeUrlWithSchema, setQrcodeUrlWithSchema] = useState('');
-  const { hasPreview, hasWebPreview } = useMemo(() => {
+  const { hasPreview, hasWebPreview, hasQRCode } = useMemo(() => {
+    const hasQR = Boolean(currentEntry && currentEntryFileUrl);
+    const hasWeb = Boolean(defaultWebPreviewFile);
     const count =
-      Number(Boolean(previewImage)) +
-      Number(Boolean(currentEntry)) +
-      Number(Boolean(defaultWebPreviewFile));
+      Number(Boolean(previewImage)) + Number(hasQR) + Number(hasWeb);
     return {
       hasPreview: count >= 1,
-      hasWebPreview: Boolean(defaultWebPreviewFile),
+      hasWebPreview: hasWeb,
+      hasQRCode: hasQR,
     };
-  }, [previewImage, currentEntry, defaultWebPreviewFile]);
+  }, [previewImage, currentEntry, currentEntryFileUrl, defaultWebPreviewFile]);
   const [tmpCurrentFileName, setTmpCurrentFileName] = useState('');
   const [fullscreenMode, setFullscreenMode] = useState<'off' | 'all'>('off');
   const defaultI18n = (key: string) => DEFAULT_I18N[key] || key;
@@ -213,6 +242,63 @@ export function ExampleContent({
     setQrcodeUrlWithSchema(schema);
   };
   const qrcodeUrl = qrcodeUrlWithSchema || currentEntryFileUrl;
+
+  // ─── Deep link (Open in <DesktopApp>) ──────────────────────────────────
+  // Prefer the Lynxtron desktop bundle URL when the entry exposes one;
+  // otherwise fall back to the same URL the QR code uses.
+  const deepLinkSourceUrl = currentEntryLynxtronFileUrl || qrcodeUrl;
+  const deepLinkButtonTitle = useMemo(() => {
+    if (deepLinkTitle) return deepLinkTitle;
+    const translated = t('go.deeplink.open');
+    return translated === 'go.deeplink.open'
+      ? 'Open in Lynxtron Go'
+      : translated;
+  }, [deepLinkTitle, t]);
+  const resolvedDeepLinkUrl = useMemo(() => {
+    if (!deepLinkUrl) return '';
+    return deepLinkUrl
+      .split('{{{urlEncoded}}}')
+      .join(encodeURIComponent(deepLinkSourceUrl))
+      .split('{{{url}}}')
+      .join(deepLinkSourceUrl);
+  }, [deepLinkUrl, deepLinkSourceUrl]);
+  const canOpenDeepLink = useMemo(() => {
+    if (!deepLinkUrl) return false;
+    const needsUrl =
+      deepLinkUrl.includes('{{{url}}}') ||
+      deepLinkUrl.includes('{{{urlEncoded}}}');
+    return needsUrl ? Boolean(deepLinkSourceUrl) : true;
+  }, [deepLinkUrl, deepLinkSourceUrl]);
+
+  // electron-fiddle style fallback: try the protocol; if the page is still
+  // visible after ~1.5s, assume no handler is registered and offer the
+  // download URL.
+  const handleOpenDeepLink = () => {
+    if (!canOpenDeepLink || !resolvedDeepLinkUrl) return;
+    const start = Date.now();
+    let resolved = false;
+    const cleanup = () => {
+      resolved = true;
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('blur', onBlur);
+    };
+    const onVisibility = () => {
+      if (document.hidden) cleanup();
+    };
+    const onBlur = () => cleanup();
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('blur', onBlur);
+    window.location.href = resolvedDeepLinkUrl;
+    window.setTimeout(() => {
+      if (resolved) return;
+      cleanup();
+      // If the protocol actually launched the app, the tab usually went
+      // hidden; if we're here and still visible, the handler is missing.
+      if (Date.now() - start < 4000 && !document.hidden && appDownloadUrl) {
+        window.open(appDownloadUrl, '_blank', 'noopener');
+      }
+    }, 3000);
+  };
 
   const showCodeTab = entryData && entryData?.length > 1;
 
@@ -291,7 +377,7 @@ export function ExampleContent({
                   <Radio value={PreviewType.Preview}>{t('go.preview')}</Radio>
                 )}
                 {hasWebPreview && <Radio value={PreviewType.Web}>Web</Radio>}
-                {currentEntry && (
+                {hasQRCode && (
                   <Radio value={PreviewType.QRCode}>{t('go.qrcode')}</Radio>
                 )}
               </>
@@ -327,7 +413,7 @@ export function ExampleContent({
           />
         </div>
         <div className={s['preview-body']}>
-          {previewType === PreviewType.QRCode && currentEntry && (
+          {previewType === PreviewType.QRCode && hasQRCode && (
             <div className={s['preview-panel']}>
               <div className={s.qrcode}>
                 <Typography.Text
@@ -443,6 +529,22 @@ export function ExampleContent({
                   />
                 </Suspense>
               </NoSSRComponent>
+            </div>
+          )}
+          {deepLinkUrl && (
+            <div className={s['preview-deeplink']}>
+              <Button
+                theme="light"
+                type="primary"
+                size="small"
+                disabled={!canOpenDeepLink}
+                onClick={handleOpenDeepLink}
+              >
+                {deepLinkButtonTitle}
+                <span aria-hidden style={{ marginLeft: 4 }}>
+                  ↗
+                </span>
+              </Button>
             </div>
           )}
         </div>

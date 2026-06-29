@@ -70,6 +70,23 @@ export interface ExamplePreviewProps {
    * - `'qrcode'`  — QR code for Lynx Explorer
    */
   defaultTab?: PreviewTab;
+  /**
+   * Deep link URL template to open the bundle in a desktop app
+   * (e.g. Lynxtron Go). Supports templating with the currently selected
+   * entry URL:
+   * - `{{{url}}}`        — raw URL (Lynxtron file URL when available, otherwise the QR code URL)
+   * - `{{{urlEncoded}}}` — encodeURIComponent of the same URL
+   */
+  deepLinkUrl?: string;
+  /** Custom title for the deep link button. Defaults to i18n `go.deeplink.open`. */
+  deepLinkTitle?: string;
+  /**
+   * Optional fallback URL for downloading the desktop app. When provided and
+   * the deep link does not appear to launch a registered handler within
+   * ~3s (page stays visible), the user is redirected here. Mirrors the
+   * electron-fiddle pattern for graceful degradation.
+   */
+  appDownloadUrl?: string;
 }
 
 export interface ExampleMetadata {
@@ -77,8 +94,16 @@ export interface ExampleMetadata {
   files: string[];
   templateFiles: Array<{
     name: string;
+    /** Mobile-scannable Lynx bundle URL (relative to example dir). */
     file: string;
+    /** Optional web-preview bundle URL. */
     webFile?: string;
+    /**
+     * Optional Lynxtron desktop bundle URL. Presence of this field
+     * enables the "Open in Lynxtron" deep-link button. Entries that
+     * only specify `lynxtronFile` (no `file`) hide the QRCode tab.
+     */
+    lynxtronFile?: string;
   }>;
   previewImage?: string;
   exampleGitBaseUrl?: string;
@@ -119,6 +144,9 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     fitThresholdScale = 1.0,
     fitMinScale = 0.5,
     fit = 'cover',
+    deepLinkUrl,
+    deepLinkTitle,
+    appDownloadUrl,
   } = props;
 
   // Instance prop > config provider > undefined (let ExampleContent decide)
@@ -198,6 +226,16 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     }
     return '';
   }, [exampleData, currentEntry, schema]);
+
+  const currentEntryLynxtronFileUrl = useMemo(() => {
+    const file = exampleData?.templateFiles?.find(
+      (file) => file.name === currentEntry,
+    );
+    if (file?.lynxtronFile) {
+      return `${window.location.origin}${EXAMPLE_BASE_URL}/${example}/${file.lynxtronFile}`;
+    }
+    return '';
+  }, [exampleData, currentEntry]);
   useEffect(() => {
     if (exampleData?.templateFiles && exampleData?.templateFiles.length > 0) {
       let tmpEntry;
@@ -262,6 +300,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       }
       langAlias={langAlias}
       currentEntryFileUrl={currentEntryFileUrl}
+      currentEntryLynxtronFileUrl={currentEntryLynxtronFileUrl}
       currentEntry={currentEntry}
       setCurrentEntry={setCurrentEntry}
       entryFiles={exampleData?.templateFiles}
@@ -280,6 +319,9 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       fitThresholdScale={fitThresholdScale}
       fitMinScale={fitMinScale}
       fit={fit}
+      deepLinkUrl={deepLinkUrl}
+      deepLinkTitle={deepLinkTitle}
+      appDownloadUrl={appDownloadUrl}
     />
   );
 };
