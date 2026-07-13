@@ -10,7 +10,13 @@ import { createRoot } from 'react-dom/client';
 import type { BundledLanguage, ShikiTransformer } from 'shiki';
 import type { GoConfig, PreviewTab } from '../../src/config';
 import { Go, GoConfigProvider } from '../../src/index';
+import { demoNativeEnv } from './demo-native-env';
+import { StackedPreviewRuntime } from './mpa/StackedPreviewRuntime';
 import './styles.css';
+
+// Opt-in preview extensions demo (Level A / Level B). 'default' keeps the
+// built-in single-card preview with no native env — identical to before.
+type PreviewExt = 'default' | 'native' | 'mpa';
 
 const LOGO_LIGHT =
   'https://lf-lynx.tiktok-cdns.com/obj/lynx-artifacts-oss-sg/lynx-website/assets/lynx-dark-logo.svg';
@@ -530,6 +536,7 @@ function App() {
   const [mode, setMode] = useState<'linked' | 'preview' | 'source'>(
     initial.mode ?? 'linked',
   );
+  const [previewExt, setPreviewExt] = useState<PreviewExt>('default');
   const [copied, setCopied] = useState(false);
   const [exampleSearch, setExampleSearch] = useState('');
   const [entrySearch, setEntrySearch] = useState('');
@@ -749,6 +756,10 @@ function App() {
     useLang: () => lang,
     useDark: () => dark,
     CodeBlock: StandaloneCodeBlock,
+    // Level A: forward a demo native env to the previewed <lynx-view>.
+    ...(previewExt !== 'default' ? { previewNativeEnv: demoNativeEnv } : {}),
+    // Level B: replace the single-card renderer with a stacked MPA runtime.
+    ...(previewExt === 'mpa' ? { PreviewRuntime: StackedPreviewRuntime } : {}),
   };
 
   return (
@@ -844,6 +855,18 @@ function App() {
                   { value: 'source', label: 'Source' },
                 ]}
                 onChange={(v) => setMode(v as 'linked' | 'preview' | 'source')}
+              />
+            </ControlGroup>
+
+            <ControlGroup label="Preview">
+              <AdaptiveControl
+                value={previewExt}
+                options={[
+                  { value: 'default', label: 'Default' },
+                  { value: 'native', label: 'Native' },
+                  { value: 'mpa', label: 'MPA' },
+                ]}
+                onChange={(v) => setPreviewExt(v as PreviewExt)}
               />
             </ControlGroup>
 
@@ -1254,7 +1277,7 @@ function App() {
               {/* Desktop */}
               <div style={{ flex: '1 1 500px', minWidth: 0 }}>
                 <Go
-                  key={`desktop-${example}-${selectedEntry}-${defaultTab}-${mode}`}
+                  key={`desktop-${example}-${selectedEntry}-${defaultTab}-${mode}-${previewExt}`}
                   example={example}
                   defaultFile={defaultFile}
                   defaultTab={defaultTab}
@@ -1288,7 +1311,7 @@ function App() {
                   }}
                 >
                   <Go
-                    key={`mobile-${example}-${selectedEntry}-${defaultTab}-${mode}`}
+                    key={`mobile-${example}-${selectedEntry}-${defaultTab}-${mode}-${previewExt}`}
                     example={example}
                     defaultFile={defaultFile}
                     defaultTab={defaultTab}

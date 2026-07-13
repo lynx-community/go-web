@@ -160,6 +160,98 @@ Transition behavior:
 - `fit → fit` on container resize: smooth `transform` transition
 - `fit ↔ responsive` mode switch: hard cut, no transition
 
+### Native modules & multi-page (MPA) previews
+
+By default the web preview renders **one** `<lynx-view>` with no native bridge.
+Two opt-in extension points let embedders preview examples that call **native
+modules** and that navigate across **multiple Lynx pages**. Both are generic —
+go-web has no knowledge of any framework's module names or URL scheme — and both
+are backwards compatible: when unset, the preview is byte-for-byte identical to
+today.
+
+#### Level A — native environment (`previewNativeEnv` / `nativeEnv`)
+
+Forward a native environment to the previewed `<lynx-view>` so a bundle that
+calls a native module renders instead of failing with
+`Native module ... is not registered`. Set it site-wide on `GoConfig`
+(`previewNativeEnv`) and/or per instance on `<Go>` (`nativeEnv`, shallow-merged
+over the config — per-instance keys win).
+
+| Field                 | Type                                    | Description                                                                                               |
+| --------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `onNativeModulesCall` | `(name, data, moduleName) => any`       | Handler for NativeModule calls made by the bundle. web-core caches calls made before assignment (safe).   |
+| `nativeModulesMap`    | `Record<string, string>`                | Native-modules definition: `module-name → ESM url`. Consumed by the worker at init, applied before start. |
+| `napiModulesMap`      | `Record<string, string>`                | Napi-modules definition (advanced).                                                                       |
+| `onNapiModulesCall`   | `(...) => any`                          | Handler for NapiModule calls (advanced).                                                                  |
+| `globalProps`         | `Cloneable \| (entryName) => Cloneable` | Per-card `globalProps` (e.g. a container id / query params). Read when the view starts.                   |
+| `initData`            | `Cloneable \| (entryName) => Cloneable` | Per-card `initData`. Read when the view starts.                                                           |
+
+```tsx
+import type { GoConfig } from '@lynx-js/go-web';
+
+const config: GoConfig = {
+  exampleBasePath: '/lynx-examples',
+  previewNativeEnv: {
+    onNativeModulesCall: (name, data, moduleName) => {
+      // Deliver the call to your host bridge and return the result.
+      return myBridge.call(moduleName, name, data);
+    },
+    nativeModulesMap: { MyModule: 'https://cdn.example.com/my-module.js' },
+    globalProps: (entryName) => ({ containerId: `preview:${entryName}` }),
+  },
+};
+```
+
+**Ordering.** `nativeModulesMap` / `napiModulesMap` / `globalProps` / `initData`
+are read by web-core when the view starts; go-web assigns them from the element
+`ref` (the same path the existing `browserConfig` init uses), which lands before
+web-core's async start reads them. `onNativeModulesCall` may be assigned late
+because web-core caches pre-assignment calls.
+
+#### Level B — pluggable preview runtime (`PreviewRuntime`)
+
+The built-in renderer shows a single card, so cross-page navigation has nowhere
+to go. Set `GoConfig.PreviewRuntime` to **replace just the inner card renderer**
+— go-web keeps owning the tab bar, QR, code browser, fit/scaling, and SSG path.
+The component receives every previewable entry plus the resolved Level-A
+environment:
+
+```tsx
+import type { PreviewRuntimeProps } from '@lynx-js/go-web';
+
+function MyRuntime(props: PreviewRuntimeProps) {
+  // props.entries      — every entry with a web bundle ({ name, webUrl, file })
+  // props.activeEntry  — current entry name
+  // props.src          — active entry's web bundle URL
+  // props.nativeEnv    — resolved Level-A environment
+  // props.designWidth / designHeight / fit / webPreviewMode — scaling params
+  // → stack <lynx-view> cards and route navigation between them.
+}
+
+const config: GoConfig = {
+  exampleBasePath: '/lynx-examples',
+  PreviewRuntime: MyRuntime,
+};
+```
+
+**Two shapes, one hook.** This single slot supports both MPA designs:
+
+- **B1 — in-process card stack (recommended).** Keep a stack of `<lynx-view>`
+  cards in React state; push on navigate, pop on `back`. Lower cards stay
+  mounted (stable React key) so their heap and state survive the round-trip. No
+  cross-origin handshake, type-safe composition, reuses go-web scaling. See the
+  runnable prototype in [`example/src/mpa/`](./example/src/mpa/)
+  (`StackedPreviewRuntime.tsx` + the framework-agnostic `card-stack.ts`).
+- **B2 — iframe runtime.** Render a real `<iframe src={runtimeUrl}>` from your
+  `PreviewRuntime` and pass the entries via query/`postMessage`. Because an
+  iframe is a real nested browsing context, `window.history` and navigation are
+  naturally scoped to it — ideal for an embedder that already has a full-page
+  "web shell". It is simply one implementation of the same `PreviewRuntime` hook.
+
+go-web recommends B1 as the default and treats B2 as an escape hatch. Try both
+live in the example app via the **Preview** control (`Default` / `Native` /
+`MPA`).
+
 ## Development
 
 ```bash
@@ -184,9 +276,11 @@ CI always runs `prepare:clean` to ensure that examples are up to date.
 
 ## CI
 
-All three checks must pass on every PR:
+All checks must pass on every PR:
 
+- **Format Check** — `pnpm format:check`
 - **Type Check** — `pnpm typecheck` at the repo root
+- **Unit Test** — `pnpm test` (Vitest)
 - **Build Example App** — standalone Rsbuild example
 - **Build Rspress Example** — rspress integration example
 

@@ -6,6 +6,9 @@ import type { PreviewTab } from '../config';
 import { useGoConfig } from '../config';
 import { ExampleContent } from './components';
 import type { SchemaOptionsData } from './hooks/use-switch-schema';
+import type { PreviewNativeEnv } from './preview-native-env';
+import { mergePreviewNativeEnv } from './preview-native-env';
+import type { PreviewRuntimeEntry } from './preview-runtime';
 import { isAssetFileType } from './utils/example-data';
 import type { WebPreviewMode } from './utils/resolve-web-preview';
 
@@ -70,6 +73,12 @@ export interface ExamplePreviewProps {
    * - `'qrcode'`  — QR code for Lynx Explorer
    */
   defaultTab?: PreviewTab;
+  /**
+   * Level A — native environment for this instance's web preview. Shallow-merged
+   * over the site-wide `GoConfig.previewNativeEnv` (per-instance keys win).
+   * Forwarded to the previewed `<lynx-view>` (and to a custom `PreviewRuntime`).
+   */
+  nativeEnv?: PreviewNativeEnv;
 }
 
 export interface ExampleMetadata {
@@ -91,6 +100,8 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     SSGComponent,
     defaultTab: configDefaultTab,
     withBase: withBaseFn = (p: string) => p,
+    previewNativeEnv,
+    PreviewRuntime,
   } = useGoConfig();
   const EXAMPLE_BASE_URL = withBaseFn(exampleBasePath);
 
@@ -111,6 +122,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     schemaOptions,
     langAlias,
     defaultTab: propsDefaultTab,
+    nativeEnv: propsNativeEnv,
     mode = 'linked',
     webPreviewMode = 'responsive',
     webPreview = true,
@@ -123,6 +135,12 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
 
   // Instance prop > config provider > undefined (let ExampleContent decide)
   const defaultTab = propsDefaultTab ?? configDefaultTab;
+
+  // Level A: per-instance native env merged over the site-wide config.
+  const nativeEnv = useMemo(
+    () => mergePreviewNativeEnv(previewNativeEnv, propsNativeEnv),
+    [previewNativeEnv, propsNativeEnv],
+  );
   const resolvedDefaultTab =
     webPreview === false && defaultTab === 'web' ? undefined : defaultTab;
 
@@ -198,6 +216,21 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     }
     return '';
   }, [exampleData, currentEntry, schema]);
+
+  // Level B: every previewable entry (those with a web bundle), with absolute
+  // web URLs. Fed to a custom `PreviewRuntime` so it can stack cards for MPA.
+  const webEntries = useMemo<PreviewRuntimeEntry[]>(() => {
+    if (!PreviewRuntime || webPreview === false) return [];
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return (exampleData?.templateFiles ?? [])
+      .filter((file) => Boolean(file.webFile))
+      .map((file) => ({
+        name: file.name,
+        file: file.webFile!,
+        webUrl: `${origin}${EXAMPLE_BASE_URL}/${example}/${file.webFile}`,
+      }));
+  }, [PreviewRuntime, exampleData, EXAMPLE_BASE_URL, example, webPreview]);
+
   useEffect(() => {
     if (exampleData?.templateFiles && exampleData?.templateFiles.length > 0) {
       let tmpEntry;
@@ -280,6 +313,9 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       fitThresholdScale={fitThresholdScale}
       fitMinScale={fitMinScale}
       fit={fit}
+      nativeEnv={nativeEnv}
+      webEntries={webEntries}
+      PreviewRuntime={PreviewRuntime}
     />
   );
 };
