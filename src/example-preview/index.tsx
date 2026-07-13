@@ -81,9 +81,14 @@ export interface ExamplePreviewProps {
    */
   deepLinkUrl?: string;
   /**
-   * Custom title for the deep link button
+   * Native framework required by the bundle at runtime, e.g. `"lynxtron"` or
+   * `"sparkling"`. Unset ⇒ no native framework dependency, universally
+   * compatible (opens in Lynx Explorer by default). Prop overrides the value
+   * declared in `example-metadata.json`.
    */
-  deepLinkTitle?: string;
+  nativeFramework?: string;
+  /** @internal Force mobile mode for testing. */
+  _forceMobile?: boolean;
 }
 
 export interface ExampleMetadata {
@@ -96,6 +101,11 @@ export interface ExampleMetadata {
   }>;
   previewImage?: string;
   exampleGitBaseUrl?: string;
+  /**
+   * Native framework this example depends on at runtime (e.g. `"lynxtron"`).
+   * Absent means no native framework dep — universally compatible.
+   */
+  nativeFramework?: string;
 }
 
 export const ExamplePreview = (props: ExamplePreviewProps) => {
@@ -134,7 +144,8 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     fitMinScale = 0.5,
     fit = 'cover',
     deepLinkUrl,
-    deepLinkTitle,
+    nativeFramework: nativeFrameworkProp,
+    _forceMobile,
   } = props;
 
   // Instance prop > config provider > undefined (let ExampleContent decide)
@@ -298,7 +309,8 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       fitMinScale={fitMinScale}
       fit={fit}
       deepLinkUrl={deepLinkUrl}
-      deepLinkTitle={deepLinkTitle}
+      nativeFramework={nativeFrameworkProp ?? exampleData?.nativeFramework}
+      _forceMobile={_forceMobile}
     />
   );
 };

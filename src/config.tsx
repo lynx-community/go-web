@@ -15,7 +15,15 @@ const DEFAULT_I18N: Record<string, string> = {
   'go.qrcode.copy-link': 'Copy link',
   'go.qrcode.copied': 'Copied!',
   'go.qrcode.entry': 'Entry:',
-  'go.deeplink.open': 'Open in App',
+  'go.openin': 'Open',
+  // Deep-link button label. Key is suffixed by `nativeFramework` (from
+  // metadata or prop); `.default` is used when no native framework is
+  // required (universal bundle, opens in Lynx Explorer).
+  'go.deeplink.open.default': 'Open in Lynx Explorer',
+  'go.deeplink.open.lynxtron': 'Open in Lynxtron Go',
+  'go.deeplink.open.sparkling': 'Open in Sparkling',
+  'go.deeplink.hint-desktop': 'Open on desktop',
+  'go.openin.show-qrcode': 'Show QR Code',
 };
 
 /** Default CodeBlock — plain <pre><code> with no syntax highlighting. */

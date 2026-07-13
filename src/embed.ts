@@ -34,8 +34,15 @@ export type EmbedOptions = {
    * - `{{{urlEncoded}}}` - encodeURIComponent(URL)
    */
   deepLinkUrl?: string;
-  /** Custom title for the deep link button */
-  deepLinkTitle?: string;
+  /**
+   * Native framework required by this bundle at runtime, e.g. `"lynxtron"` or
+   * `"sparkling"`. When unset, the bundle has no native framework dependency
+   * and runs on any Lynx-compatible host (Lynx Explorer, Lynxtron Go, ...).
+   *
+   * Drives the "Open in ..." button label + which host variants of the panel
+   * are rendered. Prop overrides `example-metadata.json`'s `nativeFramework`.
+   */
+  nativeFramework?: string;
   /** Static preview image URL */
   img?: string;
   /** Default entry file for web preview */

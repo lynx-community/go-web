@@ -90,6 +90,12 @@ export default defineConfig({
         __dirname,
         'node_modules/@douyinfe/semi-ui/dist/css/semi.min.css',
       ),
+
+      // --- web-core: resolve subpath for embed entry rebuild ---
+      '@lynx-js/web-core/client': path.resolve(
+        __dirname,
+        'node_modules/@lynx-js/web-core/dist/client/index.js',
+      ),
     },
   },
 

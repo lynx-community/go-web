@@ -33,7 +33,12 @@ const translations: Record<string, Record<string, string>> = {
     'go.qrcode.copy-link': 'Copy Link',
     'go.qrcode.copied': 'Copied',
     'go.qrcode.entry': 'Entry',
-    'go.deeplink.open': 'Open in App',
+    'go.openin': 'Open',
+    'go.deeplink.open.default': 'Open in Lynx Explorer',
+    'go.deeplink.open.lynxtron': 'Open in Lynxtron Go',
+    'go.deeplink.open.sparkling': 'Open in Sparkling',
+    'go.deeplink.hint-desktop': 'Open on desktop',
+    'go.openin.show-qrcode': 'Show QR Code',
   },
   zh: {
     'go.preview': '预览',
@@ -44,7 +49,12 @@ const translations: Record<string, Record<string, string>> = {
     'go.qrcode.copy-link': '复制链接',
     'go.qrcode.copied': '已复制',
     'go.qrcode.entry': '入口',
-    'go.deeplink.open': '在 App 中打开',
+    'go.openin': '打开',
+    'go.deeplink.open.default': '在 Lynx Explorer 中打开',
+    'go.deeplink.open.lynxtron': '在 Lynxtron Go 中打开',
+    'go.deeplink.open.sparkling': '在 Sparkling 中打开',
+    'go.deeplink.hint-desktop': '在桌面上打开',
+    'go.openin.show-qrcode': '显示二维码',
   },
 };
 
@@ -545,6 +555,8 @@ function App() {
   const [highlight, setHighlight] = useState('');
   const [img, setImg] = useState('');
   const [schema, setSchema] = useState('');
+  const [deepLinkUrl, setDeepLinkUrl] = useState('');
+  const [nativeFramework, setNativeFramework] = useState<string>('');
   const [propsOpen, setPropsOpen] = useState(true);
   const [ssgOpen, setSsgOpen] = useState(false);
   const [jsxDialogOpen, setJsxDialogOpen] = useState(false);
@@ -690,7 +702,7 @@ function App() {
           }
         }
         setHighlight('');
-        setImg(data.previewImage || '');
+        setImg(data.previewImage || 'https://lf-lynx.tiktok-cdns.com/obj/lynx-artifacts-oss-sg/lynx-website/assets/doc/hello-world-showcase-ios.png');
         setSchema('');
       })
       .catch(() => setMetadata(null))
@@ -1153,12 +1165,19 @@ function App() {
                 placeholder="{5-10}"
               />
 
-              <span style={panelLabelStyle}>Img</span>
+              <span style={panelLabelStyle}>
+                Img{!metadata?.previewImage && img ? ' *' : ''}
+              </span>
               <input
                 type="text"
                 value={img}
                 onChange={(e) => setImg(e.target.value)}
-                style={panelInputStyle}
+                style={{
+                  ...panelInputStyle,
+                  ...(!metadata?.previewImage && img
+                    ? { borderColor: 'var(--sb-accent)', opacity: 0.7 }
+                    : {}),
+                }}
                 placeholder="https://..."
               />
 
@@ -1169,6 +1188,24 @@ function App() {
                 onChange={(e) => setSchema(e.target.value)}
                 style={panelInputStyle}
                 placeholder="lynx://..."
+              />
+
+              <span style={panelLabelStyle}>Deep Link</span>
+              <input
+                type="text"
+                value={deepLinkUrl}
+                onChange={(e) => setDeepLinkUrl(e.target.value)}
+                style={panelInputStyle}
+                placeholder="myapp://open?url={{{urlEncoded}}}"
+              />
+
+              <span style={panelLabelStyle}>Native Framework</span>
+              <input
+                type="text"
+                value={nativeFramework}
+                onChange={(e) => setNativeFramework(e.target.value)}
+                style={panelInputStyle}
+                placeholder="lynxtron / sparkling / (empty = universal)"
               />
             </div>
 
@@ -1269,6 +1306,8 @@ function App() {
                   webPreviewMode={
                     example.startsWith('lynx-ui') ? 'auto' : 'responsive'
                   }
+                  deepLinkUrl={deepLinkUrl || undefined}
+                  nativeFramework={nativeFramework || undefined}
                 />
                 <div className="figure-caption">Desktop</div>
               </div>
@@ -1303,6 +1342,9 @@ function App() {
                     webPreviewMode={
                       example.startsWith('lynx-ui') ? 'auto' : 'responsive'
                     }
+                    deepLinkUrl={deepLinkUrl || undefined}
+                    nativeFramework={nativeFramework || undefined}
+                    _forceMobile={true}
                   />
                 </div>
                 <div className="figure-caption">Mobile (320 x 660)</div>

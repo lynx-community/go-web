@@ -103,7 +103,7 @@ type EmbedOptions = {
   mode?: 'linked' | 'preview' | 'source';
   defaultTab?: 'preview' | 'web' | 'qrcode';
   deepLinkUrl?: string;
-  deepLinkTitle?: string;
+  nativeFramework?: string;
   img?: string;
   defaultEntryFile?: string;
   defaultEntryName?: string;
@@ -199,7 +199,7 @@ function EmbedApp() {
           fitMinScale={options.fitMinScale}
           fit={options.fit}
           deepLinkUrl={options.deepLinkUrl}
-          bundleType={options.bundleType}
+          nativeFramework={options.nativeFramework}
         />
       </div>
     </GoConfigProvider>

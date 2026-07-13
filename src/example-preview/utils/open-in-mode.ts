@@ -1,22 +1,32 @@
 export type OpenInVariant = 'tab' | 'bottom-sheet' | 'floating-toast' | 'none';
 
+/**
+ * Decide which "Open in ..." UI variant to render.
+ *
+ * - `nativeFramework === undefined`: bundle has no native runtime dependency
+ *   and runs on any Lynx host. Show the full QR + deep-link tab flow.
+ * - `nativeFramework` set (e.g. `"lynxtron"`, `"sparkling"`): bundle requires
+ *   that specific host. Lynx Explorer scanning wouldn't work, so hide the QR
+ *   tab entirely and only surface the deep link (floating on desktop,
+ *   bottom-sheet on mobile).
+ */
 export function resolveOpenInVariant(opts: {
-  bundleType: 'lynx' | 'lynxtron';
+  nativeFramework: string | undefined;
   isMobile: boolean;
   hasDeepLink: boolean;
   hasEntry: boolean;
 }): OpenInVariant {
-  const { bundleType, isMobile, hasDeepLink, hasEntry } = opts;
+  const { nativeFramework, isMobile, hasDeepLink, hasEntry } = opts;
 
   // Nothing to show
   if (!hasDeepLink && !hasEntry) return 'none';
 
-  if (bundleType === 'lynxtron') {
-    if (isMobile) return 'bottom-sheet';
-    return 'floating-toast';
+  // Bundle requires a specific native framework → QR-to-Lynx-Explorer doesn't
+  // apply. Only show the deep-link entry.
+  if (nativeFramework) {
+    return isMobile ? 'bottom-sheet' : 'floating-toast';
   }
 
-  // Lynx bundle
-  if (isMobile) return 'bottom-sheet';
-  return 'tab';
+  // Universal bundle (no native framework dep)
+  return isMobile ? 'bottom-sheet' : 'tab';
 }
