@@ -9,6 +9,8 @@ import {
   lerpFitScale,
 } from '../utils/fit-scale';
 import { isFinitePositive } from '../utils/number';
+import type { PreviewNativeEnv } from '../preview-native-env';
+import { applyPreviewNativeEnv } from '../preview-native-env';
 import { resolveWebPreviewModeWithHysteresis } from '../utils/resolve-web-preview';
 import type {
   ResolvedWebPreviewFitKind,
@@ -48,6 +50,10 @@ type WebIframeProps = {
   fitThresholdScale?: number;
   fitMinScale?: number;
   fit?: 'contain' | 'cover' | 'auto';
+  /** Level A — native environment forwarded to the `<lynx-view>` before start. */
+  nativeEnv?: PreviewNativeEnv;
+  /** Active entry name, passed to `globalProps`/`initData` factories. */
+  entryName?: string;
 };
 
 type UseWebIframeControllerArgs = {
@@ -460,9 +466,12 @@ export const WebIframe = ({
   fitThresholdScale = 1.0,
   fitMinScale = 0.5,
   fit = 'cover',
+  nativeEnv,
+  entryName = '',
 }: WebIframeProps) => {
   const [lynxView, setLynxView] = useState<LynxView | null>(null);
   const browserConfigInitializedRef = useRef<WeakSet<LynxView>>(new WeakSet());
+  const nativeEnvAppliedRef = useRef<WeakSet<LynxView>>(new WeakSet());
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
@@ -561,9 +570,21 @@ export const WebIframe = ({
     return true;
   }, []);
 
+  // Latest native env, read imperatively from the ref callback (which runs
+  // outside React's render cycle) to avoid stale closures.
+  const nativeEnvArgsRef = useRef({ nativeEnv, entryName });
+  useEffect(() => {
+    nativeEnvArgsRef.current = { nativeEnv, entryName };
+  });
+
   const handleLynxViewRef = useCallback((el: LynxView | null) => {
     setLynxView(el);
     if (!el) return;
+    // Apply Level-A native env before browserConfig. Both are consumed by
+    // web-core inside its async `#render()` microtask (after the iframe realm
+    // resolves), so assignment from this ref lands before the worker reads them.
+    const { nativeEnv: env, entryName: name } = nativeEnvArgsRef.current;
+    applyPreviewNativeEnv(el, env, name, nativeEnvAppliedRef.current);
     tryInitBrowserConfig(el);
   }, []);
 

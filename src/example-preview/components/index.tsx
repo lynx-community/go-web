@@ -24,6 +24,11 @@ import { SwitchSchema } from './switch-schema';
 import type { PreviewTab } from '../../config';
 import { DEFAULT_I18N, DefaultNoSSR, useGoConfig } from '../../config';
 import type { SchemaOptionsData } from '../hooks/use-switch-schema';
+import type { PreviewNativeEnv } from '../preview-native-env';
+import type {
+  PreviewRuntimeComponent,
+  PreviewRuntimeEntry,
+} from '../preview-runtime';
 import { useTreeController } from '../hooks/use-tree-controller';
 import {
   IconCopyLink,
@@ -83,6 +88,12 @@ interface ExampleContentProps {
   fitThresholdScale?: number;
   fitMinScale?: number;
   fit?: 'contain' | 'cover' | 'auto';
+  /** Level A — native environment forwarded to the previewed `<lynx-view>`. */
+  nativeEnv?: PreviewNativeEnv;
+  /** Level B — every previewable entry (with web bundle), for a custom runtime. */
+  webEntries?: PreviewRuntimeEntry[];
+  /** Level B — custom preview runtime replacing the built-in single card. */
+  PreviewRuntime?: PreviewRuntimeComponent;
 }
 
 export function ExampleContent({
@@ -114,8 +125,12 @@ export function ExampleContent({
   fitThresholdScale = 1.0,
   fitMinScale = 0.5,
   fit = 'cover',
+  nativeEnv,
+  webEntries,
+  PreviewRuntime,
 }: ExampleContentProps) {
   const {
+    exampleBasePath,
     explorerUrl,
     explorerText,
     withBase: withBaseFn = (p: string) => p,
@@ -431,16 +446,36 @@ export function ExampleContent({
             >
               <NoSSRComponent>
                 <Suspense fallback={<div>Loading...</div>}>
-                  <WebIframe
-                    show={previewType === PreviewType.Web}
-                    src={defaultWebPreviewFile || ''}
-                    webPreviewMode={webPreviewMode}
-                    designWidth={designWidth}
-                    designHeight={designHeight}
-                    fitThresholdScale={fitThresholdScale}
-                    fitMinScale={fitMinScale}
-                    fit={fit}
-                  />
+                  {PreviewRuntime ? (
+                    <PreviewRuntime
+                      example={name}
+                      exampleBaseUrl={withBaseFn(exampleBasePath)}
+                      entries={webEntries ?? []}
+                      activeEntry={currentEntry}
+                      src={defaultWebPreviewFile || ''}
+                      show={previewType === PreviewType.Web}
+                      nativeEnv={nativeEnv}
+                      webPreviewMode={webPreviewMode}
+                      designWidth={designWidth}
+                      designHeight={designHeight}
+                      fitThresholdScale={fitThresholdScale}
+                      fitMinScale={fitMinScale}
+                      fit={fit}
+                    />
+                  ) : (
+                    <WebIframe
+                      show={previewType === PreviewType.Web}
+                      src={defaultWebPreviewFile || ''}
+                      webPreviewMode={webPreviewMode}
+                      designWidth={designWidth}
+                      designHeight={designHeight}
+                      fitThresholdScale={fitThresholdScale}
+                      fitMinScale={fitMinScale}
+                      fit={fit}
+                      nativeEnv={nativeEnv}
+                      entryName={currentEntry}
+                    />
+                  )}
                 </Suspense>
               </NoSSRComponent>
             </div>

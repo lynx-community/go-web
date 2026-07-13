@@ -1,6 +1,8 @@
 import type React from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ExamplePreviewProps } from './example-preview';
+import type { PreviewNativeEnv } from './example-preview/preview-native-env';
+import type { PreviewRuntimeComponent } from './example-preview/preview-runtime';
 import { useIsClient } from './example-preview/hooks/use-is-client';
 
 export type PreviewTab = 'preview' | 'web' | 'qrcode';
@@ -85,6 +87,29 @@ export interface GoConfig {
   LoadingComponent?: React.ComponentType<{ visible: boolean }>;
   /** Absolute disk path to examples directory, for built-in SSG component */
   ssgExampleRoot?: string;
+
+  // --- Live preview extension points (opt-in) ---
+
+  /**
+   * Level A — native environment forwarded to the previewed `<lynx-view>`.
+   *
+   * Site-wide defaults for registering a native-modules bridge, injecting
+   * per-card `globalProps`/`initData`, and handling native-module calls made by
+   * the previewed bundle. Per-instance `nativeEnv` on `<Go>` is shallow-merged
+   * over this. Unset ⇒ preview behavior is unchanged.
+   */
+  previewNativeEnv?: PreviewNativeEnv;
+
+  /**
+   * Level B — replace the built-in single-card web preview renderer.
+   *
+   * When provided, go-web renders this component in place of the default
+   * `<lynx-view>` card (still inside go-web's tab bar / QR / code browser /
+   * scaling), passing every previewable entry plus the resolved native
+   * environment. Use it to stack cards and route cross-page (MPA) navigation.
+   * Unset ⇒ the built-in single-card preview is used.
+   */
+  PreviewRuntime?: PreviewRuntimeComponent;
 
   // --- Framework adapter ---
 
