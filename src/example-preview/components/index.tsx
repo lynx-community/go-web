@@ -371,9 +371,7 @@ export function ExampleContent({
                   )}
                   {hasWebPreview && <Radio value={PreviewType.Web}>Web</Radio>}
                   {currentEntry && openInVariant === 'tab' && (
-                    <Radio value={PreviewType.QRCode}>
-                      {t('go.openin')} ↗
-                    </Radio>
+                    <Radio value={PreviewType.QRCode}>{t('go.openin')} ↗</Radio>
                   )}
                 </>
               ) : (

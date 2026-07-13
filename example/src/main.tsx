@@ -702,7 +702,10 @@ function App() {
           }
         }
         setHighlight('');
-        setImg(data.previewImage || 'https://lf-lynx.tiktok-cdns.com/obj/lynx-artifacts-oss-sg/lynx-website/assets/doc/hello-world-showcase-ios.png');
+        setImg(
+          data.previewImage ||
+            'https://lf-lynx.tiktok-cdns.com/obj/lynx-artifacts-oss-sg/lynx-website/assets/doc/hello-world-showcase-ios.png',
+        );
         setSchema('');
       })
       .catch(() => setMetadata(null))
