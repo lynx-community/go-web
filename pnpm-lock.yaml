@@ -43,6 +43,9 @@ importers:
       lint-staged:
         specifier: ^16.4.0
         version: 16.4.0
+      playwright:
+        specifier: ^1.61.1
+        version: 1.61.1
       prettier:
         specifier: ^3.8.3
         version: 3.8.3
@@ -2089,6 +2092,14 @@ packages:
       }
     engines: { node: '>=6 <7 || >=8' }
 
+  fsevents@2.3.2:
+    resolution:
+      {
+        integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==,
+      }
+    engines: { node: ^8.16.0 || ^10.6.0 || >=11.0.0 }
+    os: [darwin]
+
   fsevents@2.3.3:
     resolution:
       {
@@ -3054,6 +3065,22 @@ packages:
         integrity: sha512-uB80kBFb/tfd68bVleG9T5GGsGPjJrLAUpR5PZIrhBnIaRTQRjqdJSsIKkOP6OAIFbj7GOrcudc5pNjZ+geV2g==,
       }
     engines: { node: '>=6' }
+
+  playwright-core@1.61.1:
+    resolution:
+      {
+        integrity: sha512-h7Qlt6m4REp25qvIdvbDtVmD4LqVXfpRxhORv9L0jzETM05p4fuPJ3dKyuSXQxDSbXnmS79HAgi9589lGSpLkg==,
+      }
+    engines: { node: '>=18' }
+    hasBin: true
+
+  playwright@1.61.1:
+    resolution:
+      {
+        integrity: sha512-DWnY5o3YbLWK4GovuAVwpqL+1VwGNdUGrRr++8j8PtQQzvAVZUIMjKQ90fY689sEJZJBbZVw1rXaOKSTitkzPQ==,
+      }
+    engines: { node: '>=18' }
+    hasBin: true
 
   postcss@8.5.19:
     resolution:
@@ -5354,6 +5381,9 @@ snapshots:
       jsonfile: 4.0.0
       universalify: 0.1.2
 
+  fsevents@2.3.2:
+    optional: true
+
   fsevents@2.3.3:
     optional: true
 
@@ -6194,6 +6224,14 @@ snapshots:
   picomatch@4.0.4: {}
 
   pify@4.0.1: {}
+
+  playwright-core@1.61.1: {}
+
+  playwright@1.61.1:
+    dependencies:
+      playwright-core: 1.61.1
+    optionalDependencies:
+      fsevents: 2.3.2
 
   postcss@8.5.19:
     dependencies:

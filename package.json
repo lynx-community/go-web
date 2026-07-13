@@ -40,6 +40,7 @@
     "format:check": "prettier --check .",
     "prepare": "husky",
     "test": "vitest run",
+    "test:browser": "node test/browser/run.mjs",
     "typecheck": "tsc --noEmit"
   },
   "lint-staged": {
@@ -58,6 +59,7 @@
     "@types/react-dom": "^18.2.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
+    "playwright": "^1.61.1",
     "prettier": "^3.8.3",
     "prettier-plugin-packagejson": "^3.0.2",
     "qrcode.react": "^4.2.0",

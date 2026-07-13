@@ -274,6 +274,35 @@ pnpm prepare:clean
 
 CI always runs `prepare:clean` to ensure that examples are up to date.
 
+### Testing
+
+The preview extension points are verified in two layers:
+
+```bash
+pnpm test          # Vitest — Node unit tests (runs in CI)
+pnpm test:browser  # Playwright — real web-core integration (opt-in, local)
+```
+
+- **Unit (`pnpm test`)** — pure logic plus the native-env wiring against a
+  faithful `<lynx-view>` fake: apply-before-start ordering, merge/resolve,
+  native-call delivery (including calls cached before the handler is assigned),
+  and the MPA card-stack navigation (open → back with the root intact). These
+  validate go-web's own code and are the CI gate.
+- **Real-browser (`pnpm test:browser`)** — drives the built example app in
+  headless Chromium against the **real** `@lynx-js/web-core` runtime and asserts:
+  the default preview still boots exactly one `<lynx-view>`; Level A actually
+  reaches the real element (`nativeModulesMap` / `onNativeModulesCall` /
+  `globalProps`) and it boots; and Level B pushes a **second** real `<lynx-view>`
+  on a native `open` call, with `Back` returning to the original root element
+  (same DOM node ⇒ heap and state intact). Prereq: `cd example && pnpm build`.
+  It is intentionally out of CI (needs the example built and a Chromium binary).
+
+> Literal acceptance of a native-calling / multi-page example needs a fixture
+> bundle that actually invokes native modules (none exists in the public gallery
+> — the `vue-router` example uses in-bundle `createMemoryHistory`). `pnpm
+test:browser` is the harness such a fixture (or the downstream MPA bundle)
+> slots into.
+
 ## CI
 
 All checks must pass on every PR:
