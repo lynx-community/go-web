@@ -126,6 +126,10 @@
       padding: 0 4px;
       flex-shrink: 0;
       border-bottom: 1px solid var(--semi-color-border);
+      .preview-header-action {
+        width: 24px;
+        flex-shrink: 0;
+      }
       :global {
         .semi-radioGroup.semi-radioGroup-buttonRadio {
           background: transparent !important;
