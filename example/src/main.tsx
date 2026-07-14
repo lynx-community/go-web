@@ -582,6 +582,10 @@ function findEntrySourceDir(
 function App() {
   const initial = useMemo(() => readUrlState(), []);
 
+  // On narrow screens the multi-column props panel stacks vertically instead of
+  // scrolling sideways, so every control (inputs, presets) stays reachable.
+  const isNarrow = useIsMobile();
+
   const [lang, setLang] = useState<Lang>(initial.lang ?? 'en');
   const [dark, setDark] = useState(
     () =>
@@ -975,13 +979,16 @@ function App() {
               borderTop: '1px solid var(--sb-border)',
               background: 'var(--sb-bg)',
               display: 'flex',
-              overflowX: 'auto',
+              flexDirection: isNarrow ? 'column' : 'row',
+              overflowX: isNarrow ? 'visible' : 'auto',
             }}
           >
             {/* Col 1: examples list */}
             <div
               style={{
-                flex: `0 0 ${col1W}px`,
+                ...(isNarrow
+                  ? { flex: '0 0 auto', width: '100%' }
+                  : { flex: `0 0 ${col1W}px` }),
                 padding: '10px 12px',
                 overflow: 'auto',
                 maxHeight: 200,
@@ -1078,12 +1085,16 @@ function App() {
               })}
             </div>
 
-            <ColumnResizer widthRef={col1Ref} onWidthChange={setCol1} />
+            {!isNarrow && (
+              <ColumnResizer widthRef={col1Ref} onWidthChange={setCol1} />
+            )}
 
             {/* Col 2: entry list */}
             <div
               style={{
-                flex: `0 0 ${col2W}px`,
+                ...(isNarrow
+                  ? { flex: '0 0 auto', width: '100%' }
+                  : { flex: `0 0 ${col2W}px` }),
                 padding: '10px 12px',
                 overflow: 'auto',
                 maxHeight: 200,
@@ -1171,13 +1182,16 @@ function App() {
               )}
             </div>
 
-            <ColumnResizer widthRef={col2Ref} onWidthChange={setCol2} />
+            {!isNarrow && (
+              <ColumnResizer widthRef={col2Ref} onWidthChange={setCol2} />
+            )}
 
             {/* Col 3: controls */}
             <div
               style={{
-                flex: '1 1 0',
-                minWidth: 120,
+                ...(isNarrow
+                  ? { flex: '0 0 auto', width: '100%', minWidth: 0 }
+                  : { flex: '1 1 0', minWidth: 120 }),
                 padding: '10px 16px',
                 overflow: 'hidden',
                 display: 'grid',
@@ -1294,12 +1308,20 @@ function App() {
               />
             </div>
 
-            <ColumnResizer widthRef={col4Ref} onWidthChange={setCol4} reverse />
+            {!isNarrow && (
+              <ColumnResizer
+                widthRef={col4Ref}
+                onWidthChange={setCol4}
+                reverse
+              />
+            )}
 
             {/* Right: metadata JSON */}
             <div
               style={{
-                flex: `0 0 ${col4W}px`,
+                ...(isNarrow
+                  ? { flex: '0 0 auto', width: '100%' }
+                  : { flex: `0 0 ${col4W}px` }),
                 minWidth: 0,
                 padding: '10px 16px',
                 overflow: 'auto',
