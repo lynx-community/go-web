@@ -1,6 +1,6 @@
 import type { LynxViewElement as LynxView } from '@lynx-js/web-core/client';
 import type React from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useContainerResize } from '../hooks/use-container-resize';
 import {
@@ -48,11 +48,13 @@ type WebIframeProps = {
   fitThresholdScale?: number;
   fitMinScale?: number;
   fit?: 'contain' | 'cover' | 'auto';
+  reloadKey?: number;
 };
 
 type UseWebIframeControllerArgs = {
   src: string;
   lynxView: LynxView | null;
+  reloadKey: number;
 };
 
 type UseWebIframeControllerResult = {
@@ -179,6 +181,7 @@ function formatLynxErrorMessage(value: unknown): string | null {
 function useWebIframeController({
   src,
   lynxView,
+  reloadKey,
 }: UseWebIframeControllerArgs): UseWebIframeControllerResult {
   const [ready, setReady] = useState(false);
   const [started, setStarted] = useState(false);
@@ -192,7 +195,7 @@ function useWebIframeController({
     setStarted(false);
     setPreviewError(null);
     startedRef.current = false;
-  }, [src]);
+  }, [src, reloadKey]);
 
   // Load web-core eagerly on mount
   useEffect(() => {
@@ -247,7 +250,7 @@ function useWebIframeController({
     return () => {
       clearTimeout(t);
     };
-  }, [ready, src, lynxView]);
+  }, [ready, src, lynxView, reloadKey]);
 
   useEffect(() => {
     if (!lynxView) return;
@@ -460,6 +463,7 @@ export const WebIframe = ({
   fitThresholdScale = 1.0,
   fitMinScale = 0.5,
   fit = 'cover',
+  reloadKey = 0,
 }: WebIframeProps) => {
   const [lynxView, setLynxView] = useState<LynxView | null>(null);
   const browserConfigInitializedRef = useRef<WeakSet<LynxView>>(new WeakSet());
@@ -580,9 +584,16 @@ export const WebIframe = ({
     tryInitBrowserConfig,
   ]);
 
+  const resolvedSrc = useMemo(() => {
+    if (!src || reloadKey === 0) return src;
+    const separator = src.includes('?') ? '&' : '?';
+    return `${src}${separator}goWebReload=${reloadKey}`;
+  }, [src, reloadKey]);
+
   const { ready, started, error } = useWebIframeController({
-    src,
+    src: resolvedSrc,
     lynxView,
+    reloadKey,
   });
 
   // `webPreviewMode='responsive'` resolves to `usesFitPath === false`,
@@ -619,11 +630,11 @@ export const WebIframe = ({
 
   const loading = show && (!ready || !started || !!error);
 
-  const lynxViewNode = ready && src && (
+  const lynxViewNode = ready && resolvedSrc && (
     <lynx-view
-      key={src}
+      key={resolvedSrc}
       ref={handleLynxViewRef}
-      url={src}
+      url={resolvedSrc}
       style={lynxViewStyle}
       lynx-group-id={LYNX_GROUP_ID}
       transform-vh={true}

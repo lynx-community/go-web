@@ -1,4 +1,8 @@
-import { IconChevronRightStroked, IconList } from '@douyinfe/semi-icons';
+import {
+  IconChevronRightStroked,
+  IconList,
+  IconRefresh,
+} from '@douyinfe/semi-icons';
 import {
   Button,
   Radio,
@@ -148,6 +152,8 @@ export function ExampleContent({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+  const [webPreviewRevision, setWebPreviewRevision] = useState(0);
+
   const [previewType, setPreviewType] = useState(() => {
     if (defaultTab === 'preview' && previewImage) return PreviewType.Preview;
     if (defaultTab === 'qrcode') return PreviewType.QRCode;
@@ -273,7 +279,20 @@ export function ExampleContent({
     <div className={s['preview-wrap']}>
       <div className={s['preview-wrap-content']}>
         <div className={s['preview-header']}>
-          <div style={{ width: 24, flexShrink: 0 }} />
+          <div className={s['preview-header-action']}>
+            {hasWebPreview && previewType === PreviewType.Web && (
+              <Button
+                theme="borderless"
+                icon={
+                  <IconRefresh style={{ color: 'var(--semi-color-text-2)' }} />
+                }
+                type="tertiary"
+                size="small"
+                aria-label="Reload Lynx bundle"
+                onClick={() => setWebPreviewRevision((v) => v + 1)}
+              />
+            )}
+          </div>
           <RadioGroup
             onChange={(e) => setPreviewType(e.target.value)}
             value={previewType}
@@ -434,6 +453,7 @@ export function ExampleContent({
                   <WebIframe
                     show={previewType === PreviewType.Web}
                     src={defaultWebPreviewFile || ''}
+                    reloadKey={webPreviewRevision}
                     webPreviewMode={webPreviewMode}
                     designWidth={designWidth}
                     designHeight={designHeight}
