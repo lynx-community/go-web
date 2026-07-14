@@ -23,6 +23,7 @@ const DEFAULT_I18N: Record<string, string> = {
   'go.deeplink.open.lynxtron': 'Open in Lynxtron Go',
   'go.deeplink.open.sparkling': 'Open in Sparkling',
   'go.deeplink.hint-desktop': 'Open on desktop',
+  'go.deeplink.hint-mobile': 'Open on mobile',
   'go.openin.show-qrcode': 'Show QR Code',
 };
 

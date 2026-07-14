@@ -1,13 +1,19 @@
-// ─── Shared ──────────────────────────────────────────────────────────────────
+// ─── Deep-link link (bordered) ───────────────────────────────────────────────
+// One affordance, used everywhere: appended inside the QR tab and floating for
+// a desktop framework. Semi Design tokens → adapts to light / dark.
 
 .open-link {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   font-size: 12px;
   color: var(--semi-color-link);
   text-decoration: none;
   cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--semi-color-bg-1);
+  border: 1px solid var(--semi-color-border);
   transition: opacity 0.12s;
 
   &:hover {
@@ -20,39 +26,8 @@
   }
 }
 
-.open-link-arrow {
-  font-size: 11px;
-}
-
-.copy-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--semi-color-text-2);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 2px 0;
-  font-family: inherit;
-  transition: opacity 0.12s;
-
-  &:hover {
-    opacity: 0.7;
-  }
-}
-
-.entry-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-// ─── Additive deep-link row ──────────────────────────────────────────────────
-// Appended to the *unchanged* classic QR panel for universal bundles, only when
-// a `deepLinkUrl` is set. A soft "or" divider separates it from the QR flow, and
-// the action itself is a self-contained pill CTA. All colors use Semi Design
-// tokens so it adapts to light / dark automatically.
+// ─── Additive deep-link row (inside the QR tab) ──────────────────────────────
+// A soft "or" divider separates the deep link from the QR flow above it.
 
 .deeplink-row {
   display: flex;
@@ -89,120 +64,7 @@
   color: var(--semi-color-text-2);
 }
 
-.deeplink-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 100%;
-  padding: 7px 16px;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.2;
-  color: var(--semi-color-link);
-  background: var(--semi-color-primary-light-default);
-  border: 1px solid transparent;
-  border-radius: 999px;
-  text-decoration: none;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.08s ease;
-
-  &:hover {
-    background: var(--semi-color-primary-light-hover);
-  }
-
-  &:active {
-    transform: translateY(0.5px);
-    background: var(--semi-color-primary-light-active);
-  }
-
-  &:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 2px var(--semi-color-primary-light-active);
-  }
-
-  &[data-disabled] {
-    color: var(--semi-color-text-2);
-    background: var(--semi-color-fill-0);
-    pointer-events: none;
-  }
-}
-
-.deeplink-cta-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.deeplink-cta-arrow {
-  flex-shrink: 0;
-  font-size: 12px;
-  opacity: 0.85;
-}
-
-// ─── Bottom-sheet (Mobile) ───────────────────────────────────────────────────
-
-.bottom-sheet {
-  width: 100%;
-  padding: 6px 12px;
-  border-top: 1px solid var(--semi-color-border);
-}
-
-.bs-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 28px;
-}
-
-// Native mobile: the deep-link pill, centered in the bottom-sheet.
-.bs-cta {
-  display: flex;
-  justify-content: center;
-  padding: 2px 0;
-}
-
-.qr-toggle {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 2px 4px;
-  color: inherit;
-  font-family: inherit;
-  flex-shrink: 0;
-}
-
-.bs-qr-panel {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 4px 0;
-}
-
-.qr-frame-small {
-  padding: 6px;
-  background: #fff;
-  border-radius: 4px;
-  line-height: 0;
-  flex-shrink: 0;
-}
-
-.bs-qr-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-  padding-top: 2px;
-}
-
-.bs-footer {
-  border-top: 1px solid var(--semi-color-border);
-  padding: 6px 0;
-}
-
-// ─── Floating toast ──────────────────────────────────────────────────────────
+// ─── Floating (desktop framework: deep link, or "open on …" hint) ────────────
 
 .floating-toast {
   position: absolute;
@@ -211,26 +73,11 @@
   z-index: 2;
 }
 
-.open-link-float {
+.open-hint {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  font-size: 12px;
-  color: var(--semi-color-link);
-  text-decoration: none;
-  cursor: pointer;
   padding: 4px 10px;
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--semi-color-bg-1);
   border: 1px solid var(--semi-color-border);
-  transition: opacity 0.12s;
-
-  &:hover {
-    opacity: 0.8;
-  }
-
-  &[data-disabled] {
-    opacity: 0.4;
-    pointer-events: none;
-  }
 }

@@ -38,6 +38,7 @@ const translations: Record<string, Record<string, string>> = {
     'go.deeplink.open.lynxtron': 'Open in Lynxtron Go',
     'go.deeplink.open.sparkling': 'Open in Sparkling',
     'go.deeplink.hint-desktop': 'Open on desktop',
+    'go.deeplink.hint-mobile': 'Open on mobile',
     'go.openin.show-qrcode': 'Show QR Code',
   },
   zh: {
@@ -54,6 +55,7 @@ const translations: Record<string, Record<string, string>> = {
     'go.deeplink.open.lynxtron': '在 Lynxtron Go 中打开',
     'go.deeplink.open.sparkling': '在 Sparkling 中打开',
     'go.deeplink.hint-desktop': '在桌面上打开',
+    'go.deeplink.hint-mobile': '在移动端打开',
     'go.openin.show-qrcode': '显示二维码',
   },
 };
@@ -380,8 +382,7 @@ const DEEPLINK_PRESETS: {
 }[] = [
   {
     label: 'Universal',
-    title:
-      'No nativeFramework · no deepLink → classic QR tab (regression guard)',
+    title: 'Runs anywhere · no deepLink → QR on both desktop and mobile',
     deepLinkUrl: '',
     nativeFramework: '',
     defaultTab: 'qrcode',
@@ -389,7 +390,7 @@ const DEEPLINK_PRESETS: {
   {
     label: 'Universal + Deep Link',
     title:
-      'No nativeFramework · deepLink → QR tab + additive “or / Open in Lynx Explorer” pill',
+      'Runs anywhere · deepLink → QR + additive “or / Open in …” on both platforms',
     deepLinkUrl: 'lynx-explorer://open?url={{{urlEncoded}}}',
     nativeFramework: '',
     defaultTab: 'qrcode',
@@ -397,16 +398,16 @@ const DEEPLINK_PRESETS: {
   {
     label: 'Lynxtron',
     title:
-      'nativeFramework: lynxtron · deepLink → QR hidden, bordered “Open in Lynxtron Go” link',
-    deepLinkUrl: 'lynxtron-go://open?url={{{urlEncoded}}}',
+      'Desktop framework (default scheme) → deep link on desktop, hint on mobile',
+    deepLinkUrl: '',
     nativeFramework: 'lynxtron',
     defaultTab: 'qrcode',
   },
   {
     label: 'Sparkling',
     title:
-      'nativeFramework: sparkling · deepLink → QR hidden, bordered “Open in Sparkling” link',
-    deepLinkUrl: 'sparkling://open?url={{{urlEncoded}}}',
+      'Mobile framework (default scheme) → QR on desktop, deep link + QR on mobile',
+    deepLinkUrl: '',
     nativeFramework: 'sparkling',
     defaultTab: 'qrcode',
   },

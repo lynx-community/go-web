@@ -17,7 +17,7 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { CodeView } from './code-view';
 import { FileTree } from './file-tree';
-import { DeepLinkRow, OpenInPanel } from './open-in-panel';
+import { DeepLinkRow, FloatingDeepLink, OpenInHint } from './open-in-panel';
 import { PreviewImg } from './preview-img';
 import { SplitPane, type SplitPaneHandle } from './split-pane';
 import { SwitchSchema } from './switch-schema';
@@ -33,7 +33,8 @@ import {
   IconFullscreen,
   IconGithub,
 } from '../utils/icon';
-import { resolveOpenInVariant } from '../utils/open-in-mode';
+import { getFrameworkConfig } from '../utils/native-frameworks';
+import { isQrAllowed, resolveOpenIn } from '../utils/open-in-mode';
 import type { WebPreviewMode } from '../utils/resolve-web-preview';
 import { tabScrollToTop } from '../utils/tool';
 
@@ -223,44 +224,56 @@ export function ExampleContent({
   const onSwitchSchema = (schema: string) => {
     setQrcodeUrlWithSchema(schema);
   };
-  const qrcodeUrl = qrcodeUrlWithSchema || currentEntryFileUrl;
+  // Deep-link template: an explicit `deepLinkUrl` prop overrides the framework's
+  // default scheme (e.g. lynxtron → lynxtron-go://…). Universal bundles have no
+  // default, so they only offer a deep link when one is passed explicitly.
+  const frameworkConfig = getFrameworkConfig(nativeFramework);
+  const deepLinkTemplate = deepLinkUrl || frameworkConfig?.deepLinkScheme || '';
+
   const resolvedDeepLinkUrl = useMemo(() => {
-    if (!deepLinkUrl) return '';
-    return deepLinkUrl
+    if (!deepLinkTemplate) return '';
+    return deepLinkTemplate
       .split('{{{urlEncoded}}}')
       .join(encodeURIComponent(currentEntryFileUrl))
       .split('{{{url}}}')
       .join(currentEntryFileUrl);
-  }, [deepLinkUrl, currentEntryFileUrl]);
+  }, [deepLinkTemplate, currentEntryFileUrl]);
   const canOpenDeepLink = useMemo(() => {
-    if (!deepLinkUrl) return false;
+    if (!deepLinkTemplate) return false;
     const needsUrl =
-      deepLinkUrl.includes('{{{url}}}') ||
-      deepLinkUrl.includes('{{{urlEncoded}}}');
+      deepLinkTemplate.includes('{{{url}}}') ||
+      deepLinkTemplate.includes('{{{urlEncoded}}}');
     return needsUrl ? Boolean(currentEntryFileUrl) : true;
-  }, [deepLinkUrl, currentEntryFileUrl]);
+  }, [deepLinkTemplate, currentEntryFileUrl]);
 
-  // OpenIn variant resolution
+  // The QR encodes the entry URL for universal bundles (Lynx Explorer picks it
+  // up), or the resolved deep link for a framework (scanning opens that app).
+  const qrcodeUrl = nativeFramework
+    ? resolvedDeepLinkUrl
+    : qrcodeUrlWithSchema || currentEntryFileUrl;
+
   const isMobileUA = useIsMobile();
   const isMobile = _forceMobile ?? isMobileUA;
-  const openInVariant = useMemo(
+
+  // `qrAllowed` is synchronous (depends only on `nativeFramework`), so a
+  // universal bundle never transiently loses its QR tab before the entry loads.
+  const qrAllowed = isQrAllowed(nativeFramework);
+  const plan = useMemo(
     () =>
-      resolveOpenInVariant({
+      resolveOpenIn({
         nativeFramework,
         isMobile,
-        hasDeepLink: Boolean(deepLinkUrl),
+        hasDeepLink: Boolean(deepLinkTemplate),
         hasEntry: Boolean(currentEntry),
       }),
-    [nativeFramework, isMobile, deepLinkUrl, currentEntry],
+    [nativeFramework, isMobile, deepLinkTemplate, currentEntry],
   );
 
-  // Redirect away from the QR tab only when the bundle requires a native
-  // framework (Lynx Explorer can't run it, so the QR tab is hidden). Gated on
-  // the synchronous `nativeFramework` prop rather than the async `openInVariant`
-  // — the latter transiently resolves to `'none'` before the entry loads, which
-  // used to redirect universal bundles away from a QR tab they should keep.
+  // Redirect away from the QR tab when the framework never offers one (a
+  // desktop framework like Lynxtron). Gated on the synchronous `qrAllowed`, not
+  // the async entry state, so a universal bundle keeps its QR tab while loading.
   useEffect(() => {
-    if (previewType === PreviewType.QRCode && nativeFramework) {
+    if (previewType === PreviewType.QRCode && !qrAllowed) {
       setPreviewType(
         previewImage
           ? PreviewType.Preview
@@ -269,7 +282,27 @@ export function ExampleContent({
             : PreviewType.Preview,
       );
     }
-  }, [nativeFramework]);
+  }, [qrAllowed]);
+
+  // Non-QR "open" surface for desktop frameworks: the floating deep link
+  // (desktop) or the "open on desktop" hint (mobile).
+  const renderOpenIn = () => {
+    if (qrAllowed) return null;
+    if (plan.showDeepLink) {
+      return (
+        <FloatingDeepLink
+          resolvedDeepLinkUrl={resolvedDeepLinkUrl}
+          canOpenDeepLink={canOpenDeepLink}
+          nativeFramework={nativeFramework}
+          t={t}
+        />
+      );
+    }
+    if (plan.hintPlatform) {
+      return <OpenInHint platform={plan.hintPlatform} t={t} />;
+    }
+    return null;
+  };
 
   const showCodeTab = entryData && entryData?.length > 1;
 
@@ -323,10 +356,7 @@ export function ExampleContent({
           />
         </div>
       </div>
-      {openInVariant === 'floating-toast' &&
-        (mode === 'source' || !hasPreview || !showPreview) && (
-          <OpenInPanel variant="floating-toast" {...openInPanelProps} />
-        )}
+      {(mode === 'source' || !hasPreview || !showPreview) && renderOpenIn()}
     </div>
   );
 
@@ -335,30 +365,10 @@ export function ExampleContent({
       [
         Boolean(previewImage),
         Boolean(hasWebPreview),
-        Boolean(currentEntry) && !nativeFramework,
+        Boolean(currentEntry) && qrAllowed,
       ].filter(Boolean).length,
-    [previewImage, hasWebPreview, currentEntry, nativeFramework],
+    [previewImage, hasWebPreview, currentEntry, qrAllowed],
   );
-
-  const openInPanelProps = {
-    qrcodeUrl,
-    currentEntry,
-    entryFiles,
-    setCurrentEntry,
-    schemaOptions,
-    currentEntryFileUrl,
-    onSwitchSchema,
-    resolvedDeepLinkUrl,
-    canOpenDeepLink,
-    explorerUrl: withBaseFn(
-      lang === 'zh' ? LYNX_EXPLORER_URL_CN : LYNX_EXPLORER_URL_EN,
-    ),
-    lynxExplorerText,
-    hasEntry: Boolean(currentEntry),
-    nativeFramework,
-    t,
-    withBaseFn,
-  };
 
   const renderPreviewWrap = () => (
     <div className={s['preview-wrap']}>
@@ -384,7 +394,7 @@ export function ExampleContent({
                     <Radio value={PreviewType.Preview}>{t('go.preview')}</Radio>
                   )}
                   {hasWebPreview && <Radio value={PreviewType.Web}>Web</Radio>}
-                  {currentEntry && !nativeFramework && (
+                  {currentEntry && qrAllowed && (
                     <Radio value={PreviewType.QRCode}>{t('go.qrcode')}</Radio>
                   )}
                 </>
@@ -423,11 +433,12 @@ export function ExampleContent({
           />
         </div>
         <div className={s['preview-body']}>
-          {previewType === PreviewType.QRCode &&
-            currentEntry &&
-            !nativeFramework && (
-              <div className={s['preview-panel']}>
-                <div className={s.qrcode}>
+          {previewType === PreviewType.QRCode && currentEntry && qrAllowed && (
+            <div className={s['preview-panel']}>
+              <div className={s.qrcode}>
+                {/* Lynx-Explorer scan hint is universal-only; a framework QR
+                      opens that framework's own app when scanned. */}
+                {!nativeFramework && (
                   <Typography.Text
                     size="small"
                     type="tertiary"
@@ -450,63 +461,66 @@ export function ExampleContent({
                     </Typography.Text>{' '}
                     {t('go.scan.message-2')}
                   </Typography.Text>
-                  <div className={s['qrcode-svg']}>
-                    <QRCodeSVG value={qrcodeUrl} />
-                  </div>
-                  <div style={{ marginBottom: '32px' }}>
-                    <CopyToClipboard
-                      onCopy={() => {
-                        Toast.success(t('go.qrcode.copied'));
-                      }}
-                      text={qrcodeUrl}
-                    >
-                      <Button
-                        type="tertiary"
-                        style={{ fontSize: '12px' }}
-                        icon={<IconCopyLink style={{ fontSize: '16px' }} />}
-                      >
-                        {t('go.qrcode.copy-link')}
-                      </Button>
-                    </CopyToClipboard>
-                  </div>
-                  {schemaOptions && (
-                    <SwitchSchema
-                      optionsData={schemaOptions}
-                      currentEntryFileUrl={currentEntryFileUrl}
-                      onSwitchSchema={onSwitchSchema}
-                    />
-                  )}
-                  <div className={s['qrcode-entry']}>
-                    <Typography.Text
-                      size="small"
+                )}
+                <div className={s['qrcode-svg']}>
+                  <QRCodeSVG value={qrcodeUrl} />
+                </div>
+                <div style={{ marginBottom: '32px' }}>
+                  <CopyToClipboard
+                    onCopy={() => {
+                      Toast.success(t('go.qrcode.copied'));
+                    }}
+                    text={qrcodeUrl}
+                  >
+                    <Button
                       type="tertiary"
-                      style={{ marginRight: '12px', flexShrink: 0 }}
+                      style={{ fontSize: '12px' }}
+                      icon={<IconCopyLink style={{ fontSize: '16px' }} />}
                     >
-                      {t('go.qrcode.entry')}
-                    </Typography.Text>
-                    <Select
-                      style={{ width: '100%', maxWidth: '200px' }}
-                      value={currentEntry}
-                      onChange={(v) => setCurrentEntry(v as string)}
-                    >
-                      {entryFiles?.map((file) => (
-                        <Select.Option key={file.name} value={file.name}>
-                          {file.name}
-                        </Select.Option>
-                      ))}
-                    </Select>
-                  </div>
-                  {/* Additive: only appended when a deepLinkUrl is configured.
-                      The classic QR panel above stays byte-for-byte unchanged. */}
+                      {t('go.qrcode.copy-link')}
+                    </Button>
+                  </CopyToClipboard>
+                </div>
+                {!nativeFramework && schemaOptions && (
+                  <SwitchSchema
+                    optionsData={schemaOptions}
+                    currentEntryFileUrl={currentEntryFileUrl}
+                    onSwitchSchema={onSwitchSchema}
+                  />
+                )}
+                <div className={s['qrcode-entry']}>
+                  <Typography.Text
+                    size="small"
+                    type="tertiary"
+                    style={{ marginRight: '12px', flexShrink: 0 }}
+                  >
+                    {t('go.qrcode.entry')}
+                  </Typography.Text>
+                  <Select
+                    style={{ width: '100%', maxWidth: '200px' }}
+                    value={currentEntry}
+                    onChange={(v) => setCurrentEntry(v as string)}
+                  >
+                    {entryFiles?.map((file) => (
+                      <Select.Option key={file.name} value={file.name}>
+                        {file.name}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </div>
+                {/* Additive deep link, only when the plan offers one here
+                      (universal + configured, or sparkling on mobile). */}
+                {plan.showDeepLink && (
                   <DeepLinkRow
                     resolvedDeepLinkUrl={resolvedDeepLinkUrl}
                     canOpenDeepLink={canOpenDeepLink}
                     nativeFramework={nativeFramework}
                     t={t}
                   />
-                </div>
+                )}
               </div>
-            )}
+            </div>
+          )}
           {previewImage && (
             <div
               className={s['preview-panel']}
@@ -552,12 +566,7 @@ export function ExampleContent({
             </div>
           )}
         </div>
-        {openInVariant === 'floating-toast' && (
-          <OpenInPanel variant="floating-toast" {...openInPanelProps} />
-        )}
-        {openInVariant === 'bottom-sheet' && (
-          <OpenInPanel variant="bottom-sheet" {...openInPanelProps} />
-        )}
+        {renderOpenIn()}
       </div>
     </div>
   );
