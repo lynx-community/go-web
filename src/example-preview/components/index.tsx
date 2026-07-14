@@ -284,11 +284,17 @@ export function ExampleContent({
               <Button
                 theme="borderless"
                 icon={
-                  <IconRefresh style={{ color: 'var(--semi-color-text-2)' }} />
+                  <IconRefresh
+                    style={{
+                      color: 'var(--semi-color-text-2)',
+                      fontSize: '16px',
+                    }}
+                  />
                 }
                 type="tertiary"
                 size="small"
                 aria-label="Reload Lynx bundle"
+                style={{ width: 24, height: 24, padding: 0 }}
                 onClick={() => setWebPreviewRevision((v) => v + 1)}
               />
             )}
