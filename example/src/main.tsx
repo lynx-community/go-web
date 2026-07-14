@@ -369,6 +369,64 @@ const panelInputStyle: React.CSSProperties = {
   minWidth: 0,
 };
 
+// Preset (nativeFramework, deepLinkUrl) combinations for the deep-link / QR
+// surface, so the different permutations can be loaded with one click.
+const DEEPLINK_PRESETS: {
+  label: string;
+  title: string;
+  deepLinkUrl: string;
+  nativeFramework: string;
+  defaultTab: PreviewTab;
+}[] = [
+  {
+    label: 'Universal',
+    title:
+      'No nativeFramework · no deepLink → classic QR tab (regression guard)',
+    deepLinkUrl: '',
+    nativeFramework: '',
+    defaultTab: 'qrcode',
+  },
+  {
+    label: 'Universal + Deep Link',
+    title:
+      'No nativeFramework · deepLink → QR tab + additive “or / Open in Lynx Explorer” pill',
+    deepLinkUrl: 'lynx-explorer://open?url={{{urlEncoded}}}',
+    nativeFramework: '',
+    defaultTab: 'qrcode',
+  },
+  {
+    label: 'Lynxtron',
+    title:
+      'nativeFramework: lynxtron · deepLink → QR hidden, bordered “Open in Lynxtron Go” link',
+    deepLinkUrl: 'lynxtron-go://open?url={{{urlEncoded}}}',
+    nativeFramework: 'lynxtron',
+    defaultTab: 'qrcode',
+  },
+  {
+    label: 'Sparkling',
+    title:
+      'nativeFramework: sparkling · deepLink → QR hidden, bordered “Open in Sparkling” link',
+    deepLinkUrl: 'sparkling://open?url={{{urlEncoded}}}',
+    nativeFramework: 'sparkling',
+    defaultTab: 'qrcode',
+  },
+];
+
+// Matches the SegmentedControl look: accent when active, hairline when idle.
+const presetBtnStyle = (active: boolean): React.CSSProperties => ({
+  padding: '3px 10px',
+  borderRadius: 6,
+  border: `1px solid ${active ? 'var(--sb-accent)' : 'var(--sb-border)'}`,
+  background: active ? 'var(--sb-accent)' : 'transparent',
+  color: active ? '#fff' : 'var(--sb-text-dim)',
+  fontSize: 11,
+  fontWeight: active ? 600 : 400,
+  fontFamily: 'inherit',
+  cursor: 'pointer',
+  whiteSpace: 'nowrap',
+  transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+});
+
 // ---------------------------------------------------------------------------
 // Column Resizer (Finder-style drag handle between columns)
 // ---------------------------------------------------------------------------
@@ -1192,6 +1250,30 @@ function App() {
                 style={panelInputStyle}
                 placeholder="lynx://..."
               />
+
+              <span style={panelLabelStyle}>Presets</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {DEEPLINK_PRESETS.map((p) => {
+                  const active =
+                    deepLinkUrl === p.deepLinkUrl &&
+                    nativeFramework === p.nativeFramework;
+                  return (
+                    <button
+                      key={p.label}
+                      type="button"
+                      title={p.title}
+                      onClick={() => {
+                        setDeepLinkUrl(p.deepLinkUrl);
+                        setNativeFramework(p.nativeFramework);
+                        setDefaultTab(p.defaultTab);
+                      }}
+                      style={presetBtnStyle(active)}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
 
               <span style={panelLabelStyle}>Deep Link</span>
               <input
