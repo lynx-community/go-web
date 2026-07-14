@@ -3,26 +3,36 @@ import {
   Button,
   Radio,
   RadioGroup,
+  Select,
   SideSheet,
   Space,
   Switch,
   TabPane,
   Tabs,
+  Toast,
   Typography,
 } from '@douyinfe/semi-ui';
+import { QRCodeSVG } from 'qrcode.react';
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { CodeView } from './code-view';
 import { FileTree } from './file-tree';
-import { OpenInPanel } from './open-in-panel';
+import { DeepLinkRow, OpenInPanel } from './open-in-panel';
 import { PreviewImg } from './preview-img';
 import { SplitPane, type SplitPaneHandle } from './split-pane';
+import { SwitchSchema } from './switch-schema';
 
 import type { PreviewTab } from '../../config';
 import { DEFAULT_I18N, DefaultNoSSR, useGoConfig } from '../../config';
 import { useIsMobile } from '../hooks/use-is-mobile';
 import type { SchemaOptionsData } from '../hooks/use-switch-schema';
 import { useTreeController } from '../hooks/use-tree-controller';
-import { IconExitFullscreen, IconFullscreen, IconGithub } from '../utils/icon';
+import {
+  IconCopyLink,
+  IconExitFullscreen,
+  IconFullscreen,
+  IconGithub,
+} from '../utils/icon';
 import { resolveOpenInVariant } from '../utils/open-in-mode';
 import type { WebPreviewMode } from '../utils/resolve-web-preview';
 import { tabScrollToTop } from '../utils/tool';
@@ -244,9 +254,13 @@ export function ExampleContent({
     [nativeFramework, isMobile, deepLinkUrl, currentEntry],
   );
 
-  // Redirect away from QRCode tab if it's hidden
+  // Redirect away from the QR tab only when the bundle requires a native
+  // framework (Lynx Explorer can't run it, so the QR tab is hidden). Gated on
+  // the synchronous `nativeFramework` prop rather than the async `openInVariant`
+  // — the latter transiently resolves to `'none'` before the entry loads, which
+  // used to redirect universal bundles away from a QR tab they should keep.
   useEffect(() => {
-    if (previewType === PreviewType.QRCode && openInVariant !== 'tab') {
+    if (previewType === PreviewType.QRCode && nativeFramework) {
       setPreviewType(
         previewImage
           ? PreviewType.Preview
@@ -255,7 +269,7 @@ export function ExampleContent({
             : PreviewType.Preview,
       );
     }
-  }, [openInVariant]);
+  }, [nativeFramework]);
 
   const showCodeTab = entryData && entryData?.length > 1;
 
@@ -321,9 +335,9 @@ export function ExampleContent({
       [
         Boolean(previewImage),
         Boolean(hasWebPreview),
-        Boolean(currentEntry) && openInVariant === 'tab',
+        Boolean(currentEntry) && !nativeFramework,
       ].filter(Boolean).length,
-    [previewImage, hasWebPreview, currentEntry, openInVariant],
+    [previewImage, hasWebPreview, currentEntry, nativeFramework],
   );
 
   const openInPanelProps = {
@@ -370,8 +384,8 @@ export function ExampleContent({
                     <Radio value={PreviewType.Preview}>{t('go.preview')}</Radio>
                   )}
                   {hasWebPreview && <Radio value={PreviewType.Web}>Web</Radio>}
-                  {currentEntry && openInVariant === 'tab' && (
-                    <Radio value={PreviewType.QRCode}>{t('go.openin')} ↗</Radio>
+                  {currentEntry && !nativeFramework && (
+                    <Radio value={PreviewType.QRCode}>{t('go.qrcode')}</Radio>
                   )}
                 </>
               ) : (
@@ -411,9 +425,86 @@ export function ExampleContent({
         <div className={s['preview-body']}>
           {previewType === PreviewType.QRCode &&
             currentEntry &&
-            openInVariant === 'tab' && (
+            !nativeFramework && (
               <div className={s['preview-panel']}>
-                <OpenInPanel variant="tab" {...openInPanelProps} />
+                <div className={s.qrcode}>
+                  <Typography.Text
+                    size="small"
+                    type="tertiary"
+                    style={{ margin: '28px 12px', textAlign: 'center' }}
+                  >
+                    {t('go.scan.message-1')}
+                    <Typography.Text
+                      link={{
+                        href: withBaseFn(
+                          lang === 'zh'
+                            ? LYNX_EXPLORER_URL_CN
+                            : LYNX_EXPLORER_URL_EN,
+                        ),
+                        target: '_blank',
+                      }}
+                      size="small"
+                      underline
+                    >
+                      {lynxExplorerText}
+                    </Typography.Text>{' '}
+                    {t('go.scan.message-2')}
+                  </Typography.Text>
+                  <div className={s['qrcode-svg']}>
+                    <QRCodeSVG value={qrcodeUrl} />
+                  </div>
+                  <div style={{ marginBottom: '32px' }}>
+                    <CopyToClipboard
+                      onCopy={() => {
+                        Toast.success(t('go.qrcode.copied'));
+                      }}
+                      text={qrcodeUrl}
+                    >
+                      <Button
+                        type="tertiary"
+                        style={{ fontSize: '12px' }}
+                        icon={<IconCopyLink style={{ fontSize: '16px' }} />}
+                      >
+                        {t('go.qrcode.copy-link')}
+                      </Button>
+                    </CopyToClipboard>
+                  </div>
+                  {schemaOptions && (
+                    <SwitchSchema
+                      optionsData={schemaOptions}
+                      currentEntryFileUrl={currentEntryFileUrl}
+                      onSwitchSchema={onSwitchSchema}
+                    />
+                  )}
+                  <div className={s['qrcode-entry']}>
+                    <Typography.Text
+                      size="small"
+                      type="tertiary"
+                      style={{ marginRight: '12px', flexShrink: 0 }}
+                    >
+                      {t('go.qrcode.entry')}
+                    </Typography.Text>
+                    <Select
+                      style={{ width: '100%', maxWidth: '200px' }}
+                      value={currentEntry}
+                      onChange={(v) => setCurrentEntry(v as string)}
+                    >
+                      {entryFiles?.map((file) => (
+                        <Select.Option key={file.name} value={file.name}>
+                          {file.name}
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </div>
+                  {/* Additive: only appended when a deepLinkUrl is configured.
+                      The classic QR panel above stays byte-for-byte unchanged. */}
+                  <DeepLinkRow
+                    resolvedDeepLinkUrl={resolvedDeepLinkUrl}
+                    canOpenDeepLink={canOpenDeepLink}
+                    nativeFramework={nativeFramework}
+                    t={t}
+                  />
+                </div>
               </div>
             )}
           {previewImage && (

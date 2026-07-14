@@ -4,11 +4,13 @@ import React, { useState } from 'react';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import type { SchemaOptionsData } from '../hooks/use-switch-schema';
 import { IconCopyLink } from '../utils/icon';
-import { SwitchSchema } from './switch-schema';
 
 import s from './open-in-panel.module.scss';
 
-export type OpenInPanelVariant = 'tab' | 'bottom-sheet' | 'floating-toast';
+// The universal-bundle QR panel (`tab`) is rendered inline by `ExampleContent`
+// from the original classic markup — deliberately unchanged. `OpenInPanel` only
+// owns the two native-framework variants.
+export type OpenInPanelVariant = 'bottom-sheet' | 'floating-toast';
 
 export interface OpenInPanelProps {
   variant: OpenInPanelVariant;
@@ -75,114 +77,98 @@ function DeepLinkAction({
   );
 }
 
-// ─── Tab variant (Desktop) ───────────────────────────────────────────────────
-// Vertical centered: QR → copy → entry → scan hint → divider → deep link
-
-function TabContent(props: OpenInPanelProps) {
-  const {
-    qrcodeUrl,
-    currentEntry,
-    entryFiles,
-    setCurrentEntry,
-    schemaOptions,
-    currentEntryFileUrl,
-    onSwitchSchema,
-    resolvedDeepLinkUrl,
-    canOpenDeepLink,
-    explorerUrl,
-    lynxExplorerText,
-    nativeFramework,
-    t,
-    withBaseFn,
-  } = props;
-
+// The pill CTA. Used by the additive tab row (desktop + universal mobile) and by
+// the native mobile bottom-sheet, so both read as the same "open in app" action.
+function DeepLinkButton({
+  resolvedDeepLinkUrl,
+  canOpenDeepLink,
+  nativeFramework,
+  t,
+}: {
+  resolvedDeepLinkUrl: string;
+  canOpenDeepLink: boolean;
+  nativeFramework: string | undefined;
+  t: (key: string) => string;
+}) {
+  if (!resolvedDeepLinkUrl) return null;
   return (
-    <div className={s.tab}>
-      <div className={s['tab-body']}>
-        {/* QR section */}
-        <div className={s['tab-qr-frame']}>
-          <QRCodeSVG value={qrcodeUrl} size={140} />
-        </div>
-        <CopyToClipboard
-          onCopy={() => Toast.success(t('go.qrcode.copied'))}
-          text={qrcodeUrl}
-        >
-          <button type="button" className={s['copy-btn']}>
-            <IconCopyLink style={{ fontSize: '14px' }} />
-            {t('go.qrcode.copy-link')}
-          </button>
-        </CopyToClipboard>
+    <a
+      className={s['deeplink-cta']}
+      href={resolvedDeepLinkUrl}
+      onClick={(e) => {
+        if (!canOpenDeepLink) e.preventDefault();
+      }}
+      data-disabled={!canOpenDeepLink || undefined}
+    >
+      <span className={s['deeplink-cta-label']}>
+        {t(deepLinkLabelKey(nativeFramework))}
+      </span>
+      <span className={s['deeplink-cta-arrow']}>&#x2197;</span>
+    </a>
+  );
+}
 
-        {/* Entry selector */}
-        {entryFiles && entryFiles.length > 1 && (
-          <div className={s['entry-row']}>
-            <Typography.Text
-              size="small"
-              type="tertiary"
-              style={{ flexShrink: 0 }}
-            >
-              {t('go.qrcode.entry')}
-            </Typography.Text>
-            <Select
-              size="small"
-              style={{ width: '100%', maxWidth: '180px' }}
-              value={currentEntry}
-              onChange={(v) => setCurrentEntry(v as string)}
-            >
-              {entryFiles.map((file) => (
-                <Select.Option key={file.name} value={file.name}>
-                  {file.name}
-                </Select.Option>
-              ))}
-            </Select>
-          </div>
-        )}
+// The subtle bordered link used by native-framework bundles — the desktop
+// floating toast and the mobile bottom-sheet — so native desktop and native
+// mobile read as the same affordance.
+function DeepLinkFloatLink({
+  resolvedDeepLinkUrl,
+  canOpenDeepLink,
+  nativeFramework,
+  t,
+}: {
+  resolvedDeepLinkUrl: string;
+  canOpenDeepLink: boolean;
+  nativeFramework: string | undefined;
+  t: (key: string) => string;
+}) {
+  if (!resolvedDeepLinkUrl) return null;
+  return (
+    <a
+      className={s['open-link-float']}
+      href={resolvedDeepLinkUrl}
+      onClick={(e) => {
+        if (!canOpenDeepLink) e.preventDefault();
+      }}
+      data-disabled={!canOpenDeepLink || undefined}
+    >
+      {t(deepLinkLabelKey(nativeFramework))} &#x2197;
+    </a>
+  );
+}
 
-        {/* Scan hint */}
-        <Typography.Text
-          size="small"
-          type="tertiary"
-          className={s['tab-scan-hint']}
-        >
-          {t('go.scan.message-1')}
-          <Typography.Text
-            link={{ href: withBaseFn(explorerUrl), target: '_blank' }}
-            size="small"
-            underline
-          >
-            {lynxExplorerText}
-          </Typography.Text>{' '}
-          {t('go.scan.message-2')}
-        </Typography.Text>
+// ─── Additive deep-link row ──────────────────────────────────────────────────
+// Appended to the *unchanged* classic QR panel (rendered inline by
+// `ExampleContent`) for universal bundles, only when a `deepLinkUrl` is set:
+//
+//     —— or ——
+//     Open in Lynx Explorer ↗
 
-        {/* Schema switcher */}
-        {schemaOptions && (
-          <SwitchSchema
-            optionsData={schemaOptions}
-            currentEntryFileUrl={currentEntryFileUrl}
-            onSwitchSchema={onSwitchSchema}
-          />
-        )}
-
-        {/* Deep link at bottom */}
-        {resolvedDeepLinkUrl && (
-          <>
-            <div className={s['tab-divider']}>
-              <span className={s['tab-divider-line']} />
-              <Typography.Text size="small" type="tertiary">
-                or
-              </Typography.Text>
-              <span className={s['tab-divider-line']} />
-            </div>
-            <DeepLinkAction
-              resolvedDeepLinkUrl={resolvedDeepLinkUrl}
-              canOpenDeepLink={canOpenDeepLink}
-              nativeFramework={nativeFramework}
-              t={t}
-            />
-          </>
-        )}
+export function DeepLinkRow({
+  resolvedDeepLinkUrl,
+  canOpenDeepLink,
+  nativeFramework,
+  t,
+}: {
+  resolvedDeepLinkUrl: string;
+  canOpenDeepLink: boolean;
+  nativeFramework: string | undefined;
+  t: (key: string) => string;
+}) {
+  if (!resolvedDeepLinkUrl) return null;
+  return (
+    <div className={s['deeplink-row']}>
+      <div className={s['deeplink-divider']} aria-hidden="true">
+        <span className={s['deeplink-divider-line']} />
+        <span className={s['deeplink-divider-text']}>or</span>
+        <span className={s['deeplink-divider-line']} />
       </div>
+      <DeepLinkButton
+        resolvedDeepLinkUrl={resolvedDeepLinkUrl}
+        canOpenDeepLink={canOpenDeepLink}
+        nativeFramework={nativeFramework}
+        t={t}
+      />
     </div>
   );
 }
@@ -207,13 +193,26 @@ function BottomSheetContent(props: OpenInPanelProps) {
   const [qrExpanded, setQrExpanded] = useState(false);
 
   // Bundle needs a native framework (e.g. Lynxtron) → mobile Lynx Explorer can't
-  // scan it. Show a hint instead of the QR/deep-link folded row.
+  // scan it. Offer the deep link as the same bordered link used by the native
+  // desktop floating toast (it opens the native host app on the phone). Fall
+  // back to the desktop hint when no deep link is configured.
   if (nativeFramework) {
     return (
       <div className={s['bottom-sheet']}>
-        <Typography.Text size="small" type="tertiary">
-          {t('go.deeplink.hint-desktop')}
-        </Typography.Text>
+        {resolvedDeepLinkUrl ? (
+          <div className={s['bs-cta']}>
+            <DeepLinkFloatLink
+              resolvedDeepLinkUrl={resolvedDeepLinkUrl}
+              canOpenDeepLink={canOpenDeepLink}
+              nativeFramework={nativeFramework}
+              t={t}
+            />
+          </div>
+        ) : (
+          <Typography.Text size="small" type="tertiary">
+            {t('go.deeplink.hint-desktop')}
+          </Typography.Text>
+        )}
       </div>
     );
   }
@@ -316,16 +315,12 @@ function FloatingToastContent(props: OpenInPanelProps) {
   if (!resolvedDeepLinkUrl) return null;
   return (
     <div className={s['floating-toast']}>
-      <a
-        className={s['open-link-float']}
-        href={resolvedDeepLinkUrl}
-        onClick={(e) => {
-          if (!canOpenDeepLink) e.preventDefault();
-        }}
-        data-disabled={!canOpenDeepLink || undefined}
-      >
-        {t(deepLinkLabelKey(nativeFramework))} &#x2197;
-      </a>
+      <DeepLinkFloatLink
+        resolvedDeepLinkUrl={resolvedDeepLinkUrl}
+        canOpenDeepLink={canOpenDeepLink}
+        nativeFramework={nativeFramework}
+        t={t}
+      />
     </div>
   );
 }
@@ -334,8 +329,6 @@ function FloatingToastContent(props: OpenInPanelProps) {
 
 export function OpenInPanel(props: OpenInPanelProps) {
   switch (props.variant) {
-    case 'tab':
-      return <TabContent {...props} />;
     case 'bottom-sheet':
       return <BottomSheetContent {...props} />;
     case 'floating-toast':

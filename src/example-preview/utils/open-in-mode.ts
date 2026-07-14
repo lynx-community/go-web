@@ -22,11 +22,14 @@ export function resolveOpenInVariant(opts: {
   if (!hasDeepLink && !hasEntry) return 'none';
 
   // Bundle requires a specific native framework → QR-to-Lynx-Explorer doesn't
-  // apply. Only show the deep-link entry.
+  // apply. Only show the deep-link entry (floating on desktop, bottom-sheet on
+  // mobile).
   if (nativeFramework) {
     return isMobile ? 'bottom-sheet' : 'floating-toast';
   }
 
-  // Universal bundle (no native framework dep)
-  return isMobile ? 'bottom-sheet' : 'tab';
+  // Universal bundle (no native framework dep) → classic QR tab on both desktop
+  // and mobile. Lynx Explorer scanning works everywhere, so there's no need for
+  // the clipped bottom-sheet. Deep link, when configured, is appended inside it.
+  return 'tab';
 }
