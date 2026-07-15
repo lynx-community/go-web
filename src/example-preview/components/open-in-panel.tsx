@@ -25,14 +25,19 @@ function DeepLinkLink({
   t,
 }: DeepLinkProps) {
   if (!resolvedDeepLinkUrl) return null;
+  const disabled = !canOpenDeepLink;
   return (
     <a
       className={s['open-link']}
-      href={resolvedDeepLinkUrl}
+      // Drop the href when disabled so it isn't activatable and leaves the tab
+      // order; `aria-disabled` conveys the state to assistive tech.
+      href={disabled ? undefined : resolvedDeepLinkUrl}
       onClick={(e) => {
-        if (!canOpenDeepLink) e.preventDefault();
+        if (disabled) e.preventDefault();
       }}
-      data-disabled={!canOpenDeepLink || undefined}
+      aria-disabled={disabled || undefined}
+      tabIndex={disabled ? -1 : undefined}
+      data-disabled={disabled || undefined}
     >
       {t(deepLinkLabelKey(nativeFramework))} &#x2197;
     </a>
@@ -51,7 +56,9 @@ export function DeepLinkRow(props: DeepLinkProps) {
     <div className={s['deeplink-row']}>
       <div className={s['deeplink-divider']} aria-hidden="true">
         <span className={s['deeplink-divider-line']} />
-        <span className={s['deeplink-divider-text']}>or</span>
+        <span className={s['deeplink-divider-text']}>
+          {props.t('go.deeplink.or')}
+        </span>
         <span className={s['deeplink-divider-line']} />
       </div>
       <DeepLinkLink {...props} />

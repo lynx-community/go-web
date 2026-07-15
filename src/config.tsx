@@ -24,6 +24,7 @@ const DEFAULT_I18N: Record<string, string> = {
   'go.deeplink.open.sparkling': 'Open in Sparkling',
   'go.deeplink.hint-desktop': 'desktop only',
   'go.deeplink.hint-mobile': 'mobile only',
+  'go.deeplink.or': 'or',
   'go.openin.show-qrcode': 'Show QR Code',
 };
 

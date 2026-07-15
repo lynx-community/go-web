@@ -39,6 +39,7 @@ const translations: Record<string, Record<string, string>> = {
     'go.deeplink.open.sparkling': 'Open in Sparkling',
     'go.deeplink.hint-desktop': 'desktop only',
     'go.deeplink.hint-mobile': 'mobile only',
+    'go.deeplink.or': 'or',
     'go.openin.show-qrcode': 'Show QR Code',
   },
   zh: {
@@ -56,6 +57,7 @@ const translations: Record<string, Record<string, string>> = {
     'go.deeplink.open.sparkling': '在 Sparkling 中打开',
     'go.deeplink.hint-desktop': '仅桌面',
     'go.deeplink.hint-mobile': '仅移动端',
+    'go.deeplink.or': '或',
     'go.openin.show-qrcode': '显示二维码',
   },
 };

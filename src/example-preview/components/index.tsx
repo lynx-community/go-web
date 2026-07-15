@@ -232,11 +232,15 @@ export function ExampleContent({
 
   const resolvedDeepLinkUrl = useMemo(() => {
     if (!deepLinkTemplate) return '';
-    return deepLinkTemplate
+    const url = deepLinkTemplate
       .split('{{{urlEncoded}}}')
       .join(encodeURIComponent(currentEntryFileUrl))
       .split('{{{url}}}')
       .join(currentEntryFileUrl);
+    // Drop dangerous schemes so a config-supplied deep link can't execute
+    // in-page when clicked (e.g. `javascript:` / `data:` / `vbscript:`).
+    if (/^\s*(javascript|data|vbscript):/i.test(url)) return '';
+    return url;
   }, [deepLinkTemplate, currentEntryFileUrl]);
   const canOpenDeepLink = useMemo(() => {
     if (!deepLinkTemplate) return false;
@@ -381,7 +385,10 @@ export function ExampleContent({
       <div className={s['preview-wrap-content']}>
         <div className={s['preview-header']}>
           <div style={{ width: 24, flexShrink: 0 }} />
-          {/* Show tab switcher only if there are multiple preview options */}
+          {/* Show the tab switcher when there's at least one preview option.
+              A single option still renders it so the active tab stays
+              selectable (e.g. a web-only example whose previewType would
+              otherwise not match any visible panel). */}
           {previewOptionCount >= 1 ? (
             <RadioGroup
               onChange={(e) => setPreviewType(e.target.value)}
@@ -572,7 +579,9 @@ export function ExampleContent({
             </div>
           )}
         </div>
-        {renderOpenIn()}
+        {/* Only in the visible preview pane — renderCodeWrap() renders it when
+            the preview is hidden, so the two never render at once. */}
+        {showPreview && renderOpenIn()}
       </div>
     </div>
   );
