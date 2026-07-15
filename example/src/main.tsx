@@ -414,6 +414,130 @@ const DEEPLINK_PRESETS: {
 ];
 
 // ---------------------------------------------------------------------------
+// PanelSection — one props-panel column.
+//   Desktop: a fixed-width (or growing) column. Fixed-width columns fill the
+//     panel height via an absolutely-positioned scroller, so every column is as
+//     tall as the tallest (the growing controls column) instead of a fixed cap.
+//   Mobile: a collapsible section with a separator line, folded to save space.
+// ---------------------------------------------------------------------------
+
+function PanelSection({
+  title,
+  headerExtra,
+  isNarrow,
+  width,
+  grow,
+  defaultOpen = true,
+  bodyStyle,
+  children,
+}: {
+  title: string;
+  headerExtra?: React.ReactNode;
+  isNarrow: boolean;
+  width?: number;
+  grow?: boolean;
+  defaultOpen?: boolean;
+  bodyStyle?: React.CSSProperties;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  const header = (
+    <div
+      style={{
+        ...panelLabelStyle,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+      }}
+    >
+      <span>{title}</span>
+      {headerExtra}
+    </div>
+  );
+
+  if (isNarrow) {
+    return (
+      <div style={{ width: '100%', borderTop: '1px solid var(--sb-border)' }}>
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '9px 16px',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            font: 'inherit',
+          }}
+        >
+          <span
+            style={{
+              color: 'var(--sb-text-dim)',
+              fontSize: 9,
+              transition: 'transform 0.15s',
+              transform: open ? 'rotate(90deg)' : 'none',
+            }}
+          >
+            ▶
+          </span>
+          <span style={panelLabelStyle}>{title}</span>
+          {headerExtra}
+        </button>
+        {open && (
+          <div style={{ padding: '0 16px 12px', ...bodyStyle }}>{children}</div>
+        )}
+      </div>
+    );
+  }
+
+  if (grow) {
+    return (
+      <div
+        style={{
+          flex: '1 1 0',
+          minWidth: 120,
+          padding: '10px 16px',
+          overflow: 'hidden',
+          ...bodyStyle,
+        }}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ flex: `0 0 ${width}px`, position: 'relative', minHeight: 0 }}>
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          overflow: 'auto',
+          padding: '10px 12px',
+        }}
+      >
+        <div
+          style={{
+            position: 'sticky',
+            top: 0,
+            background: 'var(--sb-bg)',
+            paddingBottom: 4,
+            zIndex: 1,
+          }}
+        >
+          {header}
+        </div>
+        <div style={bodyStyle}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Column Resizer (Finder-style drag handle between columns)
 // ---------------------------------------------------------------------------
 
@@ -976,30 +1100,13 @@ function App() {
             }}
           >
             {/* Col 1: examples list */}
-            <div
-              style={{
-                ...(isNarrow
-                  ? { flex: '0 0 auto', width: '100%' }
-                  : { flex: `0 0 ${col1W}px` }),
-                padding: '10px 12px',
-                overflow: 'auto',
-                maxHeight: 200,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 1,
-              }}
-            >
-              <div
-                style={{
-                  ...panelLabelStyle,
-                  padding: '0 4px',
-                  marginBottom: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
-                <span>Examples</span>
+            <PanelSection
+              title="Examples"
+              isNarrow={isNarrow}
+              width={col1W}
+              defaultOpen={false}
+              bodyStyle={{ display: 'flex', flexDirection: 'column', gap: 1 }}
+              headerExtra={
                 <input
                   type="text"
                   value={exampleSearch}
@@ -1018,7 +1125,8 @@ function App() {
                     minWidth: 0,
                   }}
                 />
-              </div>
+              }
+            >
               {EXAMPLES.filter(
                 (name) =>
                   !exampleSearch ||
@@ -1075,37 +1183,20 @@ function App() {
                   </button>
                 );
               })}
-            </div>
+            </PanelSection>
 
             {!isNarrow && (
               <ColumnResizer widthRef={col1Ref} onWidthChange={setCol1} />
             )}
 
             {/* Col 2: entry list */}
-            <div
-              style={{
-                ...(isNarrow
-                  ? { flex: '0 0 auto', width: '100%' }
-                  : { flex: `0 0 ${col2W}px` }),
-                padding: '10px 12px',
-                overflow: 'auto',
-                maxHeight: 200,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 1,
-              }}
-            >
-              <div
-                style={{
-                  ...panelLabelStyle,
-                  padding: '0 4px',
-                  marginBottom: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
-                <span>Entries</span>
+            <PanelSection
+              title="Entries"
+              isNarrow={isNarrow}
+              width={col2W}
+              defaultOpen={false}
+              bodyStyle={{ display: 'flex', flexDirection: 'column', gap: 1 }}
+              headerExtra={
                 <input
                   type="text"
                   value={entrySearch}
@@ -1124,7 +1215,8 @@ function App() {
                     minWidth: 0,
                   }}
                 />
-              </div>
+              }
+            >
               {metadata?.templateFiles
                 ?.filter(
                   (t: any) =>
@@ -1172,20 +1264,19 @@ function App() {
                   {metadataLoading ? 'Loading…' : '—'}
                 </span>
               )}
-            </div>
+            </PanelSection>
 
             {!isNarrow && (
               <ColumnResizer widthRef={col2Ref} onWidthChange={setCol2} />
             )}
 
             {/* Col 3: controls */}
-            <div
-              style={{
-                ...(isNarrow
-                  ? { flex: '0 0 auto', width: '100%', minWidth: 0 }
-                  : { flex: '1 1 0', minWidth: 120 }),
-                padding: '10px 16px',
-                overflow: 'hidden',
+            <PanelSection
+              title="Props"
+              isNarrow={isNarrow}
+              grow
+              defaultOpen
+              bodyStyle={{
                 display: 'grid',
                 gridTemplateColumns: 'auto 1fr',
                 gap: '5px 10px',
@@ -1298,7 +1389,7 @@ function App() {
                 style={panelInputStyle}
                 placeholder="lynxtron / sparkling / (empty = universal)"
               />
-            </div>
+            </PanelSection>
 
             {!isNarrow && (
               <ColumnResizer
@@ -1309,56 +1400,44 @@ function App() {
             )}
 
             {/* Right: metadata JSON */}
-            <div
-              style={{
-                ...(isNarrow
-                  ? { flex: '0 0 auto', width: '100%' }
-                  : { flex: `0 0 ${col4W}px` }),
-                minWidth: 0,
-                padding: '10px 16px',
-                overflow: 'auto',
-                maxHeight: 200,
-              }}
+            <PanelSection
+              title="Metadata"
+              isNarrow={isNarrow}
+              width={col4W}
+              defaultOpen={false}
+              headerExtra={
+                <>
+                  {metadata?.version && (
+                    <span className="example-tag example-tag-version">
+                      {metadata.version}
+                    </span>
+                  )}
+                  {metadata?.reactLynxVersion && (
+                    <span className="example-tag example-tag-react">
+                      react {metadata.reactLynxVersion}
+                    </span>
+                  )}
+                  {metadata?.vueLynxVersion && (
+                    <span className="example-tag example-tag-vue">
+                      vue-lynx {metadata.vueLynxVersion}
+                    </span>
+                  )}
+                  {metadata?.templateFiles?.length > 0 && (
+                    <span
+                      className={`example-tag ${
+                        metadata?.templateFiles?.some((t: any) => t.webFile)
+                          ? 'example-tag-web'
+                          : 'example-tag-no-web'
+                      }`}
+                    >
+                      {metadata?.templateFiles?.some((t: any) => t.webFile)
+                        ? 'Web'
+                        : 'No Web'}
+                    </span>
+                  )}
+                </>
+              }
             >
-              <div
-                style={{
-                  ...panelLabelStyle,
-                  marginBottom: 8,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
-                example-metadata.json
-                {metadata?.version && (
-                  <span className="example-tag example-tag-version">
-                    {metadata.version}
-                  </span>
-                )}
-                {metadata?.reactLynxVersion && (
-                  <span className="example-tag example-tag-react">
-                    react {metadata.reactLynxVersion}
-                  </span>
-                )}
-                {metadata?.vueLynxVersion && (
-                  <span className="example-tag example-tag-vue">
-                    vue-lynx {metadata.vueLynxVersion}
-                  </span>
-                )}
-                {metadata?.templateFiles?.length > 0 && (
-                  <span
-                    className={`example-tag ${
-                      metadata?.templateFiles?.some((t: any) => t.webFile)
-                        ? 'example-tag-web'
-                        : 'example-tag-no-web'
-                    }`}
-                  >
-                    {metadata?.templateFiles?.some((t: any) => t.webFile)
-                      ? 'Web'
-                      : 'No Web'}
-                  </span>
-                )}
-              </div>
               {metadataHtml ? (
                 <div
                   className="metadata-shiki"
@@ -1379,7 +1458,7 @@ function App() {
                   {metadataLoading ? 'Loading…' : 'No metadata'}
                 </pre>
               )}
-            </div>
+            </PanelSection>
           </div>
         )}
       </div>
