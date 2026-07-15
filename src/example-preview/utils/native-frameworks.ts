@@ -16,21 +16,34 @@ export type FrameworkPlatform = 'desktop' | 'mobile';
 export interface NativeFrameworkConfig {
   /** Platform the framework's host app runs on. */
   platform: FrameworkPlatform;
+  /** Human-facing host app name, e.g. `"Lynxtron Go"`. */
+  appName: string;
   /**
    * Default deep-link template for this framework. Supports `{{{url}}}` and
    * `{{{urlEncoded}}}`. The `deepLinkUrl` prop, when set, overrides it.
    */
   deepLinkScheme: string;
+  /**
+   * Docs / info URL shown when the bundle can't run on the current device
+   * (e.g. a desktop framework opened on a phone). When set, the "can't run
+   * here" hint becomes a link; otherwise it's plain text. Fill this in per
+   * framework to point at real docs.
+   */
+  learnMoreUrl?: string;
 }
 
 export const NATIVE_FRAMEWORKS: Record<string, NativeFrameworkConfig> = {
   lynxtron: {
     platform: 'desktop',
+    appName: 'Lynxtron Go',
     deepLinkScheme: 'lynxtron-go://open?url={{{urlEncoded}}}',
+    // learnMoreUrl: '…',  // TODO: point at Lynxtron Go docs
   },
   sparkling: {
     platform: 'mobile',
+    appName: 'Sparkling',
     deepLinkScheme: 'sparkling://open?url={{{urlEncoded}}}',
+    // learnMoreUrl: '…',  // TODO: point at Sparkling docs
   },
 };
 

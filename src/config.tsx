@@ -22,8 +22,8 @@ const DEFAULT_I18N: Record<string, string> = {
   'go.deeplink.open.default': 'Open in Lynx Explorer',
   'go.deeplink.open.lynxtron': 'Open in Lynxtron Go',
   'go.deeplink.open.sparkling': 'Open in Sparkling',
-  'go.deeplink.hint-desktop': 'Open on desktop',
-  'go.deeplink.hint-mobile': 'Open on mobile',
+  'go.deeplink.hint-desktop': 'desktop only',
+  'go.deeplink.hint-mobile': 'mobile only',
   'go.openin.show-qrcode': 'Show QR Code',
 };
 

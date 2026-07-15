@@ -1,5 +1,6 @@
 import { Typography } from '@douyinfe/semi-ui';
 import type { FrameworkPlatform } from '../utils/native-frameworks';
+import { getFrameworkConfig } from '../utils/native-frameworks';
 
 import s from './open-in-panel.module.scss';
 
@@ -71,22 +72,45 @@ export function FloatingDeepLink(props: DeepLinkProps) {
   );
 }
 
-// ─── Open-on-other-platform hint ─────────────────────────────────────────────
-// The bundle can't run on this device (desktop framework viewed on mobile) —
-// point the user to the platform where it can.
+// ─── Can't-run-here hint ─────────────────────────────────────────────────────
+// The bundle needs a framework that can't run on this device (e.g. Lynxtron on
+// a phone). Name the framework and, when the registry provides a `learnMoreUrl`,
+// link to its docs; otherwise show plain text.
 
 export function OpenInHint({
+  nativeFramework,
   platform,
   t,
 }: {
+  nativeFramework: string | undefined;
   platform: FrameworkPlatform;
   t: (key: string) => string;
 }) {
+  const config = getFrameworkConfig(nativeFramework);
+  const appName = config?.appName ?? nativeFramework ?? '';
+  const qualifier = t(`go.deeplink.hint-${platform}`);
+  const label = appName ? `${appName} · ${qualifier}` : qualifier;
+
   return (
     <div className={s['floating-toast']}>
-      <Typography.Text size="small" type="tertiary" className={s['open-hint']}>
-        {t(`go.deeplink.hint-${platform}`)}
-      </Typography.Text>
+      {config?.learnMoreUrl ? (
+        <a
+          className={s['open-link']}
+          href={config.learnMoreUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          {label} &#x2197;
+        </a>
+      ) : (
+        <Typography.Text
+          size="small"
+          type="tertiary"
+          className={s['open-hint']}
+        >
+          {label}
+        </Typography.Text>
+      )}
     </div>
   );
 }

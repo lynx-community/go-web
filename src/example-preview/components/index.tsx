@@ -299,7 +299,13 @@ export function ExampleContent({
       );
     }
     if (plan.hintPlatform) {
-      return <OpenInHint platform={plan.hintPlatform} t={t} />;
+      return (
+        <OpenInHint
+          nativeFramework={nativeFramework}
+          platform={plan.hintPlatform}
+          t={t}
+        />
+      );
     }
     return null;
   };
