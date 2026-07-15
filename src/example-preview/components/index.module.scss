@@ -156,6 +156,9 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      // Scroll when the panel is taller than the pane (short mobile viewports)
+      // so Copy Link / Entry / the deep link stay reachable instead of clipped.
+      overflow-y: auto;
       margin-top: 12px;
       .qrcode-svg {
         margin-bottom: 16px;
