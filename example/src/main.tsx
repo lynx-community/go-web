@@ -413,21 +413,6 @@ const DEEPLINK_PRESETS: {
   },
 ];
 
-// Matches the SegmentedControl look: accent when active, hairline when idle.
-const presetBtnStyle = (active: boolean): React.CSSProperties => ({
-  padding: '3px 10px',
-  borderRadius: 6,
-  border: `1px solid ${active ? 'var(--sb-accent)' : 'var(--sb-border)'}`,
-  background: active ? 'var(--sb-accent)' : 'transparent',
-  color: active ? '#fff' : 'var(--sb-text-dim)',
-  fontSize: 11,
-  fontWeight: active ? 600 : 400,
-  fontFamily: 'inherit',
-  cursor: 'pointer',
-  whiteSpace: 'nowrap',
-  transition: 'background 0.15s, color 0.15s, border-color 0.15s',
-});
-
 // ---------------------------------------------------------------------------
 // Column Resizer (Finder-style drag handle between columns)
 // ---------------------------------------------------------------------------
@@ -621,6 +606,12 @@ function App() {
   const [deepLinkUrl, setDeepLinkUrl] = useState('');
   const [nativeFramework, setNativeFramework] = useState<string>('');
   const [propsOpen, setPropsOpen] = useState(true);
+
+  // Which preset (if any) the current props match — drives the compact select.
+  const activePreset = DEEPLINK_PRESETS.find(
+    (p) =>
+      p.deepLinkUrl === deepLinkUrl && p.nativeFramework === nativeFramework,
+  );
   const [ssgOpen, setSsgOpen] = useState(false);
   const [jsxDialogOpen, setJsxDialogOpen] = useState(false);
   const [jsxCopied, setJsxCopied] = useState(false);
@@ -1267,28 +1258,28 @@ function App() {
               />
 
               <span style={panelLabelStyle}>Presets</span>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {DEEPLINK_PRESETS.map((p) => {
-                  const active =
-                    deepLinkUrl === p.deepLinkUrl &&
-                    nativeFramework === p.nativeFramework;
-                  return (
-                    <button
-                      key={p.label}
-                      type="button"
-                      title={p.title}
-                      onClick={() => {
-                        setDeepLinkUrl(p.deepLinkUrl);
-                        setNativeFramework(p.nativeFramework);
-                        setDefaultTab(p.defaultTab);
-                      }}
-                      style={presetBtnStyle(active)}
-                    >
-                      {p.label}
-                    </button>
+              <select
+                aria-label="Preset"
+                value={activePreset?.label ?? ''}
+                title={activePreset?.title}
+                onChange={(e) => {
+                  const p = DEEPLINK_PRESETS.find(
+                    (x) => x.label === e.target.value,
                   );
-                })}
-              </div>
+                  if (!p) return;
+                  setDeepLinkUrl(p.deepLinkUrl);
+                  setNativeFramework(p.nativeFramework);
+                  setDefaultTab(p.defaultTab);
+                }}
+                style={{ ...selectStyle, width: 'auto', maxWidth: '100%' }}
+              >
+                {!activePreset && <option value="">Custom…</option>}
+                {DEEPLINK_PRESETS.map((p) => (
+                  <option key={p.label} value={p.label}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
 
               <span style={panelLabelStyle}>Deep Link</span>
               <input
