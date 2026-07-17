@@ -32,6 +32,7 @@ import {
   IconExitFullscreen,
   IconFullscreen,
   IconGithub,
+  IconOpenExternal,
 } from '../utils/icon';
 import { getFrameworkConfig } from '../utils/native-frameworks';
 import { isQrAllowed, resolveOpenIn } from '../utils/open-in-mode';
@@ -148,12 +149,21 @@ export function ExampleContent({
   const boxRef = useRef<HTMLDivElement>(null);
   const splitPaneRef = useRef<SplitPaneHandle>(null);
   const [isVertical, setIsVertical] = useState(false);
+  const [fullscreenMode, setFullscreenMode] = useState<'off' | 'all' | 'ultra'>(
+    'off',
+  );
+  const isUltra = fullscreenMode === 'ultra';
+  const isUltraRef = useRef(false);
+  isUltraRef.current = isUltra;
 
   useEffect(() => {
     const el = boxRef.current;
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
+        // Freeze orientation while ultra so layout thrashing doesn't fight
+        // the chromeless shell (and avoid unnecessary SplitPane work).
+        if (isUltraRef.current) return;
         setIsVertical(entry.contentRect.width <= 600);
       }
     });
@@ -186,20 +196,35 @@ export function ExampleContent({
     };
   }, [previewImage, currentEntry, defaultWebPreviewFile]);
   const [tmpCurrentFileName, setTmpCurrentFileName] = useState('');
-  const [fullscreenMode, setFullscreenMode] = useState<'off' | 'all'>('off');
   const defaultI18n = (key: string) => DEFAULT_I18N[key] || key;
   const t = useI18nHook ? useI18nHook() : defaultI18n;
   const lang = useLangHook ? useLangHook() : 'en';
 
-  // Lock body scroll and handle Escape key in fullscreen
+  // Lock body scroll while in widget fullscreen / frameless.
+  // CSS class keeps <lynx-view> mounted (no remount on enter/exit).
+  // Esc / browser Back: frameless → first-level fullscreen → off.
+  const framelessHistRef = useRef(false);
+
   useEffect(() => {
-    if (fullscreenMode === 'off') return;
+    if (fullscreenMode === 'off') {
+      const el = boxRef.current;
+      if (el) setIsVertical(el.getBoundingClientRect().width <= 600);
+      return;
+    }
 
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key !== 'Escape') return;
+      if (fullscreenMode === 'ultra') {
+        // Prefer history.back() so Esc and mobile Back share one exit path.
+        if (framelessHistRef.current) {
+          history.back();
+        } else {
+          setFullscreenMode('all');
+        }
+      } else {
         setFullscreenMode('off');
         setShowCode(true);
       }
@@ -211,6 +236,44 @@ export function ExampleContent({
       document.removeEventListener('keydown', handleEscape);
     };
   }, [fullscreenMode]);
+
+  // Frameless: push a history entry so mobile Back / swipe-back exits safely
+  // (same path as Esc on desktop). popstate → first-level fullscreen.
+  useEffect(() => {
+    if (fullscreenMode !== 'ultra') return;
+
+    history.pushState({ __goFrameless: true }, '');
+    framelessHistRef.current = true;
+
+    const onPopState = () => {
+      framelessHistRef.current = false;
+      setFullscreenMode('all');
+    };
+    window.addEventListener('popstate', onPopState);
+
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+      // Left frameless without Back — drop our history entry if still on top.
+      if (framelessHistRef.current) {
+        framelessHistRef.current = false;
+        if (
+          typeof history.state === 'object' &&
+          history.state &&
+          (history.state as { __goFrameless?: boolean }).__goFrameless
+        ) {
+          history.back();
+        }
+      }
+    };
+  }, [fullscreenMode]);
+
+  const enterFrameless = () => {
+    if (!hasWebPreview) return;
+    setPreviewType(PreviewType.Web);
+    setShowPreview(true);
+    setShowCode(false);
+    setFullscreenMode('ultra');
+  };
 
   const getContainer = () => containerRef.current as HTMLDivElement;
   const onFileSelect = (v: string) => {
@@ -418,10 +481,28 @@ export function ExampleContent({
           ) : (
             <div style={{ flex: 1 }} />
           )}
+          {/* First-level fullscreen: "open frameless" sits next to shrink.
+              Frameless = <lynx-view> dominates the full browser viewport
+              (incl. safe-area) — not OS desktop fullscreen. */}
+          {fullscreenMode === 'all' && hasWebPreview && (
+            <Button
+              theme="borderless"
+              icon={
+                <IconOpenExternal
+                  style={{ color: 'var(--semi-color-text-2)' }}
+                />
+              }
+              type="tertiary"
+              size="small"
+              title={t('go.ultra')}
+              aria-label={t('go.ultra')}
+              onClick={enterFrameless}
+            />
+          )}
           <Button
             theme="borderless"
             icon={
-              fullscreenMode !== 'off' && !showCode ? (
+              fullscreenMode !== 'off' ? (
                 <IconExitFullscreen
                   style={{ color: 'var(--semi-color-text-2)' }}
                 />
@@ -432,11 +513,9 @@ export function ExampleContent({
             type="tertiary"
             size="small"
             onClick={() => {
-              if (fullscreenMode !== 'off' && !showCode) {
+              if (fullscreenMode !== 'off') {
                 setFullscreenMode('off');
                 setShowCode(true);
-              } else if (fullscreenMode !== 'off' && showCode) {
-                setShowCode(false);
               } else {
                 splitPaneRef.current?.ensureSecondMinSize(320);
                 setFullscreenMode('all');
@@ -555,17 +634,19 @@ export function ExampleContent({
             <div
               className={s['preview-panel']}
               style={{
-                zIndex: previewType === PreviewType.Web ? 1 : 0,
+                zIndex: previewType === PreviewType.Web || isUltra ? 1 : 0,
                 visibility:
-                  previewType === PreviewType.Web ? 'visible' : 'hidden',
+                  previewType === PreviewType.Web || isUltra
+                    ? 'visible'
+                    : 'hidden',
                 pointerEvents:
-                  previewType === PreviewType.Web ? 'auto' : 'none',
+                  previewType === PreviewType.Web || isUltra ? 'auto' : 'none',
               }}
             >
               <NoSSRComponent>
                 <Suspense fallback={<div>Loading...</div>}>
                   <WebIframe
-                    show={previewType === PreviewType.Web}
+                    show={previewType === PreviewType.Web || isUltra}
                     src={defaultWebPreviewFile || ''}
                     webPreviewMode={webPreviewMode}
                     designWidth={designWidth}
@@ -581,14 +662,14 @@ export function ExampleContent({
         </div>
         {/* Only in the visible preview pane — renderCodeWrap() renders it when
             the preview is hidden, so the two never render at once. */}
-        {showPreview && renderOpenIn()}
+        {showPreview && !isUltra && renderOpenIn()}
       </div>
     </div>
   );
 
   return (
     <div
-      className={`${s.box} ${fullscreenMode !== 'off' ? s['box-fullscreen'] : ''} ${!showCode ? s['box-code-collapsed'] : ''} ${hasPreview && !showPreview ? s['box-preview-collapsed'] : ''}`}
+      className={`${s.box} ${fullscreenMode !== 'off' ? s['box-fullscreen'] : ''} ${isUltra ? s['box-ultra'] : ''} ${!showCode ? s['box-code-collapsed'] : ''} ${hasPreview && !showPreview ? s['box-preview-collapsed'] : ''}`}
       ref={boxRef}
     >
       <div className={s.container} ref={containerRef}>
@@ -733,6 +814,23 @@ export function ExampleContent({
                 />
               </Space>
             )}
+            {mode !== 'preview' &&
+              fullscreenMode === 'all' &&
+              hasWebPreview && (
+                <Button
+                  theme="borderless"
+                  icon={
+                    <IconOpenExternal
+                      style={{ color: 'var(--semi-color-text-2)' }}
+                    />
+                  }
+                  type="tertiary"
+                  size="small"
+                  title={t('go.ultra')}
+                  aria-label={t('go.ultra')}
+                  onClick={enterFrameless}
+                />
+              )}
             {mode !== 'preview' && (
               <Button
                 theme="borderless"

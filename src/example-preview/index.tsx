@@ -5,6 +5,7 @@ import useSWRMutation from 'swr/mutation';
 import type { PreviewTab } from '../config';
 import { useGoConfig } from '../config';
 import { ExampleContent } from './components';
+import { UltraLynxView } from './components/ultra-lynx-view';
 import type { SchemaOptionsData } from './hooks/use-switch-schema';
 import { isAssetFileType } from './utils/example-data';
 import type { WebPreviewMode } from './utils/resolve-web-preview';
@@ -39,7 +40,7 @@ const DefaultErrorWrap = ({
   );
 };
 
-export type ExamplePreviewMode = 'linked' | 'preview' | 'source';
+export type ExamplePreviewMode = 'linked' | 'preview' | 'source' | 'ultra';
 
 export interface ExamplePreviewProps {
   example: string;
@@ -196,7 +197,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     setIsAssetFile(isAssetFileType(v));
   };
   useEffect(() => {
-    if (mode === 'preview') return;
+    if (mode === 'preview' || mode === 'ultra') return;
     if (isAssetFile) {
       setCurrentFile(`${EXAMPLE_BASE_URL}/${example}/${currentName}`);
     } else {
@@ -271,6 +272,37 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
   if (error) {
     const ErrorComp = ErrorComponent || DefaultErrorWrap;
     return <ErrorComp example={example} exampleBaseUrl={EXAMPLE_BASE_URL} />;
+  }
+
+  // Ultra: Go is only a chromeless full-viewport <lynx-view>.
+  if (mode === 'ultra') {
+    if (initState && !defaultWebPreviewFile) {
+      const ErrorComp = ErrorComponent || DefaultErrorWrap;
+      return <ErrorComp example={example} exampleBaseUrl={EXAMPLE_BASE_URL} />;
+    }
+    if (!defaultWebPreviewFile) {
+      return (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: '#000',
+            zIndex: 99999,
+          }}
+        />
+      );
+    }
+    return (
+      <UltraLynxView
+        src={defaultWebPreviewFile}
+        webPreviewMode={webPreviewMode}
+        designWidth={designWidth}
+        designHeight={designHeight}
+        fitThresholdScale={fitThresholdScale}
+        fitMinScale={fitMinScale}
+        fit={fit}
+      />
+    );
   }
 
   return (
