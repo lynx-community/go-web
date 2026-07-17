@@ -1,8 +1,4 @@
-import {
-  IconChevronRightStroked,
-  IconList,
-  IconRefresh,
-} from '@douyinfe/semi-icons';
+import { IconChevronRightStroked, IconList } from '@douyinfe/semi-icons';
 import {
   Button,
   Radio,
@@ -37,6 +33,7 @@ import {
   IconFullscreen,
   IconGithub,
   IconOpenExternal,
+  IconRefresh,
 } from '../utils/icon';
 import { getFrameworkConfig } from '../utils/native-frameworks';
 import { isQrAllowed, resolveOpenIn } from '../utils/open-in-mode';

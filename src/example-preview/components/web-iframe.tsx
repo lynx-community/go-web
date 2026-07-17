@@ -50,8 +50,8 @@ type WebIframeProps = {
   fitMinScale?: number;
   fit?: 'contain' | 'cover' | 'auto';
   /**
-   * Increment to soft-refresh the preview: remount `<lynx-view>` and show the
-   * loading overlay in the rendering stage (bundle already downloaded).
+   * Increment to soft-refresh the preview: call `<lynx-view>.reload()` and show
+   * the loading overlay in the rendering stage (bundle already downloaded).
    */
   reloadKey?: number;
   /** Fires when the initial bundle has been downloaded and refresh is safe. */
@@ -64,6 +64,9 @@ type UseWebIframeControllerArgs = {
   reloadKey: number;
   onCanRefreshChange?: (canRefresh: boolean) => void;
 };
+
+/** web-core marks torn-down page roots with this before clearing the shadow. */
+const LYNX_DISPOSED_ATTR = 'l-disposed';
 
 type UseWebIframeControllerResult = {
   /**
@@ -209,9 +212,10 @@ function useWebIframeController({
 
   const renderedRef = useRef(false);
   const bundlePhaseRef = useRef<'downloading' | 'rendering'>('downloading');
-  // Soft refresh: remount after the initial download — overlay stays on
-  // "rendering", never re-enters the downloading stage.
+  // Soft refresh: native lynx-view.reload() — overlay stays on "rendering",
+  // never re-enters the downloading stage.
   const softRefreshRef = useRef(false);
+  const pendingReloadRef = useRef(false);
   const canRefreshRef = useRef(false);
   const prevSrcRef = useRef(src);
   const prevReloadKeyRef = useRef(reloadKey);
@@ -237,11 +241,13 @@ function useWebIframeController({
 
     if (srcChanged) {
       softRefreshRef.current = false;
+      pendingReloadRef.current = false;
       notifyCanRefresh(false);
       setBundlePhase('downloading');
       bundlePhaseRef.current = 'downloading';
     } else if (reloadChanged && reloadKey > 0) {
       softRefreshRef.current = true;
+      pendingReloadRef.current = true;
       setBundlePhase('rendering');
       bundlePhaseRef.current = 'rendering';
     }
@@ -290,11 +296,21 @@ function useWebIframeController({
     let raf = 0;
 
     // Soft refresh skips downloading; initial / src loads start there.
-    const initialPhase: 'downloading' | 'rendering' = softRefreshRef.current
+    const isSoftRefresh = softRefreshRef.current;
+    const initialPhase: 'downloading' | 'rendering' = isSoftRefresh
       ? 'rendering'
       : 'downloading';
     setBundlePhase(initialPhase);
     bundlePhaseRef.current = initialPhase;
+
+    // Consume the pending reload once; snapshot the pre-reload page so we
+    // never treat it as the post-reload paint signal.
+    const shouldReload = pendingReloadRef.current;
+    if (shouldReload) pendingReloadRef.current = false;
+    const host = lynxView as unknown as HTMLElement;
+    const previousPage = shouldReload
+      ? host.shadowRoot?.querySelector('[part="page"], [lynx-tag="page"]')
+      : null;
 
     const unlockRefresh = () => {
       // Bundle has been downloaded (decode chrome or page paint). Parent can
@@ -337,9 +353,14 @@ function useWebIframeController({
     // web-core may create the shadow root asynchronously and append chrome
     // (iframe / placeholder <link>) before the template finishes downloading.
     // The rendered page root is `[part="page"]` (web-core >=0.20) or
-    // `[lynx-tag="page"]` (older). Do not treat any shadow child as ready.
-    const isContentReady = (shadow: ShadowRoot) =>
-      !!shadow.querySelector('[part="page"], [lynx-tag="page"]');
+    // `[lynx-tag="page"]` (older). Ignore disposed / pre-reload page nodes.
+    const isContentReady = (shadow: ShadowRoot) => {
+      const page = shadow.querySelector('[part="page"], [lynx-tag="page"]');
+      if (!page) return false;
+      if (page.hasAttribute(LYNX_DISPOSED_ATTR)) return false;
+      if (previousPage && page === previousPage) return false;
+      return true;
+    };
 
     // Early chrome is iframe + empty blob <link>. A real <style> lands after
     // the template is decoded — use that as downloading → rendering. (Bundle
@@ -349,33 +370,49 @@ function useWebIframeController({
         (el) => (el.textContent || '').trim().length > 0,
       );
 
+    const evaluate = (shadow: ShadowRoot, source: string) => {
+      if (isContentReady(shadow)) {
+        markRendered(source);
+        return;
+      }
+      if (hasDecodeChrome(shadow)) {
+        markRendering(`shadow-style:${source}`);
+      }
+    };
+
     const setupShadow = (shadow: ShadowRoot) => {
-      mo = new MutationObserver(() => {
-        if (isContentReady(shadow)) {
-          markRendered('page');
-          return;
-        }
-        if (hasDecodeChrome(shadow)) {
-          markRendering('shadow-style');
-        }
-      });
+      mo = new MutationObserver(() => evaluate(shadow, 'page'));
       mo.observe(shadow, {
         childList: true,
         subtree: true,
         characterData: true,
+        attributes: true,
+        attributeFilter: [LYNX_DISPOSED_ATTR],
       });
-      if (isContentReady(shadow)) {
-        markRendered('page-existing');
-      } else if (hasDecodeChrome(shadow)) {
-        markRendering('shadow-style');
-      }
+      evaluate(shadow, 'page-existing');
     };
 
     const pollShadow = () => {
       if (disposed || renderedRef.current) return;
-      const shadow = (lynxView as unknown as HTMLElement).shadowRoot;
+      const shadow = host.shadowRoot;
       if (shadow) {
         setupShadow(shadow);
+        // Arm observer before reload so dispose/rebuild mutations are seen.
+        // Snapshotting `previousPage` prevents the pre-reload root from
+        // clearing the overlay early.
+        if (shouldReload) {
+          console.log(tag, 'soft-refresh via lynx-view.reload()');
+          lynxView.reload();
+          // Cached rebuilds can finish between turns; re-check a few times.
+          queueMicrotask(() => {
+            if (!disposed && host.shadowRoot)
+              evaluate(host.shadowRoot, 'page-microtask');
+          });
+          requestAnimationFrame(() => {
+            if (!disposed && host.shadowRoot)
+              evaluate(host.shadowRoot, 'page-raf');
+          });
+        }
       } else {
         raf = requestAnimationFrame(pollShadow);
       }
@@ -767,11 +804,11 @@ export const WebIframe = ({
 
   const loading = show && (!ready || !rendered || !!error);
 
-  // Remount on soft refresh via key; keep `url` stable so the browser can
-  // reuse the already-downloaded bundle (rendering stage, not downloading).
+  // Keep `<lynx-view>` mounted across soft refreshes; reloadKey drives
+  // `lynxView.reload()` inside the controller (rendering stage, not remount).
   const lynxViewNode = ready && src && (
     <lynx-view
-      key={`${src}::${reloadKey}`}
+      key={src}
       ref={handleLynxViewRef}
       url={src}
       style={lynxViewStyle}
