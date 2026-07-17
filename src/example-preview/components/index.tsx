@@ -148,12 +148,21 @@ export function ExampleContent({
   const boxRef = useRef<HTMLDivElement>(null);
   const splitPaneRef = useRef<SplitPaneHandle>(null);
   const [isVertical, setIsVertical] = useState(false);
+  const [fullscreenMode, setFullscreenMode] = useState<'off' | 'all' | 'ultra'>(
+    'off',
+  );
+  const isUltra = fullscreenMode === 'ultra';
+  const isUltraRef = useRef(false);
+  isUltraRef.current = isUltra;
 
   useEffect(() => {
     const el = boxRef.current;
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
+        // Freeze orientation while ultra so layout thrashing doesn't fight
+        // the chromeless shell (and avoid unnecessary SplitPane work).
+        if (isUltraRef.current) return;
         setIsVertical(entry.contentRect.width <= 600);
       }
     });
@@ -186,31 +195,70 @@ export function ExampleContent({
     };
   }, [previewImage, currentEntry, defaultWebPreviewFile]);
   const [tmpCurrentFileName, setTmpCurrentFileName] = useState('');
-  const [fullscreenMode, setFullscreenMode] = useState<'off' | 'all'>('off');
   const defaultI18n = (key: string) => DEFAULT_I18N[key] || key;
   const t = useI18nHook ? useI18nHook() : defaultI18n;
   const lang = useLangHook ? useLangHook() : 'en';
 
-  // Lock body scroll and handle Escape key in fullscreen
+  // Lock body scroll and handle Escape / browser-fullscreen exit.
+  // CSS class keeps <lynx-view> mounted (no remount on enter/exit).
   useEffect(() => {
-    if (fullscreenMode === 'off') return;
+    if (fullscreenMode === 'off') {
+      const el = boxRef.current;
+      if (el) setIsVertical(el.getBoundingClientRect().width <= 600);
+      return;
+    }
 
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
+    const exitFullscreen = () => {
+      setFullscreenMode('off');
+      setShowCode(true);
+    };
+
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setFullscreenMode('off');
-        setShowCode(true);
+      if (e.key === 'Escape') exitFullscreen();
+    };
+    const handleFsChange = () => {
+      if (fullscreenMode === 'ultra' && !document.fullscreenElement) {
+        exitFullscreen();
       }
     };
     document.addEventListener('keydown', handleEscape);
+    document.addEventListener('fullscreenchange', handleFsChange);
+
+    if (fullscreenMode === 'ultra') {
+      const el = boxRef.current;
+      if (el) {
+        const req =
+          el.requestFullscreen?.bind(el) ||
+          // @ts-expect-error vendor-prefixed
+          el.webkitRequestFullscreen?.bind(el);
+        try {
+          void req?.();
+        } catch {
+          /* fixed inset still covers the page */
+        }
+      }
+    }
 
     return () => {
       document.body.style.overflow = originalOverflow;
       document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('fullscreenchange', handleFsChange);
+      if (document.fullscreenElement) {
+        void document.exitFullscreen?.().catch(() => undefined);
+      }
     };
   }, [fullscreenMode]);
+
+  const enterUltra = () => {
+    if (!hasWebPreview) return;
+    setPreviewType(PreviewType.Web);
+    setShowPreview(true);
+    setShowCode(false);
+    setFullscreenMode('ultra');
+  };
 
   const getContainer = () => containerRef.current as HTMLDivElement;
   const onFileSelect = (v: string) => {
@@ -421,7 +469,8 @@ export function ExampleContent({
           <Button
             theme="borderless"
             icon={
-              fullscreenMode !== 'off' && !showCode ? (
+              fullscreenMode === 'ultra' ||
+              (fullscreenMode !== 'off' && !showCode) ? (
                 <IconExitFullscreen
                   style={{ color: 'var(--semi-color-text-2)' }}
                 />
@@ -431,8 +480,32 @@ export function ExampleContent({
             }
             type="tertiary"
             size="small"
+            title={
+              fullscreenMode === 'ultra'
+                ? t('go.ultra.exit')
+                : fullscreenMode !== 'off' && !showCode && hasWebPreview
+                  ? t('go.ultra')
+                  : undefined
+            }
+            aria-label={
+              fullscreenMode === 'ultra'
+                ? t('go.ultra.exit')
+                : fullscreenMode !== 'off' && !showCode && hasWebPreview
+                  ? t('go.ultra')
+                  : undefined
+            }
             onClick={() => {
-              if (fullscreenMode !== 'off' && !showCode) {
+              if (fullscreenMode === 'ultra') {
+                setFullscreenMode('off');
+                setShowCode(true);
+              } else if (
+                fullscreenMode !== 'off' &&
+                !showCode &&
+                hasWebPreview
+              ) {
+                // Fullscreen + preview-only → ultra chromeless lynx-view
+                enterUltra();
+              } else if (fullscreenMode !== 'off' && !showCode) {
                 setFullscreenMode('off');
                 setShowCode(true);
               } else if (fullscreenMode !== 'off' && showCode) {
@@ -555,17 +628,19 @@ export function ExampleContent({
             <div
               className={s['preview-panel']}
               style={{
-                zIndex: previewType === PreviewType.Web ? 1 : 0,
+                zIndex: previewType === PreviewType.Web || isUltra ? 1 : 0,
                 visibility:
-                  previewType === PreviewType.Web ? 'visible' : 'hidden',
+                  previewType === PreviewType.Web || isUltra
+                    ? 'visible'
+                    : 'hidden',
                 pointerEvents:
-                  previewType === PreviewType.Web ? 'auto' : 'none',
+                  previewType === PreviewType.Web || isUltra ? 'auto' : 'none',
               }}
             >
               <NoSSRComponent>
                 <Suspense fallback={<div>Loading...</div>}>
                   <WebIframe
-                    show={previewType === PreviewType.Web}
+                    show={previewType === PreviewType.Web || isUltra}
                     src={defaultWebPreviewFile || ''}
                     webPreviewMode={webPreviewMode}
                     designWidth={designWidth}
@@ -581,14 +656,14 @@ export function ExampleContent({
         </div>
         {/* Only in the visible preview pane — renderCodeWrap() renders it when
             the preview is hidden, so the two never render at once. */}
-        {showPreview && renderOpenIn()}
+        {showPreview && !isUltra && renderOpenIn()}
       </div>
     </div>
   );
 
   return (
     <div
-      className={`${s.box} ${fullscreenMode !== 'off' ? s['box-fullscreen'] : ''} ${!showCode ? s['box-code-collapsed'] : ''} ${hasPreview && !showPreview ? s['box-preview-collapsed'] : ''}`}
+      className={`${s.box} ${fullscreenMode !== 'off' ? s['box-fullscreen'] : ''} ${isUltra ? s['box-ultra'] : ''} ${!showCode ? s['box-code-collapsed'] : ''} ${hasPreview && !showPreview ? s['box-preview-collapsed'] : ''}`}
       ref={boxRef}
     >
       <div className={s.container} ref={containerRef}>
@@ -749,8 +824,22 @@ export function ExampleContent({
                 }
                 type="tertiary"
                 size="small"
+                title={
+                  hasWebPreview && fullscreenMode === 'all' && !showCode
+                    ? t('go.ultra')
+                    : undefined
+                }
                 onClick={() => {
-                  if (fullscreenMode !== 'off') {
+                  if (fullscreenMode === 'ultra') {
+                    setFullscreenMode('off');
+                    setShowCode(true);
+                  } else if (
+                    fullscreenMode !== 'off' &&
+                    !showCode &&
+                    hasWebPreview
+                  ) {
+                    enterUltra();
+                  } else if (fullscreenMode !== 'off') {
                     setFullscreenMode('off');
                     setShowCode(true);
                   } else {

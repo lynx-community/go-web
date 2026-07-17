@@ -23,7 +23,7 @@ export type EmbedOptions = {
   /** Initial file to display */
   defaultFile?: string;
   /** Overall layout mode */
-  mode?: 'linked' | 'preview' | 'source';
+  mode?: 'linked' | 'preview' | 'source' | 'ultra';
   /** Default preview tab */
   defaultTab?: 'preview' | 'web' | 'qrcode';
   /**

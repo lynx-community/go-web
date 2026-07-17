@@ -314,6 +314,54 @@
   }
 }
 
+// Absolutely chromeless — just <lynx-view>, edge to edge.
+.box-ultra {
+  background: #000;
+  padding: 0;
+  z-index: 99999;
+
+  .footer,
+  .preview-header,
+  .code-wrap {
+    display: none !important;
+  }
+
+  .content {
+    padding: 0;
+    gap: 0;
+  }
+
+  .preview-wrap {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    height: 100%;
+  }
+
+  .preview-wrap-content,
+  .preview-body,
+  .preview-panel {
+    height: 100%;
+  }
+}
+
+// Standalone host used by mode="ultra"
+.ultra {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: #000;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
 .box-code-collapsed {
   .code-wrap {
     min-height: 0 !important;
