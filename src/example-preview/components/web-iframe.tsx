@@ -62,11 +62,13 @@ type UseWebIframeControllerResult = {
    */
   ready: boolean;
   /**
-   * A "mounted/started" marker: `<lynx-view>` is mounted and the controller
-   * has begun the startup path (next-tick after mount). There is currently no
-   * reliable public "rendered" (bundle successfully rendered) event to gate on.
+   * True once the Lynx page has actually painted into the shadow root
+   * (`[part="page"]` / `[lynx-tag="page"]`), after a double-rAF so the overlay
+   * holds through bundle download and first paint. Falls back to true after a
+   * timeout if the page signal never arrives (there is no public "rendered"
+   * event).
    */
-  started: boolean;
+  rendered: boolean;
   /**
    * Error surfaced from runtime import failure or `<lynx-view>` error events.
    * When set, the preview should be considered failed.
@@ -181,17 +183,17 @@ function useWebIframeController({
   lynxView,
 }: UseWebIframeControllerArgs): UseWebIframeControllerResult {
   const [ready, setReady] = useState(false);
-  const [started, setStarted] = useState(false);
+  const [rendered, setRendered] = useState(false);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
 
-  const startedRef = useRef(false);
+  const renderedRef = useRef(false);
 
   // Reset state when src changes
   useEffect(() => {
-    setStarted(false);
+    setRendered(false);
     setPreviewError(null);
-    startedRef.current = false;
+    renderedRef.current = false;
   }, [src]);
 
   // Load web-core eagerly on mount
@@ -232,20 +234,62 @@ function useWebIframeController({
       };
     }
 
-    const markStarted = (source: string) => {
-      if (startedRef.current) return;
+    let disposed = false;
+    let mo: MutationObserver | undefined;
+    let raf = 0;
+
+    const markRendered = (source: string) => {
+      if (renderedRef.current || disposed) return;
+      renderedRef.current = true;
+      mo?.disconnect();
       console.log(
         tag,
-        `started (${source})`,
+        `rendered (${source})`,
         `+${(performance.now() - t0).toFixed(0)}ms`,
       );
-      startedRef.current = true;
-      setStarted(true);
+      // Double-rAF: wait until after the browser has painted page content so
+      // the overlay does not uncover a blank frame.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (!disposed) setRendered(true);
+        });
+      });
     };
 
-    const t = setTimeout(() => markStarted('tick'), 0);
+    // web-core may create the shadow root asynchronously and append chrome
+    // (iframe / <style> / <link>) before the template finishes downloading.
+    // The rendered page root is `[part="page"]` (web-core >=0.20) or
+    // `[lynx-tag="page"]` (older). Do not treat any shadow child as ready.
+    const isContentReady = (shadow: ShadowRoot) =>
+      !!shadow.querySelector('[part="page"], [lynx-tag="page"]');
+
+    const setupShadow = (shadow: ShadowRoot) => {
+      mo = new MutationObserver(() => {
+        if (isContentReady(shadow)) markRendered('page');
+      });
+      mo.observe(shadow, { childList: true, subtree: true });
+      // Content may already be present (or land between check and observe).
+      if (isContentReady(shadow)) markRendered('page-existing');
+    };
+
+    const pollShadow = () => {
+      if (disposed) return;
+      const shadow = (lynxView as unknown as HTMLElement).shadowRoot;
+      if (shadow) {
+        setupShadow(shadow);
+      } else {
+        raf = requestAnimationFrame(pollShadow);
+      }
+    };
+    pollShadow();
+
+    // Fallback: hide loading if the page signal never arrives.
+    const fallback = setTimeout(() => markRendered('timeout'), 5000);
     return () => {
-      clearTimeout(t);
+      disposed = true;
+      cancelAnimationFrame(raf);
+      clearTimeout(fallback);
+      mo?.disconnect();
     };
   }, [ready, src, lynxView]);
 
@@ -267,7 +311,7 @@ function useWebIframeController({
   }, [lynxView]);
 
   const error = runtimeError ?? previewError;
-  return { ready, started, error };
+  return { ready, rendered, error };
 }
 
 function deriveFitStyles(
@@ -580,7 +624,7 @@ export const WebIframe = ({
     tryInitBrowserConfig,
   ]);
 
-  const { ready, started, error } = useWebIframeController({
+  const { ready, rendered, error } = useWebIframeController({
     src,
     lynxView,
   });
@@ -617,7 +661,7 @@ export const WebIframe = ({
       ? { stage: STAGE_FIT_ANCHOR, lynxView: fitStyles.lynxView }
       : { stage: STAGE_RESPONSIVE, lynxView: LYNX_VIEW_STYLE_RESPONSIVE };
 
-  const loading = show && (!ready || !started || !!error);
+  const loading = show && (!ready || !rendered || !!error);
 
   const lynxViewNode = ready && src && (
     <lynx-view
