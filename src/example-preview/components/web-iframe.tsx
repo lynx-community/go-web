@@ -16,6 +16,7 @@ import type {
   ResolvedWebPreviewMode,
 } from '../utils/resolve-web-preview';
 import { LoadingOverlay } from './loading-overlay';
+import type { WebPreviewLoadStage } from './loading-overlay';
 
 declare global {
   namespace JSX {
@@ -69,6 +70,11 @@ type UseWebIframeControllerResult = {
    * event).
    */
   rendered: boolean;
+  /**
+   * Coarse load stage for the overlay detail label. Advances runtime →
+   * downloading → rendering while the overlay is visible.
+   */
+  stage: WebPreviewLoadStage;
   /**
    * Error surfaced from runtime import failure or `<lynx-view>` error events.
    * When set, the preview should be considered failed.
@@ -184,14 +190,20 @@ function useWebIframeController({
 }: UseWebIframeControllerArgs): UseWebIframeControllerResult {
   const [ready, setReady] = useState(false);
   const [rendered, setRendered] = useState(false);
+  const [bundlePhase, setBundlePhase] = useState<'downloading' | 'rendering'>(
+    'downloading',
+  );
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
 
   const renderedRef = useRef(false);
+  const bundlePhaseRef = useRef<'downloading' | 'rendering'>('downloading');
 
   // Reset state when src changes
   useEffect(() => {
     setRendered(false);
+    setBundlePhase('downloading');
+    bundlePhaseRef.current = 'downloading';
     setPreviewError(null);
     renderedRef.current = false;
   }, [src]);
@@ -238,6 +250,9 @@ function useWebIframeController({
     let mo: MutationObserver | undefined;
     let raf = 0;
 
+    setBundlePhase('downloading');
+    bundlePhaseRef.current = 'downloading';
+
     const markRendered = (source: string) => {
       if (renderedRef.current || disposed) return;
       renderedRef.current = true;
@@ -256,20 +271,53 @@ function useWebIframeController({
       });
     };
 
+    const markRendering = (source: string) => {
+      if (disposed || renderedRef.current) return;
+      if (bundlePhaseRef.current === 'rendering') return;
+      bundlePhaseRef.current = 'rendering';
+      console.log(
+        tag,
+        `rendering (${source})`,
+        `+${(performance.now() - t0).toFixed(0)}ms`,
+      );
+      setBundlePhase('rendering');
+    };
+
     // web-core may create the shadow root asynchronously and append chrome
-    // (iframe / <style> / <link>) before the template finishes downloading.
+    // (iframe / placeholder <link>) before the template finishes downloading.
     // The rendered page root is `[part="page"]` (web-core >=0.20) or
     // `[lynx-tag="page"]` (older). Do not treat any shadow child as ready.
     const isContentReady = (shadow: ShadowRoot) =>
       !!shadow.querySelector('[part="page"], [lynx-tag="page"]');
 
+    // Early chrome is iframe + empty blob <link>. A real <style> lands after
+    // the template is decoded — use that as downloading → rendering. (Bundle
+    // fetch runs in a worker, so document PerformanceObserver often misses it.)
+    const hasDecodeChrome = (shadow: ShadowRoot) =>
+      Array.from(shadow.querySelectorAll('style')).some(
+        (el) => (el.textContent || '').trim().length > 0,
+      );
+
     const setupShadow = (shadow: ShadowRoot) => {
       mo = new MutationObserver(() => {
-        if (isContentReady(shadow)) markRendered('page');
+        if (isContentReady(shadow)) {
+          markRendered('page');
+          return;
+        }
+        if (hasDecodeChrome(shadow)) {
+          markRendering('shadow-style');
+        }
       });
-      mo.observe(shadow, { childList: true, subtree: true });
-      // Content may already be present (or land between check and observe).
-      if (isContentReady(shadow)) markRendered('page-existing');
+      mo.observe(shadow, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
+      if (isContentReady(shadow)) {
+        markRendered('page-existing');
+      } else if (hasDecodeChrome(shadow)) {
+        markRendering('shadow-style');
+      }
     };
 
     const pollShadow = () => {
@@ -311,7 +359,8 @@ function useWebIframeController({
   }, [lynxView]);
 
   const error = runtimeError ?? previewError;
-  return { ready, rendered, error };
+  const stage: WebPreviewLoadStage = !ready ? 'runtime' : bundlePhase;
+  return { ready, rendered, stage, error };
 }
 
 function deriveFitStyles(
@@ -624,7 +673,7 @@ export const WebIframe = ({
     tryInitBrowserConfig,
   ]);
 
-  const { ready, rendered, error } = useWebIframeController({
+  const { ready, rendered, stage, error } = useWebIframeController({
     src,
     lynxView,
   });
@@ -682,7 +731,7 @@ export const WebIframe = ({
     // Inner: controls visibility
     <div style={MEASURE_CONTAINER} ref={containerRef}>
       <div style={show ? INNER_VISIBLE : INNER_HIDDEN}>
-        <LoadingOverlay visible={loading} error={error} />
+        <LoadingOverlay visible={loading} error={error} stage={stage} />
         <div style={stageStyle}>
           <div style={frameStyle}>{lynxViewNode}</div>
         </div>

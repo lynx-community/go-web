@@ -6,12 +6,22 @@ const LOGO_LIGHT =
 const LOGO_DARK =
   'https://lf-lynx.tiktok-cdns.com/obj/lynx-artifacts-oss-sg/lynx-website/assets/lynx-light-logo.svg';
 
+export type WebPreviewLoadStage = 'runtime' | 'downloading' | 'rendering';
+
+const STAGE_DETAIL: Record<WebPreviewLoadStage, string> = {
+  runtime: 'Loading runtime…',
+  downloading: 'Downloading bundle…',
+  rendering: 'Rendering…',
+};
+
 export const LoadingOverlay = ({
   visible,
   error,
+  stage,
 }: {
   visible: boolean;
   error?: string | null;
+  stage?: WebPreviewLoadStage | null;
 }) => {
   const { useDark: useDarkHook = defaultUseDark } = useGoConfig();
   const isDark = useDarkHook();
@@ -56,6 +66,8 @@ export const LoadingOverlay = ({
     );
   }
 
+  const detail = stage ? STAGE_DETAIL[stage] : null;
+
   return (
     <div style={containerStyle}>
       <img
@@ -65,21 +77,44 @@ export const LoadingOverlay = ({
         height={40}
         style={{ opacity: 0.5 }}
       />
-      <div style={{ display: 'flex', gap: '6px' }}>
-        {[0, 1, 2].map((i) => (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '8px',
+        }}
+      >
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: isDark
+                  ? 'rgba(255,255,255,0.35)'
+                  : 'rgba(0,0,0,0.25)',
+                animation: `web-iframe-bounce 1.2s ${i * 0.15}s ease-in-out infinite`,
+              }}
+            />
+          ))}
+        </div>
+        {detail && (
           <div
-            key={i}
             style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              background: isDark
-                ? 'rgba(255,255,255,0.35)'
-                : 'rgba(0,0,0,0.25)',
-              animation: `web-iframe-bounce 1.2s ${i * 0.15}s ease-in-out infinite`,
+              color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)',
+              fontSize: '11px',
+              fontFamily: 'system-ui, sans-serif',
+              letterSpacing: '0.02em',
+              lineHeight: 1,
+              userSelect: 'none',
             }}
-          />
-        ))}
+          >
+            {detail}
+          </div>
+        )}
         <style>{`@keyframes web-iframe-bounce {
   0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
   40% { opacity: 1; transform: scale(1.2); }
