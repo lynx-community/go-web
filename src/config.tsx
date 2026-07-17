@@ -28,6 +28,7 @@ const DEFAULT_I18N: Record<string, string> = {
   'go.openin.show-qrcode': 'Show QR Code',
   'go.ultra': 'Open frameless',
   'go.ultra.exit': 'Exit frameless',
+  'go.refresh': 'Refresh',
 };
 
 /** Default CodeBlock — plain <pre><code> with no syntax highlighting. */

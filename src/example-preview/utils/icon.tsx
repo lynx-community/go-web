@@ -91,6 +91,23 @@ export function IconOpenExternal(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconRefresh(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="M17.65 6.35A7.95 7.95 0 0012 4V1L7 6l5 5V7c2.76 0 5 2.24 5 5a5 5 0 01-5 5 5 5 0 01-4.9-4H5.08A7 7 0 0012 19a7 7 0 007-7c0-1.94-.78-3.7-2.05-4.97z"
+      />
+    </svg>
+  );
+}
+
 export function IconCopyLink(props: SVGProps<SVGSVGElement>) {
   return (
     <svg

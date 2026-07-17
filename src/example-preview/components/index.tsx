@@ -33,6 +33,7 @@ import {
   IconFullscreen,
   IconGithub,
   IconOpenExternal,
+  IconRefresh,
 } from '../utils/icon';
 import { getFrameworkConfig } from '../utils/native-frameworks';
 import { isQrAllowed, resolveOpenIn } from '../utils/open-in-mode';
@@ -196,6 +197,7 @@ export function ExampleContent({
     };
   }, [previewImage, currentEntry, defaultWebPreviewFile]);
   const [tmpCurrentFileName, setTmpCurrentFileName] = useState('');
+  const [webPreviewRevision, setWebPreviewRevision] = useState(0);
   const defaultI18n = (key: string) => DEFAULT_I18N[key] || key;
   const t = useI18nHook ? useI18nHook() : defaultI18n;
   const lang = useLangHook ? useLangHook() : 'en';
@@ -499,6 +501,19 @@ export function ExampleContent({
               onClick={enterFrameless}
             />
           )}
+          {hasWebPreview && previewType === PreviewType.Web && (
+            <Button
+              theme="borderless"
+              icon={
+                <IconRefresh style={{ color: 'var(--semi-color-text-2)' }} />
+              }
+              type="tertiary"
+              size="small"
+              title={t('go.refresh')}
+              aria-label={t('go.refresh')}
+              onClick={() => setWebPreviewRevision((v) => v + 1)}
+            />
+          )}
           <Button
             theme="borderless"
             icon={
@@ -648,6 +663,7 @@ export function ExampleContent({
                   <WebIframe
                     show={previewType === PreviewType.Web || isUltra}
                     src={defaultWebPreviewFile || ''}
+                    reloadKey={webPreviewRevision}
                     webPreviewMode={webPreviewMode}
                     designWidth={designWidth}
                     designHeight={designHeight}
