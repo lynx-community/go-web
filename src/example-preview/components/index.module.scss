@@ -346,6 +346,21 @@
   .preview-panel {
     height: 100%;
   }
+
+  // Kill the SplitPane drag handle + give the preview the full box.
+  :global {
+    .split-pane__divider,
+    .split-pane__first {
+      display: none !important;
+    }
+    .split-pane__second {
+      flex: 1 1 auto !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: none !important;
+      max-height: none !important;
+    }
+  }
 }
 
 // Standalone host used by mode="ultra"
