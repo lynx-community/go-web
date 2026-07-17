@@ -49,11 +49,20 @@ type WebIframeProps = {
   fitThresholdScale?: number;
   fitMinScale?: number;
   fit?: 'contain' | 'cover' | 'auto';
+  /**
+   * Increment to soft-refresh the preview: remount `<lynx-view>` and show the
+   * loading overlay in the rendering stage (bundle already downloaded).
+   */
+  reloadKey?: number;
+  /** Fires when the initial bundle has been downloaded and refresh is safe. */
+  onCanRefreshChange?: (canRefresh: boolean) => void;
 };
 
 type UseWebIframeControllerArgs = {
   src: string;
   lynxView: LynxView | null;
+  reloadKey: number;
+  onCanRefreshChange?: (canRefresh: boolean) => void;
 };
 
 type UseWebIframeControllerResult = {
@@ -187,6 +196,8 @@ function formatLynxErrorMessage(value: unknown): string | null {
 function useWebIframeController({
   src,
   lynxView,
+  reloadKey,
+  onCanRefreshChange,
 }: UseWebIframeControllerArgs): UseWebIframeControllerResult {
   const [ready, setReady] = useState(false);
   const [rendered, setRendered] = useState(false);
@@ -198,15 +209,43 @@ function useWebIframeController({
 
   const renderedRef = useRef(false);
   const bundlePhaseRef = useRef<'downloading' | 'rendering'>('downloading');
+  // Soft refresh: remount after the initial download — overlay stays on
+  // "rendering", never re-enters the downloading stage.
+  const softRefreshRef = useRef(false);
+  const canRefreshRef = useRef(false);
+  const prevSrcRef = useRef(src);
+  const prevReloadKeyRef = useRef(reloadKey);
+  const onCanRefreshChangeRef = useRef(onCanRefreshChange);
+  onCanRefreshChangeRef.current = onCanRefreshChange;
 
-  // Reset state when src changes
+  const notifyCanRefresh = useCallback((can: boolean) => {
+    if (canRefreshRef.current === can) return;
+    canRefreshRef.current = can;
+    onCanRefreshChangeRef.current?.(can);
+  }, []);
+
+  // Reset when src changes (hard load) or reloadKey changes (soft refresh).
   useEffect(() => {
+    const srcChanged = prevSrcRef.current !== src;
+    const reloadChanged = prevReloadKeyRef.current !== reloadKey;
+    prevSrcRef.current = src;
+    prevReloadKeyRef.current = reloadKey;
+
     setRendered(false);
-    setBundlePhase('downloading');
-    bundlePhaseRef.current = 'downloading';
     setPreviewError(null);
     renderedRef.current = false;
-  }, [src]);
+
+    if (srcChanged) {
+      softRefreshRef.current = false;
+      notifyCanRefresh(false);
+      setBundlePhase('downloading');
+      bundlePhaseRef.current = 'downloading';
+    } else if (reloadChanged && reloadKey > 0) {
+      softRefreshRef.current = true;
+      setBundlePhase('rendering');
+      bundlePhaseRef.current = 'rendering';
+    }
+  }, [src, reloadKey, notifyCanRefresh]);
 
   // Load web-core eagerly on mount
   useEffect(() => {
@@ -250,12 +289,23 @@ function useWebIframeController({
     let mo: MutationObserver | undefined;
     let raf = 0;
 
-    setBundlePhase('downloading');
-    bundlePhaseRef.current = 'downloading';
+    // Soft refresh skips downloading; initial / src loads start there.
+    const initialPhase: 'downloading' | 'rendering' = softRefreshRef.current
+      ? 'rendering'
+      : 'downloading';
+    setBundlePhase(initialPhase);
+    bundlePhaseRef.current = initialPhase;
+
+    const unlockRefresh = () => {
+      // Bundle has been downloaded (decode chrome or page paint). Parent can
+      // show the refresh control from here on for this src.
+      notifyCanRefresh(true);
+    };
 
     const markRendered = (source: string) => {
       if (renderedRef.current || disposed) return;
       renderedRef.current = true;
+      unlockRefresh();
       mo?.disconnect();
       console.log(
         tag,
@@ -273,6 +323,7 @@ function useWebIframeController({
 
     const markRendering = (source: string) => {
       if (disposed || renderedRef.current) return;
+      unlockRefresh();
       if (bundlePhaseRef.current === 'rendering') return;
       bundlePhaseRef.current = 'rendering';
       console.log(
@@ -339,7 +390,7 @@ function useWebIframeController({
       clearTimeout(fallback);
       mo?.disconnect();
     };
-  }, [ready, src, lynxView]);
+  }, [ready, src, lynxView, reloadKey, notifyCanRefresh]);
 
   useEffect(() => {
     if (!lynxView) return;
@@ -553,6 +604,8 @@ export const WebIframe = ({
   fitThresholdScale = 1.0,
   fitMinScale = 0.5,
   fit = 'cover',
+  reloadKey = 0,
+  onCanRefreshChange,
 }: WebIframeProps) => {
   const [lynxView, setLynxView] = useState<LynxView | null>(null);
   const browserConfigInitializedRef = useRef<WeakSet<LynxView>>(new WeakSet());
@@ -676,6 +729,8 @@ export const WebIframe = ({
   const { ready, rendered, stage, error } = useWebIframeController({
     src,
     lynxView,
+    reloadKey,
+    onCanRefreshChange,
   });
 
   // `webPreviewMode='responsive'` resolves to `usesFitPath === false`,
@@ -712,9 +767,11 @@ export const WebIframe = ({
 
   const loading = show && (!ready || !rendered || !!error);
 
+  // Remount on soft refresh via key; keep `url` stable so the browser can
+  // reuse the already-downloaded bundle (rendering stage, not downloading).
   const lynxViewNode = ready && src && (
     <lynx-view
-      key={src}
+      key={`${src}::${reloadKey}`}
       ref={handleLynxViewRef}
       url={src}
       style={lynxViewStyle}
