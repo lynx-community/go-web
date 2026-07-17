@@ -202,7 +202,9 @@ export function ExampleContent({
 
   // Lock body scroll while in widget fullscreen / frameless.
   // CSS class keeps <lynx-view> mounted (no remount on enter/exit).
-  // Esc: frameless → first-level fullscreen → off.
+  // Esc / browser Back: frameless → first-level fullscreen → off.
+  const framelessHistRef = useRef(false);
+
   useEffect(() => {
     if (fullscreenMode === 'off') {
       const el = boxRef.current;
@@ -216,8 +218,12 @@ export function ExampleContent({
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       if (fullscreenMode === 'ultra') {
-        // Back to first-level fullscreen (chrome visible again)
-        setFullscreenMode('all');
+        // Prefer history.back() so Esc and mobile Back share one exit path.
+        if (framelessHistRef.current) {
+          history.back();
+        } else {
+          setFullscreenMode('all');
+        }
       } else {
         setFullscreenMode('off');
         setShowCode(true);
@@ -228,6 +234,36 @@ export function ExampleContent({
     return () => {
       document.body.style.overflow = originalOverflow;
       document.removeEventListener('keydown', handleEscape);
+    };
+  }, [fullscreenMode]);
+
+  // Frameless: push a history entry so mobile Back / swipe-back exits safely
+  // (same path as Esc on desktop). popstate → first-level fullscreen.
+  useEffect(() => {
+    if (fullscreenMode !== 'ultra') return;
+
+    history.pushState({ __goFrameless: true }, '');
+    framelessHistRef.current = true;
+
+    const onPopState = () => {
+      framelessHistRef.current = false;
+      setFullscreenMode('all');
+    };
+    window.addEventListener('popstate', onPopState);
+
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+      // Left frameless without Back — drop our history entry if still on top.
+      if (framelessHistRef.current) {
+        framelessHistRef.current = false;
+        if (
+          typeof history.state === 'object' &&
+          history.state &&
+          (history.state as { __goFrameless?: boolean }).__goFrameless
+        ) {
+          history.back();
+        }
+      }
     };
   }, [fullscreenMode]);
 
