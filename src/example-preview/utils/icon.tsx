@@ -56,7 +56,7 @@ export function IconFullscreen(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-/** Match header action icons (fullscreen / open-external): 1em, no Semi size wrap. */
+/** Same Material 24dp optical size as IconFullscreen / IconOpenExternal. */
 export function IconRefresh(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -68,7 +68,7 @@ export function IconRefresh(props: SVGProps<SVGSVGElement>) {
     >
       <path
         fill="currentColor"
-        d="M4.5 12a7.5 7.5 0 0 1 13.8-4.07l-2-.4a1.5 1.5 0 0 0-.6 2.94l5 1c.76.15 1.51-.3 1.74-1.04l1.5-5a1.5 1.5 0 1 0-2.88-.86l-.43 1.45A10.49 10.49 0 0 0 1.5 12a10.5 10.5 0 0 0 20.4 3.5 1.5 1.5 0 1 0-2.83-1A7.5 7.5 0 0 1 4.5 12Z"
+        d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
       />
     </svg>
   );
