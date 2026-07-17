@@ -168,7 +168,7 @@ interface UrlState {
   tab?: PreviewTab;
   file?: string;
   example?: string;
-  mode?: 'linked' | 'preview' | 'source';
+  mode?: 'linked' | 'preview' | 'source' | 'ultra';
 }
 
 function readUrlState(): UrlState {
@@ -611,17 +611,18 @@ function buildJsxString({
   highlight: string;
   img: string;
   schema: string;
-  mode: 'linked' | 'preview' | 'source';
+  mode: 'linked' | 'preview' | 'source' | 'ultra';
 }): string {
   const props: string[] = [`example="${example}"`];
-  if (defaultFile && mode !== 'preview')
+  if (defaultFile && mode !== 'preview' && mode !== 'ultra')
     props.push(`defaultFile="${defaultFile}"`);
-  if (defaultTab !== 'web' && mode !== 'source')
+  if (defaultTab !== 'web' && mode !== 'source' && mode !== 'ultra')
     props.push(`defaultTab="${defaultTab}"`);
-  if (defaultEntryFile && mode !== 'source')
+  if (defaultEntryFile && mode !== 'source' && mode !== 'ultra')
     props.push(`defaultEntryFile="${defaultEntryFile}"`);
-  if (highlight && mode !== 'preview') props.push(`highlight="${highlight}"`);
-  if (entryFilter && mode !== 'source') {
+  if (highlight && mode !== 'preview' && mode !== 'ultra')
+    props.push(`highlight="${highlight}"`);
+  if (entryFilter && mode !== 'source' && mode !== 'ultra') {
     if (entryFilter.includes(',')) {
       props.push(
         `entry={${JSON.stringify(entryFilter.split(',').map((s) => s.trim()))}}`,
@@ -630,8 +631,9 @@ function buildJsxString({
       props.push(`entry="${entryFilter}"`);
     }
   }
-  if (schema && mode !== 'source') props.push(`schema="${schema}"`);
-  if (img && mode !== 'source') props.push(`img="${img}"`);
+  if (schema && mode !== 'source' && mode !== 'ultra')
+    props.push(`schema="${schema}"`);
+  if (img && mode !== 'source' && mode !== 'ultra') props.push(`img="${img}"`);
   if (mode !== 'linked') props.push(`mode="${mode}"`);
 
   if (props.length <= 2) {
@@ -713,7 +715,7 @@ function App() {
         ? 'src/App.vue'
         : 'src/App.tsx'),
   );
-  const [mode, setMode] = useState<'linked' | 'preview' | 'source'>(
+  const [mode, setMode] = useState<'linked' | 'preview' | 'source' | 'ultra'>(
     initial.mode ?? 'linked',
   );
   const [copied, setCopied] = useState(false);
@@ -817,6 +819,16 @@ function App() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [jsxDialogOpen]);
+
+  // Exit playground ultra mode on Escape
+  useEffect(() => {
+    if (mode !== 'ultra') return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMode('linked');
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [mode]);
 
   // Persist state to URL hash
   useEffect(() => {
@@ -1039,8 +1051,11 @@ function App() {
                   { value: 'linked', label: 'Linked' },
                   { value: 'preview', label: 'Preview' },
                   { value: 'source', label: 'Source' },
+                  { value: 'ultra', label: 'Ultra' },
                 ]}
-                onChange={(v) => setMode(v as 'linked' | 'preview' | 'source')}
+                onChange={(v) =>
+                  setMode(v as 'linked' | 'preview' | 'source' | 'ultra')
+                }
               />
             </ControlGroup>
 
@@ -1469,47 +1484,53 @@ function App() {
       <main>
         <PreviewErrorBoundary>
           <GoConfigProvider config={goConfig}>
-            <div className="dual-view">
-              {/* Desktop */}
-              <div style={{ flex: '1 1 500px', minWidth: 0 }}>
+            {mode === 'ultra' ? (
+              <>
                 <Go
-                  key={`desktop-${example}-${selectedEntry}-${defaultTab}-${mode}`}
+                  key={`ultra-${example}-${selectedEntry}`}
                   example={example}
-                  defaultFile={defaultFile}
-                  defaultTab={defaultTab}
                   defaultEntryFile={defaultEntryFile || undefined}
                   entry={entryFilter || undefined}
-                  highlight={highlight || undefined}
-                  img={img || undefined}
-                  schema={schema || undefined}
-                  mode={mode}
+                  mode="ultra"
                   webPreviewMode={
                     example.startsWith('lynx-ui') ? 'auto' : 'responsive'
                   }
-                  deepLinkUrl={deepLinkUrl || undefined}
-                  nativeFramework={nativeFramework || undefined}
                 />
-                <div className="figure-caption">Desktop</div>
-              </div>
-              {/* Mobile — fixed 320×660 */}
-              <div
-                className="mobile-preview"
-                style={{
-                  flex: '0 0 320px',
-                  maxWidth: 320,
-                  overflow: 'hidden',
-                  containerType: 'inline-size' as any,
-                }}
-              >
-                <div
+                <button
+                  type="button"
+                  onClick={() => setMode('linked')}
+                  title="Exit ultra (Esc)"
                   style={{
-                    height: 660,
-                    overflow: 'hidden',
-                    borderRadius: 16,
+                    position: 'fixed',
+                    top: 12,
+                    right: 12,
+                    zIndex: 100000,
+                    opacity: 0.35,
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '6px 10px',
+                    background: 'rgba(255,255,255,0.12)',
+                    color: '#fff',
+                    fontSize: 12,
+                    fontFamily: 'var(--sb-font-mono)',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '1';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '0.35';
                   }}
                 >
+                  Exit Ultra
+                </button>
+              </>
+            ) : (
+              <div className="dual-view">
+                {/* Desktop */}
+                <div style={{ flex: '1 1 500px', minWidth: 0 }}>
                   <Go
-                    key={`mobile-${example}-${selectedEntry}-${defaultTab}-${mode}`}
+                    key={`desktop-${example}-${selectedEntry}-${defaultTab}-${mode}`}
                     example={example}
                     defaultFile={defaultFile}
                     defaultTab={defaultTab}
@@ -1524,12 +1545,49 @@ function App() {
                     }
                     deepLinkUrl={deepLinkUrl || undefined}
                     nativeFramework={nativeFramework || undefined}
-                    _forceMobile={true}
                   />
+                  <div className="figure-caption">Desktop</div>
                 </div>
-                <div className="figure-caption">Mobile (320 x 660)</div>
+                {/* Mobile — fixed 320×660 */}
+                <div
+                  className="mobile-preview"
+                  style={{
+                    flex: '0 0 320px',
+                    maxWidth: 320,
+                    overflow: 'hidden',
+                    containerType: 'inline-size' as any,
+                  }}
+                >
+                  <div
+                    style={{
+                      height: 660,
+                      overflow: 'hidden',
+                      borderRadius: 16,
+                    }}
+                  >
+                    <Go
+                      key={`mobile-${example}-${selectedEntry}-${defaultTab}-${mode}`}
+                      example={example}
+                      defaultFile={defaultFile}
+                      defaultTab={defaultTab}
+                      defaultEntryFile={defaultEntryFile || undefined}
+                      entry={entryFilter || undefined}
+                      highlight={highlight || undefined}
+                      img={img || undefined}
+                      schema={schema || undefined}
+                      mode={mode}
+                      webPreviewMode={
+                        example.startsWith('lynx-ui') ? 'auto' : 'responsive'
+                      }
+                      deepLinkUrl={deepLinkUrl || undefined}
+                      nativeFramework={nativeFramework || undefined}
+                      _forceMobile={true}
+                    />
+                  </div>
+                  <div className="figure-caption">Mobile (320 x 660)</div>
+                </div>
               </div>
-            </div>
+            )}
           </GoConfigProvider>
         </PreviewErrorBoundary>
       </main>

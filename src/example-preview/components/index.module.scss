@@ -314,6 +314,72 @@
   }
 }
 
+// Frameless viewport — <lynx-view> dominates the full browser viewport,
+// including safe-area (no OS desktop fullscreen). Edge-to-edge, no Go chrome.
+.box-ultra {
+  background: #000;
+  // Override .box-fullscreen safe-area padding so lynx-view can own the
+  // entire viewport (status bar / home indicator regions included).
+  padding: 0 !important;
+  z-index: 99999;
+
+  .footer,
+  .preview-header,
+  .code-wrap {
+    display: none !important;
+  }
+
+  .content {
+    padding: 0;
+    gap: 0;
+  }
+
+  .preview-wrap {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    height: 100%;
+  }
+
+  .preview-wrap-content,
+  .preview-body,
+  .preview-panel {
+    height: 100%;
+  }
+
+  // Kill the SplitPane drag handle + give the preview the full box.
+  :global {
+    .split-pane__divider,
+    .split-pane__first {
+      display: none !important;
+    }
+    .split-pane__second {
+      flex: 1 1 auto !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: none !important;
+      max-height: none !important;
+    }
+  }
+}
+
+// Standalone host used by mode="ultra"
+.ultra {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: #000;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
 .box-code-collapsed {
   .code-wrap {
     min-height: 0 !important;

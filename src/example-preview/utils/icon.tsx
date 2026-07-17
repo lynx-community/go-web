@@ -73,6 +73,24 @@ export function IconExitFullscreen(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** Open frameless / external viewport — arrow out of a frame */
+export function IconOpenExternal(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="M14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7zM5 5v14h14v-7h-2v5H7V7h5V5H5z"
+      />
+    </svg>
+  );
+}
+
 export function IconCopyLink(props: SVGProps<SVGSVGElement>) {
   return (
     <svg

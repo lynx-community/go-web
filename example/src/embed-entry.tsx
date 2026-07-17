@@ -100,7 +100,7 @@ const StandaloneCodeBlock = ({
 type EmbedOptions = {
   example: string;
   defaultFile?: string;
-  mode?: 'linked' | 'preview' | 'source';
+  mode?: 'linked' | 'preview' | 'source' | 'ultra';
   defaultTab?: 'preview' | 'web' | 'qrcode';
   deepLinkUrl?: string;
   nativeFramework?: string;
