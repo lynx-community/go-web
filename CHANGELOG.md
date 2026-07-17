@@ -1,5 +1,19 @@
 # @lynx-js/go-web
 
+## 0.7.0
+
+### Minor Changes
+
+- Add frameless viewport mode for authentic mobile `<lynx-view>` immersion. ([#66](https://github.com/lynx-community/go-web/pull/66))
+  - New `mode="ultra"` — `<Go>` renders as a frameless full-viewport `<lynx-view>` (dominates the browser viewport including safe-area; not OS desktop fullscreen).
+  - From the widget: enter first-level fullscreen, then use the new **open frameless** icon next to shrink to expand `<lynx-view>` edge-to-edge with no Go chrome. Esc returns to first-level fullscreen.
+
+### Patch Changes
+
+- Hold the Web preview loading overlay through Lynx bundle download until the page root paints (`[part="page"]` / `[lynx-tag="page"]`), and show a tiny stage label under the spinner (runtime → downloading → rendering). ([#67](https://github.com/lynx-community/go-web/pull/67))
+
+- Add a Web preview refresh control next to the fullscreen button. It appears only after the initial Lynx bundle has downloaded, and soft-refreshes via `<lynx-view>.reload()` into the rendering overlay stage (not downloading). ([#70](https://github.com/lynx-community/go-web/pull/70))
+
 ## 0.6.0
 
 ### Minor Changes
