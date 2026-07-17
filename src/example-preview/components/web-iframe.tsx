@@ -321,7 +321,7 @@ function useWebIframeController({
     };
 
     const pollShadow = () => {
-      if (disposed) return;
+      if (disposed || renderedRef.current) return;
       const shadow = (lynxView as unknown as HTMLElement).shadowRoot;
       if (shadow) {
         setupShadow(shadow);
