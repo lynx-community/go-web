@@ -2,6 +2,7 @@
 '@lynx-js/go-web': minor
 ---
 
-Add `mode="ultra"` — an absolutely chromeless full-viewport `<lynx-view>` experience.
+Add frameless viewport mode for authentic mobile `<lynx-view>` immersion.
 
-From the default widget, clicking the fullscreen control again while already fullscreen with code hidden (and a web preview available) enters the same ultra chromeless mode (CSS overlay + best-effort Browser Fullscreen API) without remounting `<lynx-view>`. Esc / exit browser fullscreen restores Go chrome.
+- New `mode="ultra"` — `<Go>` renders as a frameless full-viewport `<lynx-view>` (dominates the browser viewport including safe-area; not OS desktop fullscreen).
+- From the widget: enter first-level fullscreen, then use the new **open frameless** icon next to shrink to expand `<lynx-view>` edge-to-edge with no Go chrome. Esc returns to first-level fullscreen.

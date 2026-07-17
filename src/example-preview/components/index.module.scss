@@ -314,10 +314,13 @@
   }
 }
 
-// Absolutely chromeless — just <lynx-view>, edge to edge.
+// Frameless viewport — <lynx-view> dominates the full browser viewport,
+// including safe-area (no OS desktop fullscreen). Edge-to-edge, no Go chrome.
 .box-ultra {
   background: #000;
-  padding: 0;
+  // Override .box-fullscreen safe-area padding so lynx-view can own the
+  // entire viewport (status bar / home indicator regions included).
+  padding: 0 !important;
   z-index: 99999;
 
   .footer,

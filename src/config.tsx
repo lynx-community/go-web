@@ -26,8 +26,8 @@ const DEFAULT_I18N: Record<string, string> = {
   'go.deeplink.hint-mobile': 'mobile only',
   'go.deeplink.or': 'or',
   'go.openin.show-qrcode': 'Show QR Code',
-  'go.ultra': 'Ultra fullscreen',
-  'go.ultra.exit': 'Exit ultra',
+  'go.ultra': 'Open frameless',
+  'go.ultra.exit': 'Exit frameless',
 };
 
 /** Default CodeBlock — plain <pre><code> with no syntax highlighting. */

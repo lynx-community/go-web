@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useRef } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import type { WebPreviewMode } from '../utils/resolve-web-preview';
 import { DefaultNoSSR, useGoConfig } from '../../config';
 import s from './index.module.scss';
@@ -16,18 +16,14 @@ export type UltraLynxViewProps = {
   fitThresholdScale?: number;
   fitMinScale?: number;
   fit?: 'contain' | 'cover' | 'auto';
-  /**
-   * Attempt the Browser Fullscreen API after mount (requires a prior user
-   * gesture in most browsers — safe to call; failures are ignored).
-   */
-  requestBrowserFullscreen?: boolean;
-  /** Called when the user exits browser fullscreen or presses Escape */
+  /** Called when the user presses Escape */
   onExit?: () => void;
 };
 
 /**
- * Absolutely chromeless full-viewport `<lynx-view>` host.
- * No Go chrome, tabs, footer, or borders — just the Lynx Web surface.
+ * Frameless full-viewport `<lynx-view>` host.
+ * Dominates the browser viewport (incl. safe-area) with no Go chrome.
+ * This is mobile-style frameless immersion — not OS desktop fullscreen.
  */
 export function UltraLynxView({
   src,
@@ -37,11 +33,9 @@ export function UltraLynxView({
   fitThresholdScale,
   fitMinScale,
   fit,
-  requestBrowserFullscreen = false,
   onExit,
 }: UltraLynxViewProps) {
   const { NoSSR: NoSSRComponent = DefaultNoSSR } = useGoConfig();
-  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
@@ -58,33 +52,8 @@ export function UltraLynxView({
     };
   }, [onExit]);
 
-  useEffect(() => {
-    if (!requestBrowserFullscreen || !rootRef.current) return;
-    const el = rootRef.current;
-    const req =
-      el.requestFullscreen?.bind(el) ||
-      // @ts-expect-error vendor-prefixed
-      el.webkitRequestFullscreen?.bind(el);
-    try {
-      void req?.();
-    } catch {
-      /* ignored — fixed inset still covers the page */
-    }
-
-    const onFsChange = () => {
-      if (!document.fullscreenElement) onExit?.();
-    };
-    document.addEventListener('fullscreenchange', onFsChange);
-    return () => {
-      document.removeEventListener('fullscreenchange', onFsChange);
-      if (document.fullscreenElement) {
-        void document.exitFullscreen?.().catch(() => undefined);
-      }
-    };
-  }, [requestBrowserFullscreen, onExit]);
-
   return (
-    <div className={s.ultra} ref={rootRef}>
+    <div className={s.ultra}>
       <NoSSRComponent>
         <Suspense fallback={null}>
           <WebIframe

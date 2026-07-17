@@ -32,6 +32,7 @@ import {
   IconExitFullscreen,
   IconFullscreen,
   IconGithub,
+  IconOpenExternal,
 } from '../utils/icon';
 import { getFrameworkConfig } from '../utils/native-frameworks';
 import { isQrAllowed, resolveOpenIn } from '../utils/open-in-mode';
@@ -199,8 +200,9 @@ export function ExampleContent({
   const t = useI18nHook ? useI18nHook() : defaultI18n;
   const lang = useLangHook ? useLangHook() : 'en';
 
-  // Lock body scroll and handle Escape / browser-fullscreen exit.
+  // Lock body scroll while in widget fullscreen / frameless.
   // CSS class keeps <lynx-view> mounted (no remount on enter/exit).
+  // Esc: frameless → first-level fullscreen → off.
   useEffect(() => {
     if (fullscreenMode === 'off') {
       const el = boxRef.current;
@@ -211,48 +213,25 @@ export function ExampleContent({
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
-    const exitFullscreen = () => {
-      setFullscreenMode('off');
-      setShowCode(true);
-    };
-
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') exitFullscreen();
-    };
-    const handleFsChange = () => {
-      if (fullscreenMode === 'ultra' && !document.fullscreenElement) {
-        exitFullscreen();
+      if (e.key !== 'Escape') return;
+      if (fullscreenMode === 'ultra') {
+        // Back to first-level fullscreen (chrome visible again)
+        setFullscreenMode('all');
+      } else {
+        setFullscreenMode('off');
+        setShowCode(true);
       }
     };
     document.addEventListener('keydown', handleEscape);
-    document.addEventListener('fullscreenchange', handleFsChange);
-
-    if (fullscreenMode === 'ultra') {
-      const el = boxRef.current;
-      if (el) {
-        const req =
-          el.requestFullscreen?.bind(el) ||
-          // @ts-expect-error vendor-prefixed
-          el.webkitRequestFullscreen?.bind(el);
-        try {
-          void req?.();
-        } catch {
-          /* fixed inset still covers the page */
-        }
-      }
-    }
 
     return () => {
       document.body.style.overflow = originalOverflow;
       document.removeEventListener('keydown', handleEscape);
-      document.removeEventListener('fullscreenchange', handleFsChange);
-      if (document.fullscreenElement) {
-        void document.exitFullscreen?.().catch(() => undefined);
-      }
     };
   }, [fullscreenMode]);
 
-  const enterUltra = () => {
+  const enterFrameless = () => {
     if (!hasWebPreview) return;
     setPreviewType(PreviewType.Web);
     setShowPreview(true);
@@ -466,11 +445,28 @@ export function ExampleContent({
           ) : (
             <div style={{ flex: 1 }} />
           )}
+          {/* First-level fullscreen: "open frameless" sits next to shrink.
+              Frameless = <lynx-view> dominates the full browser viewport
+              (incl. safe-area) — not OS desktop fullscreen. */}
+          {fullscreenMode === 'all' && hasWebPreview && (
+            <Button
+              theme="borderless"
+              icon={
+                <IconOpenExternal
+                  style={{ color: 'var(--semi-color-text-2)' }}
+                />
+              }
+              type="tertiary"
+              size="small"
+              title={t('go.ultra')}
+              aria-label={t('go.ultra')}
+              onClick={enterFrameless}
+            />
+          )}
           <Button
             theme="borderless"
             icon={
-              fullscreenMode === 'ultra' ||
-              (fullscreenMode !== 'off' && !showCode) ? (
+              fullscreenMode !== 'off' ? (
                 <IconExitFullscreen
                   style={{ color: 'var(--semi-color-text-2)' }}
                 />
@@ -480,36 +476,10 @@ export function ExampleContent({
             }
             type="tertiary"
             size="small"
-            title={
-              fullscreenMode === 'ultra'
-                ? t('go.ultra.exit')
-                : fullscreenMode !== 'off' && !showCode && hasWebPreview
-                  ? t('go.ultra')
-                  : undefined
-            }
-            aria-label={
-              fullscreenMode === 'ultra'
-                ? t('go.ultra.exit')
-                : fullscreenMode !== 'off' && !showCode && hasWebPreview
-                  ? t('go.ultra')
-                  : undefined
-            }
             onClick={() => {
-              if (fullscreenMode === 'ultra') {
+              if (fullscreenMode !== 'off') {
                 setFullscreenMode('off');
                 setShowCode(true);
-              } else if (
-                fullscreenMode !== 'off' &&
-                !showCode &&
-                hasWebPreview
-              ) {
-                // Fullscreen + preview-only → ultra chromeless lynx-view
-                enterUltra();
-              } else if (fullscreenMode !== 'off' && !showCode) {
-                setFullscreenMode('off');
-                setShowCode(true);
-              } else if (fullscreenMode !== 'off' && showCode) {
-                setShowCode(false);
               } else {
                 splitPaneRef.current?.ensureSecondMinSize(320);
                 setFullscreenMode('all');
@@ -808,6 +778,23 @@ export function ExampleContent({
                 />
               </Space>
             )}
+            {mode !== 'preview' &&
+              fullscreenMode === 'all' &&
+              hasWebPreview && (
+                <Button
+                  theme="borderless"
+                  icon={
+                    <IconOpenExternal
+                      style={{ color: 'var(--semi-color-text-2)' }}
+                    />
+                  }
+                  type="tertiary"
+                  size="small"
+                  title={t('go.ultra')}
+                  aria-label={t('go.ultra')}
+                  onClick={enterFrameless}
+                />
+              )}
             {mode !== 'preview' && (
               <Button
                 theme="borderless"
@@ -824,22 +811,8 @@ export function ExampleContent({
                 }
                 type="tertiary"
                 size="small"
-                title={
-                  hasWebPreview && fullscreenMode === 'all' && !showCode
-                    ? t('go.ultra')
-                    : undefined
-                }
                 onClick={() => {
-                  if (fullscreenMode === 'ultra') {
-                    setFullscreenMode('off');
-                    setShowCode(true);
-                  } else if (
-                    fullscreenMode !== 'off' &&
-                    !showCode &&
-                    hasWebPreview
-                  ) {
-                    enterUltra();
-                  } else if (fullscreenMode !== 'off') {
+                  if (fullscreenMode !== 'off') {
                     setFullscreenMode('off');
                     setShowCode(true);
                   } else {
