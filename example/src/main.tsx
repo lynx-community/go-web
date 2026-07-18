@@ -20,49 +20,6 @@ const LOGO_DARK =
 type Lang = 'en' | 'zh';
 
 // ---------------------------------------------------------------------------
-// i18n translations
-// ---------------------------------------------------------------------------
-
-const translations: Record<string, Record<string, string>> = {
-  en: {
-    'go.preview': 'Preview',
-    'go.qrcode': 'QRCode',
-    'go.files': 'Files',
-    'go.scan.message-1': 'Download ',
-    'go.scan.message-2': 'and scan the QR code to get started.',
-    'go.qrcode.copy-link': 'Copy Link',
-    'go.qrcode.copied': 'Copied',
-    'go.qrcode.entry': 'Entry',
-    'go.openin': 'Open',
-    'go.deeplink.open.default': 'Open in Lynx Explorer',
-    'go.deeplink.open.lynxtron': 'Open in Lynxtron Go',
-    'go.deeplink.open.sparkling': 'Open in Sparkling',
-    'go.deeplink.hint-desktop': 'desktop only',
-    'go.deeplink.hint-mobile': 'mobile only',
-    'go.deeplink.or': 'or',
-    'go.openin.show-qrcode': 'Show QR Code',
-  },
-  zh: {
-    'go.preview': '预览',
-    'go.qrcode': '二维码',
-    'go.files': '文件',
-    'go.scan.message-1': '请下载 ',
-    'go.scan.message-2': '扫描二维码预览',
-    'go.qrcode.copy-link': '复制链接',
-    'go.qrcode.copied': '已复制',
-    'go.qrcode.entry': '入口',
-    'go.openin': '打开',
-    'go.deeplink.open.default': '在 Lynx Explorer 中打开',
-    'go.deeplink.open.lynxtron': '在 Lynxtron Go 中打开',
-    'go.deeplink.open.sparkling': '在 Sparkling 中打开',
-    'go.deeplink.hint-desktop': '仅桌面',
-    'go.deeplink.hint-mobile': '仅移动端',
-    'go.deeplink.or': '或',
-    'go.openin.show-qrcode': '显示二维码',
-  },
-};
-
-// ---------------------------------------------------------------------------
 // Standalone CodeBlock (shiki-based syntax highlighting)
 // ---------------------------------------------------------------------------
 
@@ -953,8 +910,7 @@ function App() {
       cn: 'https://lynxjs.org/zh/guide/start/quick-start.html#download-lynx-explorer',
     },
     explorerText: 'Lynx Explorer',
-    useI18n: () => (key: string) =>
-      translations[lang]?.[key] ?? translations.en[key] ?? key,
+    // Package-owned en/zh via useLang; optional config.i18n for overrides.
     useLang: () => lang,
     useDark: () => dark,
     CodeBlock: StandaloneCodeBlock,

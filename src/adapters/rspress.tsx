@@ -10,15 +10,13 @@
  * This file imports from `@rspress/core` and `@theme` — these resolve only
  * when the consumer's bundler processes this file (i.e. in an rspress site).
  * Non-rspress consumers never import this module, so no breakage occurs.
+ *
+ * Intentionally does **not** wire Rspress `useI18n`. `<Go>` owns its `go.*`
+ * chrome strings (en/zh via `useLang`); override with `config.i18n` if needed.
+ * Site `i18n.json` does not need `go.*` keys.
  */
 import React from 'react';
-import {
-  useI18n,
-  useLang,
-  useDark,
-  withBase,
-  NoSSR,
-} from '@rspress/core/runtime';
+import { useLang, useDark, withBase, NoSSR } from '@rspress/core/runtime';
 import { CodeBlockRuntime } from '@theme';
 import { transformerAddLineNumbers } from '@rspress/core/shiki-transformers';
 import type { GoConfig } from '../config';
@@ -56,20 +54,16 @@ const RspressCodeBlock = ({
 };
 
 /**
- * Spread this into your GoConfig to wire up all rspress integrations:
- * `withBase`, `useI18n`, `useLang`, `useDark`, `NoSSR`, and `CodeBlock`.
+ * Spread this into your GoConfig to wire up rspress integrations:
+ * `withBase`, `useLang`, `useDark`, `NoSSR`, and `CodeBlock`.
  *
- * Rspress `useI18n` throws when a key is absent from the site's `i18n.json`.
- * `<Go>` catches that and falls back to package English defaults, so upgrading
- * `@lynx-js/go-web` without immediately adding new `go.*` keys will not crash
- * the host site (still add the keys when you want localized copy).
+ * Does not include `useI18n` — `<Go>` chrome copy is package-owned.
  */
 export const rspressAdapter: Pick<
   GoConfig,
-  'withBase' | 'useI18n' | 'useLang' | 'useDark' | 'NoSSR' | 'CodeBlock'
+  'withBase' | 'useLang' | 'useDark' | 'NoSSR' | 'CodeBlock'
 > = {
   withBase,
-  useI18n: () => useI18n(),
   useLang: () => useLang(),
   useDark: () => useDark(),
   NoSSR,

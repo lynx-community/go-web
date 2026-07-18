@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 
 const config = {
   exampleBasePath: '/lynx-examples',
-  // Full adapter is safe: missing go.* keys fall back to package English.
+  // useLang selects package en/zh catalogs; no site go.* i18n.json needed.
   ...rspressAdapter,
   SSGComponent: ExamplePreviewSSG,
   ssgExampleRoot: path?.join?.(__dirname, '../../docs/public/lynx-examples'),

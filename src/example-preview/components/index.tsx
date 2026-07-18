@@ -132,8 +132,8 @@ export function ExampleContent({
   const {
     explorerUrl,
     explorerText,
+    i18n: i18nOverrides,
     withBase: withBaseFn = (p: string) => p,
-    useI18n: useI18nHook,
     useLang: useLangHook,
     NoSSR: NoSSRComponent = DefaultNoSSR,
   } = useGoConfig();
@@ -201,11 +201,10 @@ export function ExampleContent({
     };
   }, [previewImage, currentEntry, defaultWebPreviewFile]);
   const [tmpCurrentFileName, setTmpCurrentFileName] = useState('');
-  // Host useI18n (e.g. Rspress) may throw on missing keys — always fall back
-  // to package DEFAULT_I18N so a stale site i18n.json cannot crash <Go>.
-  const hostT = useI18nHook ? useI18nHook() : undefined;
-  const t = (key: string) => translateGoI18n(hostT, key);
+  // Package-owned chrome strings (+ optional config.i18n overrides). Never
+  // call host/Rspress useI18n — missing site keys must not crash <Go>.
   const lang = useLangHook ? useLangHook() : 'en';
+  const t = (key: string) => translateGoI18n(key, lang, i18nOverrides);
 
   // Lock body scroll while in widget fullscreen / frameless.
   // CSS class keeps <lynx-view> mounted (no remount on enter/exit).
