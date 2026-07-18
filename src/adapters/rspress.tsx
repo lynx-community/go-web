@@ -58,6 +58,11 @@ const RspressCodeBlock = ({
 /**
  * Spread this into your GoConfig to wire up all rspress integrations:
  * `withBase`, `useI18n`, `useLang`, `useDark`, `NoSSR`, and `CodeBlock`.
+ *
+ * Rspress `useI18n` throws when a key is absent from the site's `i18n.json`.
+ * `<Go>` catches that and falls back to package English defaults, so upgrading
+ * `@lynx-js/go-web` without immediately adding new `go.*` keys will not crash
+ * the host site (still add the keys when you want localized copy).
  */
 export const rspressAdapter: Pick<
   GoConfig,

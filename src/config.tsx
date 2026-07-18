@@ -31,6 +31,26 @@ const DEFAULT_I18N: Record<string, string> = {
   'go.refresh': 'Refresh',
 };
 
+/**
+ * Resolve a `go.*` string through an optional host translator, then
+ * {@link DEFAULT_I18N}. Host hooks like Rspress `useI18n` throw on missing
+ * keys — catch that so a site missing e.g. `go.refresh` cannot crash `<Go>`.
+ */
+export function translateGoI18n(
+  hostTranslate: ((key: string) => string) | null | undefined,
+  key: string,
+): string {
+  if (hostTranslate) {
+    try {
+      const value = hostTranslate(key);
+      if (typeof value === 'string') return value;
+    } catch {
+      // Host i18n threw (missing key) — fall through to defaults.
+    }
+  }
+  return DEFAULT_I18N[key] || key;
+}
+
 /** Default CodeBlock — plain <pre><code> with no syntax highlighting. */
 const DefaultCodeBlock = ({
   code,
@@ -104,7 +124,10 @@ export interface GoConfig {
 
   /** Prepend site base path to URLs. Default: identity */
   withBase?: (path: string) => string;
-  /** i18n hook returning a translation function. Default: built-in English strings */
+  /**
+   * i18n hook returning a translation function.
+   * Missing / throwing host keys fall back to built-in English (`DEFAULT_I18N`).
+   */
   useI18n?: () => (key: string) => string;
   /** Language detection hook. Default: () => 'en' */
   useLang?: () => string;

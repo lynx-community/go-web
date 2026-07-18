@@ -23,7 +23,7 @@ import { SplitPane, type SplitPaneHandle } from './split-pane';
 import { SwitchSchema } from './switch-schema';
 
 import type { PreviewTab } from '../../config';
-import { DEFAULT_I18N, DefaultNoSSR, useGoConfig } from '../../config';
+import { DefaultNoSSR, translateGoI18n, useGoConfig } from '../../config';
 import { useIsMobile } from '../hooks/use-is-mobile';
 import type { SchemaOptionsData } from '../hooks/use-switch-schema';
 import { useTreeController } from '../hooks/use-tree-controller';
@@ -201,8 +201,10 @@ export function ExampleContent({
     };
   }, [previewImage, currentEntry, defaultWebPreviewFile]);
   const [tmpCurrentFileName, setTmpCurrentFileName] = useState('');
-  const defaultI18n = (key: string) => DEFAULT_I18N[key] || key;
-  const t = useI18nHook ? useI18nHook() : defaultI18n;
+  // Host useI18n (e.g. Rspress) may throw on missing keys — always fall back
+  // to package DEFAULT_I18N so a stale site i18n.json cannot crash <Go>.
+  const hostT = useI18nHook ? useI18nHook() : undefined;
+  const t = (key: string) => translateGoI18n(hostT, key);
   const lang = useLangHook ? useLangHook() : 'en';
 
   // Lock body scroll while in widget fullscreen / frameless.
