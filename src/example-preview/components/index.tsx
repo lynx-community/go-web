@@ -22,7 +22,7 @@ import { PreviewImg } from './preview-img';
 import { SplitPane, type SplitPaneHandle } from './split-pane';
 import { SwitchSchema } from './switch-schema';
 
-import type { PreviewTab } from '../../config';
+import type { PreviewTab, WebLoadingScreen } from '../../config';
 import { DefaultNoSSR, translateGoI18n, useGoConfig } from '../../config';
 import { useIsMobile } from '../hooks/use-is-mobile';
 import type { SchemaOptionsData } from '../hooks/use-switch-schema';
@@ -82,6 +82,7 @@ interface ExampleContentProps {
   exampleGitBaseUrl?: string;
   langAlias?: Record<string, string>;
   defaultTab?: PreviewTab;
+  webLoadingScreen?: WebLoadingScreen;
   mode?: ExamplePreviewMode;
   webPreviewMode?: WebPreviewMode;
   designWidth?: number;
@@ -118,6 +119,7 @@ export function ExampleContent({
   exampleGitBaseUrl,
   langAlias,
   defaultTab,
+  webLoadingScreen,
   mode = 'linked',
   webPreviewMode = 'responsive',
   designWidth = 375,
@@ -141,6 +143,13 @@ export function ExampleContent({
   const LYNX_EXPLORER_URL_EN = explorerUrl?.en || DEFAULT_EXPLORER_URL_EN;
   const lynxExplorerText = explorerText || 'Lynx Explorer';
 
+  // Auto: Preview cover when landing on Web with a screenshot; otherwise spinner.
+  // Landing on Preview and later clicking Web keeps overlay — re-showing the
+  // same screenshot as a "loading" cover after leaving it feels redundant.
+  const resolvedWebLoadingScreen: WebLoadingScreen =
+    webLoadingScreen ??
+    (defaultTab === 'web' && previewImage ? 'preview' : 'overlay');
+
   const { treeData, doChangeExpand, selectedKeys, expandedKeys, entryData } =
     useTreeController({ fileNames, value: currentFileName, entry });
   const [showPreview, setShowPreview] = useState(mode !== 'source');
@@ -160,6 +169,13 @@ export function ExampleContent({
   // bundle download. Button stays hidden until WebIframe unlocks it.
   const [webReloadKey, setWebReloadKey] = useState(0);
   const [canRefreshWeb, setCanRefreshWeb] = useState(false);
+  // Web paint / error signals — used when Preview acts as the Web loading screen.
+  const [webRendered, setWebRendered] = useState(false);
+  const [webLoadError, setWebLoadError] = useState<string | null>(null);
+  // True after the first successful paint for the current web src. Soft refresh
+  // clears `webRendered` temporarily but leaves this set so we use the spinner
+  // overlay instead of flashing the Preview cover again.
+  const [webHasPaintedOnce, setWebHasPaintedOnce] = useState(false);
 
   useEffect(() => {
     const el = boxRef.current;
@@ -182,12 +198,39 @@ export function ExampleContent({
     return previewImage ? PreviewType.Preview : PreviewType.QRCode;
   });
 
-  // Switch to Web tab once async metadata resolves, but only if requested
+  // Use Preview as the Web loading cover when requested and a preview image exists.
+  const usePreviewAsLoading =
+    resolvedWebLoadingScreen === 'preview' && Boolean(previewImage);
+
+  // Switch to Web tab once async metadata resolves.
+  // With `webLoadingScreen='preview'`, defer until the live view has painted
+  // (or failed) so Preview stays on screen as the loading screen. Do not yank
+  // the user away if they manually selected QR meanwhile.
   useEffect(() => {
-    if (defaultTab === 'web' && defaultWebPreviewFile) {
+    if (defaultTab !== 'web' || !defaultWebPreviewFile) return;
+    if (!usePreviewAsLoading) {
       setPreviewType(PreviewType.Web);
+      return;
     }
-  }, [defaultTab, defaultWebPreviewFile]);
+    if (!webRendered && !webLoadError) return;
+    setPreviewType((prev) =>
+      prev === PreviewType.QRCode ? prev : PreviewType.Web,
+    );
+  }, [
+    defaultTab,
+    defaultWebPreviewFile,
+    usePreviewAsLoading,
+    webRendered,
+    webLoadError,
+  ]);
+
+  // Reset paint state when the web bundle URL changes (entry switch).
+  useEffect(() => {
+    setWebRendered(false);
+    setWebLoadError(null);
+    setCanRefreshWeb(false);
+    setWebHasPaintedOnce(false);
+  }, [defaultWebPreviewFile]);
 
   const [qrcodeUrlWithSchema, setQrcodeUrlWithSchema] = useState('');
   const { hasPreview, hasWebPreview } = useMemo(() => {
@@ -205,6 +248,40 @@ export function ExampleContent({
   // call host/Rspress useI18n — missing site keys must not crash <Go>.
   const lang = useLangHook ? useLangHook() : 'en';
   const t = (key: string) => translateGoI18n(key, lang, i18nOverrides);
+
+  // While Web is selected but not yet painted, keep Preview visible on top as
+  // the loading cover. Soft refresh skips this path (`webHasPaintedOnce`) so the
+  // spinner overlay handles reloads instead of flashing the screenshot.
+  //
+  // For `defaultTab='web'` + preview loading, also keep Web mounted with
+  // `show=true` under Preview before the radio switches — so the bundle loads
+  // with real layout instead of only the hidden preload path.
+  const awaitingWebReveal =
+    usePreviewAsLoading &&
+    defaultTab === 'web' &&
+    previewType === PreviewType.Preview &&
+    Boolean(defaultWebPreviewFile) &&
+    !webRendered &&
+    !webLoadError &&
+    !webHasPaintedOnce;
+  const webSelected = previewType === PreviewType.Web || isUltra;
+  const showPreviewAsCover =
+    (usePreviewAsLoading &&
+      webSelected &&
+      !isUltra &&
+      !webRendered &&
+      !webLoadError &&
+      !webHasPaintedOnce) ||
+    awaitingWebReveal;
+  const previewPanelActive =
+    previewType === PreviewType.Preview || showPreviewAsCover;
+  const webPanelActive = webSelected || awaitingWebReveal;
+  // Tab-label hint: Web is still fetching/painting under the Preview cover.
+  const webTabLoadingHint =
+    usePreviewAsLoading &&
+    Boolean(defaultWebPreviewFile) &&
+    !webHasPaintedOnce &&
+    !webLoadError;
 
   // Lock body scroll while in widget fullscreen / frameless.
   // CSS class keeps <lynx-view> mounted (no remount on enter/exit).
@@ -475,7 +552,26 @@ export function ExampleContent({
                   {previewImage && (
                     <Radio value={PreviewType.Preview}>{t('go.preview')}</Radio>
                   )}
-                  {hasWebPreview && <Radio value={PreviewType.Web}>Web</Radio>}
+                  {hasWebPreview && (
+                    <Radio value={PreviewType.Web}>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                        }}
+                      >
+                        Web
+                        {/* Hint that Web is loading under the Preview cover. */}
+                        {webTabLoadingHint && (
+                          <span
+                            className={s['web-tab-spinner']}
+                            aria-label="Loading"
+                          />
+                        )}
+                      </span>
+                    </Radio>
+                  )}
                   {currentEntry && qrAllowed && (
                     <Radio value={PreviewType.QRCode}>{t('go.qrcode')}</Radio>
                   )}
@@ -640,16 +736,14 @@ export function ExampleContent({
             <div
               className={s['preview-panel']}
               style={{
-                zIndex: previewType === PreviewType.Preview ? 1 : 0,
-                visibility:
-                  previewType === PreviewType.Preview ? 'visible' : 'hidden',
-                pointerEvents:
-                  previewType === PreviewType.Preview ? 'auto' : 'none',
+                zIndex: previewPanelActive ? 2 : 0,
+                visibility: previewPanelActive ? 'visible' : 'hidden',
+                pointerEvents: previewPanelActive ? 'auto' : 'none',
               }}
             >
               <PreviewImg
                 previewImage={previewImage}
-                active={previewType === PreviewType.Preview}
+                active={previewPanelActive}
               />
             </div>
           )}
@@ -657,19 +751,17 @@ export function ExampleContent({
             <div
               className={s['preview-panel']}
               style={{
-                zIndex: previewType === PreviewType.Web || isUltra ? 1 : 0,
-                visibility:
-                  previewType === PreviewType.Web || isUltra
-                    ? 'visible'
-                    : 'hidden',
+                // Sit under the Preview cover while loading; jump above once revealed.
+                zIndex: webPanelActive && !showPreviewAsCover ? 1 : 0,
+                visibility: webPanelActive ? 'visible' : 'hidden',
                 pointerEvents:
-                  previewType === PreviewType.Web || isUltra ? 'auto' : 'none',
+                  webPanelActive && !showPreviewAsCover ? 'auto' : 'none',
               }}
             >
               <NoSSRComponent>
                 <Suspense fallback={<div>Loading...</div>}>
                   <WebIframe
-                    show={previewType === PreviewType.Web || isUltra}
+                    show={webPanelActive}
                     src={defaultWebPreviewFile || ''}
                     webPreviewMode={webPreviewMode}
                     designWidth={designWidth}
@@ -679,6 +771,12 @@ export function ExampleContent({
                     fit={fit}
                     reloadKey={webReloadKey}
                     onCanRefreshChange={setCanRefreshWeb}
+                    hideOverlay={showPreviewAsCover}
+                    onLoadStateChange={({ rendered, error }) => {
+                      setWebRendered(rendered);
+                      setWebLoadError(error);
+                      if (rendered) setWebHasPaintedOnce(true);
+                    }}
                   />
                 </Suspense>
               </NoSSRComponent>

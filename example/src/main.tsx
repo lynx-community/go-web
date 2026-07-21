@@ -8,7 +8,7 @@ import React, {
 } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { BundledLanguage, ShikiTransformer } from 'shiki';
-import type { GoConfig, PreviewTab } from '../../src/config';
+import type { GoConfig, PreviewTab, WebLoadingScreen } from '../../src/config';
 import { Go, GoConfigProvider } from '../../src/index';
 import './styles.css';
 
@@ -553,6 +553,7 @@ function buildJsxString({
   example,
   defaultFile,
   defaultTab,
+  webLoadingScreen,
   defaultEntryFile,
   entryFilter,
   highlight,
@@ -563,6 +564,7 @@ function buildJsxString({
   example: string;
   defaultFile: string;
   defaultTab: PreviewTab;
+  webLoadingScreen: 'auto' | WebLoadingScreen;
   defaultEntryFile: string;
   entryFilter: string;
   highlight: string;
@@ -575,6 +577,10 @@ function buildJsxString({
     props.push(`defaultFile="${defaultFile}"`);
   if (defaultTab !== 'web' && mode !== 'source' && mode !== 'ultra')
     props.push(`defaultTab="${defaultTab}"`);
+  // Omit when auto — library picks preview/overlay from defaultTab + image.
+  if (webLoadingScreen !== 'auto' && mode !== 'source' && mode !== 'ultra') {
+    props.push(`webLoadingScreen="${webLoadingScreen}"`);
+  }
   if (defaultEntryFile && mode !== 'source' && mode !== 'ultra')
     props.push(`defaultEntryFile="${defaultEntryFile}"`);
   if (highlight && mode !== 'preview' && mode !== 'ultra')
@@ -665,6 +671,9 @@ function App() {
   const [defaultTab, setDefaultTab] = useState<PreviewTab>(
     initial.tab ?? 'web',
   );
+  const [webLoadingScreen, setWebLoadingScreen] = useState<
+    'auto' | WebLoadingScreen
+  >('auto');
   const [example, setExample] = useState(initial.example ?? 'hello-world');
   const [defaultFile, setDefaultFile] = useState(
     initial.file ??
@@ -730,6 +739,7 @@ function App() {
         example,
         defaultFile,
         defaultTab,
+        webLoadingScreen,
         defaultEntryFile,
         entryFilter,
         highlight,
@@ -741,6 +751,7 @@ function App() {
       example,
       defaultFile,
       defaultTab,
+      webLoadingScreen,
       defaultEntryFile,
       entryFilter,
       highlight,
@@ -905,6 +916,7 @@ function App() {
   const goConfig: GoConfig = {
     exampleBasePath: '/lynx-examples',
     defaultTab,
+    ...(webLoadingScreen !== 'auto' ? { webLoadingScreen } : {}),
     explorerUrl: {
       en: 'https://lynxjs.org/guide/start/quick-start.html#download-lynx-explorer',
       cn: 'https://lynxjs.org/zh/guide/start/quick-start.html#download-lynx-explorer',
@@ -997,6 +1009,20 @@ function App() {
                   { value: 'qrcode', label: 'QR' },
                 ]}
                 onChange={(v) => setDefaultTab(v as PreviewTab)}
+              />
+            </ControlGroup>
+
+            <ControlGroup label="Load">
+              <AdaptiveControl
+                value={webLoadingScreen}
+                options={[
+                  { value: 'auto', label: 'Auto' },
+                  { value: 'preview', label: 'Preview' },
+                  { value: 'overlay', label: 'Overlay' },
+                ]}
+                onChange={(v) =>
+                  setWebLoadingScreen(v as 'auto' | WebLoadingScreen)
+                }
               />
             </ControlGroup>
 
@@ -1486,10 +1512,13 @@ function App() {
                 {/* Desktop */}
                 <div style={{ flex: '1 1 500px', minWidth: 0 }}>
                   <Go
-                    key={`desktop-${example}-${selectedEntry}-${defaultTab}-${mode}`}
+                    key={`desktop-${example}-${selectedEntry}-${defaultTab}-${webLoadingScreen}-${mode}`}
                     example={example}
                     defaultFile={defaultFile}
                     defaultTab={defaultTab}
+                    webLoadingScreen={
+                      webLoadingScreen === 'auto' ? undefined : webLoadingScreen
+                    }
                     defaultEntryFile={defaultEntryFile || undefined}
                     entry={entryFilter || undefined}
                     highlight={highlight || undefined}
@@ -1522,10 +1551,15 @@ function App() {
                     }}
                   >
                     <Go
-                      key={`mobile-${example}-${selectedEntry}-${defaultTab}-${mode}`}
+                      key={`mobile-${example}-${selectedEntry}-${defaultTab}-${webLoadingScreen}-${mode}`}
                       example={example}
                       defaultFile={defaultFile}
                       defaultTab={defaultTab}
+                      webLoadingScreen={
+                        webLoadingScreen === 'auto'
+                          ? undefined
+                          : webLoadingScreen
+                      }
                       defaultEntryFile={defaultEntryFile || undefined}
                       entry={entryFilter || undefined}
                       highlight={highlight || undefined}

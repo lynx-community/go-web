@@ -5,6 +5,16 @@ import { useIsClient } from './example-preview/hooks/use-is-client';
 
 export type PreviewTab = 'preview' | 'web' | 'qrcode';
 
+/**
+ * What to show while the Web preview loads its runtime / bundle.
+ *
+ * - `'overlay'` — built-in spinner overlay inside the Web panel (default)
+ * - `'preview'` — keep the Preview image/video visible until `<lynx-view>` has
+ *   painted, then reveal the live Web tab. Falls back to `'overlay'` when no
+ *   preview image is available. Soft refresh always uses the spinner overlay.
+ */
+export type WebLoadingScreen = 'overlay' | 'preview';
+
 /** Known `go.*` chrome keys owned by this package. */
 export type GoI18nKey =
   | 'go.preview'
@@ -164,6 +174,14 @@ export interface GoConfig {
    * unless overridden by the `defaultTab` prop on individual instances.
    */
   defaultTab?: PreviewTab;
+  /**
+   * Default Web-tab loading screen. Applies to all `<Go>` instances under this
+   * provider unless overridden by the `webLoadingScreen` prop on instances.
+   *
+   * When omitted, each instance auto-selects `'preview'` if its `defaultTab`
+   * is `'web'` and a preview image exists; otherwise `'overlay'`.
+   */
+  webLoadingScreen?: WebLoadingScreen;
   /** Explorer URLs for QR code scanning instructions */
   explorerUrl?: {
     cn?: string;

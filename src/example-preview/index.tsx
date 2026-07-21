@@ -2,7 +2,7 @@ import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
-import type { PreviewTab } from '../config';
+import type { PreviewTab, WebLoadingScreen } from '../config';
 import { useGoConfig } from '../config';
 import { ExampleContent } from './components';
 import { UltraLynxView } from './components/ultra-lynx-view';
@@ -72,6 +72,20 @@ export interface ExamplePreviewProps {
    */
   defaultTab?: PreviewTab;
   /**
+   * What to show while the Web tab loads.
+   * Takes precedence over the site-level `GoConfig.webLoadingScreen`.
+   *
+   * - `'overlay'` — spinner overlay inside the Web panel
+   * - `'preview'` — keep the Preview image/video visible until `<lynx-view>`
+   *   has painted, then reveal/switch to the Web tab. Soft refresh still uses
+   *   the spinner overlay.
+   *
+   * When omitted, auto-selects `'preview'` if `defaultTab` is `'web'` and a
+   * preview image exists; otherwise `'overlay'`. Explicit `'preview'` also
+   * falls back to `'overlay'` when no preview image exists.
+   */
+  webLoadingScreen?: WebLoadingScreen;
+  /**
    * Deep link URL template for opening the app locally.
    *
    * Supports templating with the currently selected entry URL:
@@ -115,6 +129,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     ErrorComponent,
     SSGComponent,
     defaultTab: configDefaultTab,
+    webLoadingScreen: configWebLoadingScreen,
     withBase: withBaseFn = (p: string) => p,
   } = useGoConfig();
   const EXAMPLE_BASE_URL = withBaseFn(exampleBasePath);
@@ -136,6 +151,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     schemaOptions,
     langAlias,
     defaultTab: propsDefaultTab,
+    webLoadingScreen: propsWebLoadingScreen,
     mode = 'linked',
     webPreviewMode = 'responsive',
     webPreview = true,
@@ -149,8 +165,12 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     _forceMobile,
   } = props;
 
-  // Instance prop > config provider > undefined (let ExampleContent decide)
+  // Instance prop wins over provider config. Leave unset so ExampleContent can
+  // auto-pick `'preview'` when defaulting to Web with a preview image.
   const defaultTab = propsDefaultTab ?? configDefaultTab;
+  const webLoadingScreen = propsWebLoadingScreen ?? configWebLoadingScreen;
+  // When web preview is disabled, ignore an explicit 'web' defaultTab so we
+  // don't leave the UI stuck on a tab that cannot resolve.
   const resolvedDefaultTab =
     webPreview === false && defaultTab === 'web' ? undefined : defaultTab;
 
@@ -333,6 +353,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       schemaOptions={schema ? undefined : schemaOptions}
       exampleGitBaseUrl={exampleData?.exampleGitBaseUrl}
       defaultTab={resolvedDefaultTab}
+      webLoadingScreen={webLoadingScreen}
       mode={mode}
       webPreviewMode={webPreviewMode}
       designWidth={designWidth}

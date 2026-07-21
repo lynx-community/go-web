@@ -102,6 +102,7 @@ type EmbedOptions = {
   defaultFile?: string;
   mode?: 'linked' | 'preview' | 'source' | 'ultra';
   defaultTab?: 'preview' | 'web' | 'qrcode';
+  webLoadingScreen?: 'overlay' | 'preview';
   deepLinkUrl?: string;
   nativeFramework?: string;
   img?: string;
@@ -185,6 +186,7 @@ function EmbedApp() {
           }
           mode={options.mode}
           defaultTab={options.defaultTab}
+          webLoadingScreen={options.webLoadingScreen}
           img={options.img}
           defaultEntryFile={options.defaultEntryFile}
           defaultEntryName={options.defaultEntryName}
