@@ -276,12 +276,9 @@ export function ExampleContent({
   const previewPanelActive =
     previewType === PreviewType.Preview || showPreviewAsCover;
   const webPanelActive = webSelected || awaitingWebReveal;
-  // Tab-label hint: Web is still fetching/painting under the Preview cover.
-  const webTabLoadingHint =
-    usePreviewAsLoading &&
-    Boolean(defaultWebPreviewFile) &&
-    !webHasPaintedOnce &&
-    !webLoadError;
+  // Same conditions as the Preview cover — don't hint-load when Web is only
+  // hidden-preloading (e.g. defaultTab=preview + explicit webLoadingScreen).
+  const webTabLoadingHint = showPreviewAsCover;
 
   // Lock body scroll while in widget fullscreen / frameless.
   // CSS class keeps <lynx-view> mounted (no remount on enter/exit).
