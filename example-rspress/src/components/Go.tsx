@@ -4,20 +4,17 @@ import { ExamplePreviewSSG } from '@lynx-js/go-web/ssg';
 import path from 'path';
 import { useEffect } from 'react';
 
-// Exclude useI18n — rspress's i18n doesn't have go.* keys.
-// go-web falls back to its built-in English strings.
-const { useI18n: _, ...adapter } = rspressAdapter;
-
 const config = {
   exampleBasePath: '/lynx-examples',
-  ...adapter,
+  // useLang selects package en/zh catalogs; no site go.* i18n.json needed.
+  ...rspressAdapter,
   SSGComponent: ExamplePreviewSSG,
   ssgExampleRoot: path?.join?.(__dirname, '../../docs/public/lynx-examples'),
 };
 
 /** Sync rspress dark mode → Semi UI body attribute */
 function useSemiDarkMode() {
-  const dark = adapter.useDark!();
+  const dark = rspressAdapter.useDark!();
   useEffect(() => {
     document.body.setAttribute('theme-mode', dark ? 'dark' : 'light');
   }, [dark]);

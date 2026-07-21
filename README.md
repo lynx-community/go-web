@@ -26,12 +26,24 @@ import { rspressAdapter } from '@lynx-js/go-web/adapters/rspress';
 
 const config = {
   exampleBasePath: '/lynx-examples',
-  ...rspressAdapter,
+  ...rspressAdapter, // withBase, useLang, useDark, NoSSR, CodeBlock — not useI18n
 };
 
 <GoConfigProvider config={config}>
   <Go example="hello-world" />
 </GoConfigProvider>;
+```
+
+`<Go>` owns its UI chrome strings (`en` / `zh` selected by `useLang`). You do **not** need `go.*` keys in the site's `i18n.json`. Optional wording overrides:
+
+```tsx
+const config = {
+  exampleBasePath: '/lynx-examples',
+  ...rspressAdapter,
+  i18n: {
+    'go.refresh': 'Reload preview',
+  },
+};
 ```
 
 ### SSG (Static Site Generation)

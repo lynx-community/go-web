@@ -23,7 +23,7 @@ import { SplitPane, type SplitPaneHandle } from './split-pane';
 import { SwitchSchema } from './switch-schema';
 
 import type { PreviewTab } from '../../config';
-import { DEFAULT_I18N, DefaultNoSSR, useGoConfig } from '../../config';
+import { DefaultNoSSR, translateGoI18n, useGoConfig } from '../../config';
 import { useIsMobile } from '../hooks/use-is-mobile';
 import type { SchemaOptionsData } from '../hooks/use-switch-schema';
 import { useTreeController } from '../hooks/use-tree-controller';
@@ -132,8 +132,8 @@ export function ExampleContent({
   const {
     explorerUrl,
     explorerText,
+    i18n: i18nOverrides,
     withBase: withBaseFn = (p: string) => p,
-    useI18n: useI18nHook,
     useLang: useLangHook,
     NoSSR: NoSSRComponent = DefaultNoSSR,
   } = useGoConfig();
@@ -201,9 +201,10 @@ export function ExampleContent({
     };
   }, [previewImage, currentEntry, defaultWebPreviewFile]);
   const [tmpCurrentFileName, setTmpCurrentFileName] = useState('');
-  const defaultI18n = (key: string) => DEFAULT_I18N[key] || key;
-  const t = useI18nHook ? useI18nHook() : defaultI18n;
+  // Package-owned chrome strings (+ optional config.i18n overrides). Never
+  // call host/Rspress useI18n — missing site keys must not crash <Go>.
   const lang = useLangHook ? useLangHook() : 'en';
+  const t = (key: string) => translateGoI18n(key, lang, i18nOverrides);
 
   // Lock body scroll while in widget fullscreen / frameless.
   // CSS class keeps <lynx-view> mounted (no remount on enter/exit).

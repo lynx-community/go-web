@@ -5,8 +5,39 @@ import { useIsClient } from './example-preview/hooks/use-is-client';
 
 export type PreviewTab = 'preview' | 'web' | 'qrcode';
 
-/** Built-in English i18n strings. Consumers can override via useI18n. */
-const DEFAULT_I18N: Record<string, string> = {
+/** Known `go.*` chrome keys owned by this package. */
+export type GoI18nKey =
+  | 'go.preview'
+  | 'go.qrcode'
+  | 'go.files'
+  | 'go.scan.message-1'
+  | 'go.scan.message-2'
+  | 'go.qrcode.copy-link'
+  | 'go.qrcode.copied'
+  | 'go.qrcode.entry'
+  | 'go.openin'
+  | 'go.deeplink.open.default'
+  | 'go.deeplink.open.lynxtron'
+  | 'go.deeplink.open.sparkling'
+  | 'go.deeplink.hint-desktop'
+  | 'go.deeplink.hint-mobile'
+  | 'go.deeplink.or'
+  | 'go.openin.show-qrcode'
+  | 'go.ultra'
+  | 'go.ultra.exit'
+  | 'go.refresh';
+
+export type GoI18nCatalog = Record<GoI18nKey, string>;
+
+/**
+ * Partial overrides for package-owned chrome strings (never via host i18n hooks).
+ * Also accepts `go.deeplink.open.{nativeFramework}` for custom frameworks.
+ */
+export type GoI18nOverrides = Partial<
+  Record<GoI18nKey | `go.deeplink.open.${string}`, string>
+>;
+
+const GO_I18N_EN: GoI18nCatalog = {
   'go.preview': 'Preview',
   'go.qrcode': 'QR Code',
   'go.files': 'Files',
@@ -30,6 +61,58 @@ const DEFAULT_I18N: Record<string, string> = {
   'go.ultra.exit': 'Exit frameless',
   'go.refresh': 'Refresh',
 };
+
+const GO_I18N_ZH: GoI18nCatalog = {
+  'go.preview': '预览',
+  'go.qrcode': '二维码',
+  'go.files': '文件',
+  'go.scan.message-1': '请下载 ',
+  'go.scan.message-2': '扫描二维码预览',
+  'go.qrcode.copy-link': '复制链接',
+  'go.qrcode.copied': '已复制',
+  'go.qrcode.entry': '入口',
+  'go.openin': '打开',
+  'go.deeplink.open.default': '在 Lynx Explorer 中打开',
+  'go.deeplink.open.lynxtron': '在 Lynxtron Go 中打开',
+  'go.deeplink.open.sparkling': '在 Sparkling 中打开',
+  'go.deeplink.hint-desktop': '仅桌面',
+  'go.deeplink.hint-mobile': '仅移动端',
+  'go.deeplink.or': '或',
+  'go.openin.show-qrcode': '显示二维码',
+  'go.ultra': '打开无边框',
+  'go.ultra.exit': '退出无边框',
+  'go.refresh': '刷新',
+};
+
+const BUILTIN_I18N: Record<'en' | 'zh', GoI18nCatalog> = {
+  en: GO_I18N_EN,
+  zh: GO_I18N_ZH,
+};
+
+/** @deprecated Use {@link GO_I18N_EN}. Kept for existing imports. */
+const DEFAULT_I18N: Record<string, string> = GO_I18N_EN;
+
+function resolveBuiltinLang(lang: string): 'en' | 'zh' {
+  const base = lang.toLowerCase().split(/[-_]/)[0] ?? 'en';
+  return base === 'zh' ? 'zh' : 'en';
+}
+
+/**
+ * Resolve a `go.*` chrome string from package catalogs.
+ * Order: config `i18n` override → builtin for `lang` → English → raw key.
+ * Host site i18n systems (Rspress, etc.) are intentionally not consulted.
+ */
+export function translateGoI18n(
+  key: string,
+  lang: string = 'en',
+  overrides?: GoI18nOverrides,
+): string {
+  const fromOverride = overrides?.[key as keyof GoI18nOverrides];
+  if (typeof fromOverride === 'string') return fromOverride;
+
+  const builtin = BUILTIN_I18N[resolveBuiltinLang(lang)];
+  return builtin[key as GoI18nKey] ?? GO_I18N_EN[key as GoI18nKey] ?? key;
+}
 
 /** Default CodeBlock — plain <pre><code> with no syntax highlighting. */
 const DefaultCodeBlock = ({
@@ -100,13 +183,17 @@ export interface GoConfig {
   /** Absolute disk path to examples directory, for built-in SSG component */
   ssgExampleRoot?: string;
 
+  /**
+   * Optional overrides for package-owned `go.*` chrome strings.
+   * Prefer this over host i18n systems — `<Go>` never calls Rspress/site `useI18n`.
+   */
+  i18n?: GoI18nOverrides;
+
   // --- Framework adapter ---
 
   /** Prepend site base path to URLs. Default: identity */
   withBase?: (path: string) => string;
-  /** i18n hook returning a translation function. Default: built-in English strings */
-  useI18n?: () => (key: string) => string;
-  /** Language detection hook. Default: () => 'en' */
+  /** Language detection hook. Default: () => 'en'. Selects builtin en/zh catalogs. */
   useLang?: () => string;
   /** Dark mode detection hook. Default: prefers-color-scheme media query */
   useDark?: () => boolean;
@@ -146,4 +233,12 @@ export function useGoConfig(): GoConfig {
 }
 
 // Re-export defaults for use in components
-export { DEFAULT_I18N, DefaultCodeBlock, DefaultNoSSR, defaultUseDark };
+export {
+  BUILTIN_I18N,
+  DEFAULT_I18N,
+  DefaultCodeBlock,
+  DefaultNoSSR,
+  defaultUseDark,
+  GO_I18N_EN,
+  GO_I18N_ZH,
+};
