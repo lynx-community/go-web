@@ -406,6 +406,23 @@
   }
 }
 
+@keyframes web-tab-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.web-tab-spinner {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  opacity: 0.55;
+  animation: web-tab-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
 .code-view-comp {
   display: flex;
   align-items: center;

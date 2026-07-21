@@ -56,6 +56,23 @@ type WebIframeProps = {
   reloadKey?: number;
   /** Fires when the initial bundle has been downloaded and refresh is safe. */
   onCanRefreshChange?: (canRefresh: boolean) => void;
+  /**
+   * Fires whenever the Web load state changes (runtime ready, page painted,
+   * stage label, or error). Used by parents that keep Preview visible as a
+   * loading cover until `rendered` becomes true.
+   */
+  onLoadStateChange?: (state: {
+    ready: boolean;
+    rendered: boolean;
+    stage: WebPreviewLoadStage;
+    error: string | null;
+  }) => void;
+  /**
+   * When true, suppress the built-in spinner overlay (e.g. parent is covering
+   * the Web panel with the Preview image). Errors still show the overlay so
+   * failures remain visible.
+   */
+  hideOverlay?: boolean;
 };
 
 type UseWebIframeControllerArgs = {
@@ -643,6 +660,8 @@ export const WebIframe = ({
   fit = 'cover',
   reloadKey = 0,
   onCanRefreshChange,
+  onLoadStateChange,
+  hideOverlay = false,
 }: WebIframeProps) => {
   const [lynxView, setLynxView] = useState<LynxView | null>(null);
   const browserConfigInitializedRef = useRef<WeakSet<LynxView>>(new WeakSet());
@@ -770,6 +789,12 @@ export const WebIframe = ({
     onCanRefreshChange,
   });
 
+  const onLoadStateChangeRef = useRef(onLoadStateChange);
+  onLoadStateChangeRef.current = onLoadStateChange;
+  useEffect(() => {
+    onLoadStateChangeRef.current?.({ ready, rendered, stage, error });
+  }, [ready, rendered, stage, error]);
+
   // `webPreviewMode='responsive'` resolves to `usesFitPath === false`,
   // which skips all fit-only interpolation and auto-fit bias logic.
   const autoFitBiases = usesFitPath
@@ -802,7 +827,9 @@ export const WebIframe = ({
       ? { stage: STAGE_FIT_ANCHOR, lynxView: fitStyles.lynxView }
       : { stage: STAGE_RESPONSIVE, lynxView: LYNX_VIEW_STYLE_RESPONSIVE };
 
-  const loading = show && (!ready || !rendered || !!error);
+  // Hide the spinner when a parent Preview cover is in use, but always surface
+  // errors so a failed load is not silently stuck behind the screenshot.
+  const loading = show && (!!error || ((!ready || !rendered) && !hideOverlay));
 
   // Keep `<lynx-view>` mounted across soft refreshes; reloadKey drives
   // `lynxView.reload()` inside the controller (rendering stage, not remount).

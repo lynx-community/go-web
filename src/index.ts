@@ -11,6 +11,7 @@ export type {
   GoI18nKey,
   GoI18nOverrides,
   PreviewTab,
+  WebLoadingScreen,
 } from './config';
 export { ExamplePreview, type ExamplePreviewProps } from './example-preview';
 export type { ExampleMetadata, ExamplePreviewMode } from './example-preview';

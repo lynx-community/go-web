@@ -27,6 +27,14 @@ export type EmbedOptions = {
   /** Default preview tab */
   defaultTab?: 'preview' | 'web' | 'qrcode';
   /**
+   * What to show while the Web tab loads.
+   * - `'overlay'`: spinner overlay
+   * - `'preview'`: keep the Preview image visible until Web has painted
+   * When omitted: auto `'preview'` if `defaultTab` is `'web'` and a preview
+   * image exists; otherwise `'overlay'`.
+   */
+  webLoadingScreen?: 'overlay' | 'preview';
+  /**
    * Deep link URL template for opening the app locally.
    *
    * Supports templating with the currently selected entry URL:
