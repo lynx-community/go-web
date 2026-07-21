@@ -1,5 +1,16 @@
 # @lynx-js/go-web
 
+## 0.8.0
+
+### Minor Changes
+
+- Decouple `<Go>` chrome copy from host/Rspress i18n. ([#71](https://github.com/lynx-community/go-web/pull/71))
+  - `go.*` strings are package-owned (`en` / `zh` via `useLang`); override with `config.i18n` only.
+  - `rspressAdapter` no longer wires Rspress `useI18n` — site `i18n.json` does not need `go.*` keys.
+  - Removed `GoConfig.useI18n` (breaking for custom hooks; use `i18n` + `useLang` instead).
+
+- Add `webLoadingScreen` (`'overlay' | 'preview'`) so the Web tab can use the Preview image/video as its loading screen while the web bundle loads concurrently, then reveal the live Web view once it paints. When omitted, auto-selects `'preview'` if `defaultTab` is `'web'` and a preview image exists; otherwise `'overlay'`. ([#72](https://github.com/lynx-community/go-web/pull/72))
+
 ## 0.7.0
 
 ### Minor Changes
