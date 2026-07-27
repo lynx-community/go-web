@@ -16,6 +16,12 @@ export type {
 export { ExamplePreview, type ExamplePreviewProps } from './example-preview';
 export type { ExampleMetadata, ExamplePreviewMode } from './example-preview';
 export { getFileCodeLanguage } from './example-preview/utils/example-data';
+export type {
+  LocalizedUrl,
+  NativeFrameworkConfig,
+  NativeFrameworkOverride,
+  NativeFrameworkOverrides,
+} from './example-preview/utils/native-frameworks';
 export { Go, type GoProps } from './Go';
 export {
   UltraLynxView,

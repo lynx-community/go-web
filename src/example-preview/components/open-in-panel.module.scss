@@ -81,3 +81,28 @@
   background: var(--semi-color-bg-1);
   border: 1px solid var(--semi-color-border);
 }
+
+// Deep link on top, download fallback under it, right-aligned so both hug the
+// same edge as the floating toast.
+.floating-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+// Secondary to `.open-link` — no border, tertiary color: it's the fallback for
+// "the deep link did nothing", not a peer action.
+.download-link {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--semi-color-text-2);
+  text-decoration: none;
+  padding: 0 2px;
+  transition: color 0.12s;
+
+  &:hover {
+    color: var(--semi-color-link);
+    text-decoration: underline;
+  }
+}

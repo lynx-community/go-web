@@ -13,6 +13,21 @@
  */
 export type FrameworkPlatform = 'desktop' | 'mobile';
 
+/**
+ * A URL that may differ per language, mirroring `GoConfig.explorerUrl`. A plain
+ * string applies to every language.
+ */
+export type LocalizedUrl = string | { cn?: string; en?: string };
+
+export function resolveLocalizedUrl(
+  url: LocalizedUrl | undefined,
+  lang: string,
+): string | undefined {
+  if (!url) return undefined;
+  if (typeof url === 'string') return url;
+  return lang === 'zh' || lang === 'cn' ? url.cn || url.en : url.en || url.cn;
+}
+
 export interface NativeFrameworkConfig {
   /** Platform the framework's host app runs on. */
   platform: FrameworkPlatform;
@@ -26,32 +41,63 @@ export interface NativeFrameworkConfig {
   /**
    * Docs / info URL shown when the bundle can't run on the current device
    * (e.g. a desktop framework opened on a phone). When set, the "can't run
-   * here" hint becomes a link; otherwise it's plain text. Fill this in per
-   * framework to point at real docs.
+   * here" hint becomes a link; otherwise it's plain text.
+   *
+   * Left unset here on purpose: the URL belongs to whoever hosts the docs, so
+   * a site supplies it through `GoConfig.nativeFrameworks` rather than having
+   * one site's domain baked into this package.
    */
-  learnMoreUrl?: string;
+  learnMoreUrl?: LocalizedUrl;
+  /**
+   * Where to get the host app. Deep links fail silently when the app isn't
+   * installed, so on a device the bundle *can* run on we offer this next to
+   * the deep link. Same ownership rule as `learnMoreUrl` — supplied per site.
+   */
+  downloadUrl?: LocalizedUrl;
 }
+
+/**
+ * Per-site overrides for the registry below. `platform` is deliberately not
+ * overridable — it's a fact about the framework, not a site preference, and
+ * `resolveOpenIn` / `isQrAllowed` derive the whole open surface from it.
+ */
+export type NativeFrameworkOverride = Partial<
+  Pick<
+    NativeFrameworkConfig,
+    'appName' | 'deepLinkScheme' | 'learnMoreUrl' | 'downloadUrl'
+  >
+>;
+
+export type NativeFrameworkOverrides = Record<string, NativeFrameworkOverride>;
 
 export const NATIVE_FRAMEWORKS: Record<string, NativeFrameworkConfig> = {
   lynxtron: {
     platform: 'desktop',
     appName: 'Lynxtron Go',
     deepLinkScheme: 'lynxtron-go://open?url={{{urlEncoded}}}',
-    // learnMoreUrl: '…',  // TODO: point at Lynxtron Go docs
   },
   sparkling: {
     platform: 'mobile',
     appName: 'Sparkling',
     deepLinkScheme: 'sparkling://open?url={{{urlEncoded}}}',
-    // learnMoreUrl: '…',  // TODO: point at Sparkling docs
   },
 };
 
+/**
+ * Registry entry for `nativeFramework`, merged with the site's overrides.
+ * Overrides only apply to frameworks the registry knows — an unknown name has
+ * no `platform` to reason about, so it keeps falling through to the
+ * desktop-only default in {@link getFrameworkPlatform}.
+ */
 export function getFrameworkConfig(
   nativeFramework: string | undefined,
+  overrides?: NativeFrameworkOverrides,
 ): NativeFrameworkConfig | undefined {
   if (!nativeFramework) return undefined;
-  return NATIVE_FRAMEWORKS[nativeFramework];
+  const base = NATIVE_FRAMEWORKS[nativeFramework];
+  const override = overrides?.[nativeFramework];
+  if (!base) return undefined;
+  return override ? { ...base, ...override } : base;
 }
 
 /**

@@ -1,6 +1,7 @@
 import type React from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ExamplePreviewProps } from './example-preview';
+import type { NativeFrameworkOverrides } from './example-preview/utils/native-frameworks';
 import { useIsClient } from './example-preview/hooks/use-is-client';
 
 export type PreviewTab = 'preview' | 'web' | 'qrcode';
@@ -31,6 +32,9 @@ export type GoI18nKey =
   | 'go.deeplink.open.sparkling'
   | 'go.deeplink.hint-desktop'
   | 'go.deeplink.hint-mobile'
+  | 'go.deeplink.download.default'
+  | 'go.deeplink.download.lynxtron'
+  | 'go.deeplink.download.sparkling'
   | 'go.deeplink.or'
   | 'go.openin.show-qrcode'
   | 'go.ultra'
@@ -41,10 +45,14 @@ export type GoI18nCatalog = Record<GoI18nKey, string>;
 
 /**
  * Partial overrides for package-owned chrome strings (never via host i18n hooks).
- * Also accepts `go.deeplink.open.{nativeFramework}` for custom frameworks.
+ * Also accepts `go.deeplink.open.{nativeFramework}` and
+ * `go.deeplink.download.{nativeFramework}` for custom frameworks.
  */
 export type GoI18nOverrides = Partial<
-  Record<GoI18nKey | `go.deeplink.open.${string}`, string>
+  Record<
+    GoI18nKey | `go.deeplink.open.${string}` | `go.deeplink.download.${string}`,
+    string
+  >
 >;
 
 const GO_I18N_EN: GoI18nCatalog = {
@@ -65,6 +73,12 @@ const GO_I18N_EN: GoI18nCatalog = {
   'go.deeplink.open.sparkling': 'Open in Sparkling',
   'go.deeplink.hint-desktop': 'desktop only',
   'go.deeplink.hint-mobile': 'mobile only',
+  // Download link shown next to the deep link, so a viewer without the host
+  // app installed has somewhere to go. Suffixed by `nativeFramework` like the
+  // `open` keys above.
+  'go.deeplink.download.default': 'Get Lynx Explorer',
+  'go.deeplink.download.lynxtron': 'Get Lynxtron Go',
+  'go.deeplink.download.sparkling': 'Get Sparkling',
   'go.deeplink.or': 'or',
   'go.openin.show-qrcode': 'Show QR Code',
   'go.ultra': 'Open frameless',
@@ -87,6 +101,9 @@ const GO_I18N_ZH: GoI18nCatalog = {
   'go.deeplink.open.sparkling': '在 Sparkling 中打开',
   'go.deeplink.hint-desktop': '仅桌面',
   'go.deeplink.hint-mobile': '仅移动端',
+  'go.deeplink.download.default': '获取 Lynx Explorer',
+  'go.deeplink.download.lynxtron': '获取 Lynxtron Go',
+  'go.deeplink.download.sparkling': '获取 Sparkling',
   'go.deeplink.or': '或',
   'go.openin.show-qrcode': '显示二维码',
   'go.ultra': '打开无边框',
@@ -189,6 +206,24 @@ export interface GoConfig {
   };
   /** Explorer app name, defaults to 'Lynx Explorer' */
   explorerText?: string;
+  /**
+   * Per-framework overrides for the built-in native framework registry, keyed
+   * by `nativeFramework` (e.g. `lynxtron`). Use it to supply the URLs this
+   * package can't own — where to download the host app, and where to send a
+   * viewer whose device can't run the bundle:
+   *
+   * ```ts
+   * nativeFrameworks: {
+   *   lynxtron: {
+   *     downloadUrl: { en: '/lynxtron/download', cn: '/zh/lynxtron/download' },
+   *     learnMoreUrl: { en: '/lynxtron', cn: '/zh/lynxtron' },
+   *   },
+   * }
+   * ```
+   *
+   * `platform` is not overridable — it's a property of the framework itself.
+   */
+  nativeFrameworks?: NativeFrameworkOverrides;
   /** Custom error component for failed example loading */
   ErrorComponent?: React.ComponentType<{
     example: string;

@@ -35,7 +35,10 @@ import {
   IconOpenExternal,
   IconRefresh,
 } from '../utils/icon';
-import { getFrameworkConfig } from '../utils/native-frameworks';
+import {
+  getFrameworkConfig,
+  resolveLocalizedUrl,
+} from '../utils/native-frameworks';
 import { isQrAllowed, resolveOpenIn } from '../utils/open-in-mode';
 import type { WebPreviewMode } from '../utils/resolve-web-preview';
 import { tabScrollToTop } from '../utils/tool';
@@ -135,6 +138,7 @@ export function ExampleContent({
     explorerUrl,
     explorerText,
     i18n: i18nOverrides,
+    nativeFrameworks,
     withBase: withBaseFn = (p: string) => p,
     useLang: useLangHook,
     NoSSR: NoSSRComponent = DefaultNoSSR,
@@ -370,8 +374,18 @@ export function ExampleContent({
   // Deep-link template: an explicit `deepLinkUrl` prop overrides the framework's
   // default scheme (e.g. lynxtron → lynxtron-go://…). Universal bundles have no
   // default, so they only offer a deep link when one is passed explicitly.
-  const frameworkConfig = getFrameworkConfig(nativeFramework);
+  const frameworkConfig = getFrameworkConfig(nativeFramework, nativeFrameworks);
   const deepLinkTemplate = deepLinkUrl || frameworkConfig?.deepLinkScheme || '';
+  // Site-supplied URLs (see `GoConfig.nativeFrameworks`): where to get the host
+  // app, and where to send someone whose device can't run this bundle.
+  const frameworkDownloadUrl = resolveLocalizedUrl(
+    frameworkConfig?.downloadUrl,
+    lang,
+  );
+  const frameworkLearnMoreUrl = resolveLocalizedUrl(
+    frameworkConfig?.learnMoreUrl,
+    lang,
+  );
 
   const resolvedDeepLinkUrl = useMemo(() => {
     if (!deepLinkTemplate) return '';
@@ -441,6 +455,8 @@ export function ExampleContent({
           resolvedDeepLinkUrl={resolvedDeepLinkUrl}
           canOpenDeepLink={canOpenDeepLink}
           nativeFramework={nativeFramework}
+          frameworkConfig={frameworkConfig}
+          downloadUrl={frameworkDownloadUrl}
           t={t}
         />
       );
@@ -449,6 +465,8 @@ export function ExampleContent({
       return (
         <OpenInHint
           nativeFramework={nativeFramework}
+          frameworkConfig={frameworkConfig}
+          learnMoreUrl={frameworkLearnMoreUrl}
           platform={plan.hintPlatform}
           t={t}
         />
@@ -723,6 +741,8 @@ export function ExampleContent({
                     resolvedDeepLinkUrl={resolvedDeepLinkUrl}
                     canOpenDeepLink={canOpenDeepLink}
                     nativeFramework={nativeFramework}
+                    frameworkConfig={frameworkConfig}
+                    downloadUrl={frameworkDownloadUrl}
                     t={t}
                   />
                 )}
