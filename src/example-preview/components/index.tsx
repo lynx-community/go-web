@@ -455,7 +455,6 @@ export function ExampleContent({
           resolvedDeepLinkUrl={resolvedDeepLinkUrl}
           canOpenDeepLink={canOpenDeepLink}
           nativeFramework={nativeFramework}
-          frameworkConfig={frameworkConfig}
           downloadUrl={frameworkDownloadUrl}
           t={t}
         />
@@ -741,7 +740,6 @@ export function ExampleContent({
                     resolvedDeepLinkUrl={resolvedDeepLinkUrl}
                     canOpenDeepLink={canOpenDeepLink}
                     nativeFramework={nativeFramework}
-                    frameworkConfig={frameworkConfig}
                     downloadUrl={frameworkDownloadUrl}
                     t={t}
                   />

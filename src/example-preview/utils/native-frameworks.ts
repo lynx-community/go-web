@@ -25,7 +25,12 @@ export function resolveLocalizedUrl(
 ): string | undefined {
   if (!url) return undefined;
   if (typeof url === 'string') return url;
-  return lang === 'zh' || lang === 'cn' ? url.cn || url.en : url.en || url.cn;
+  // Match on the primary subtag, the same normalization the `go.*` catalogs
+  // use: a host handing us a BCP-47 tag like `zh-CN` / `zh-Hans` must not get
+  // Chinese chrome text next to an English URL. `cn` isn't a language tag, but
+  // it's the key name in `explorerUrl` / `LocalizedUrl`, so accept it too.
+  const base = lang.toLowerCase().split(/[-_]/)[0];
+  return base === 'zh' || base === 'cn' ? url.cn || url.en : url.en || url.cn;
 }
 
 export interface NativeFrameworkConfig {

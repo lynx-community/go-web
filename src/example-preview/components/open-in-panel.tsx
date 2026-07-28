@@ -29,11 +29,9 @@ interface DeepLinkProps {
   canOpenDeepLink: boolean;
   nativeFramework: string | undefined;
   /**
-   * Registry entry merged with the site's overrides, already resolved for the
-   * current language. Undefined for a universal bundle.
+   * The framework's `downloadUrl`, already resolved for the current language.
+   * Shown only after an unanswered click; absent means no probing.
    */
-  frameworkConfig?: NativeFrameworkConfig;
-  /** `frameworkConfig.downloadUrl` resolved for the current language. */
   downloadUrl?: string;
   t: (key: string) => string;
 }
