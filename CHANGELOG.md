@@ -1,5 +1,22 @@
 # @lynx-js/go-web
 
+## 0.8.0
+
+### Minor Changes
+
+- Decouple `<Go>` chrome copy from host/Rspress i18n. ([#71](https://github.com/lynx-community/go-web/pull/71))
+  - `go.*` strings are package-owned (`en` / `zh` via `useLang`); override with `config.i18n` only.
+  - `rspressAdapter` no longer wires Rspress `useI18n` — site `i18n.json` does not need `go.*` keys.
+  - Removed `GoConfig.useI18n` (breaking for custom hooks; use `i18n` + `useLang` instead).
+
+- Add `GoConfig.nativeFrameworks`, per-framework overrides for the built-in native framework registry, so a site can supply the URLs this package can't own: `downloadUrl` (where to get the host app) and `learnMoreUrl` (where to send a viewer whose device can't run the bundle), plus `appName` / `deepLinkScheme`. Both URLs accept a plain string or a `{ cn, en }` pair, mirroring `explorerUrl`. `platform` is deliberately not overridable. ([#74](https://github.com/lynx-community/go-web/pull/74))
+
+  A deep link to an app that isn't installed fails silently. Rather than showing a download prompt next to every deep link — which reads as "this probably won't work" — the click itself is the probe: if the tab is still visible and focused ~5s after the navigation, nothing handled the scheme, and the link is replaced **in place** by `downloadUrl` (`go.deeplink.download.*`, suffixable per framework like the `open` keys). The inference is one-way — only ever "not installed", never "installed" — and a callback arriving more than 8s late is discarded, since that means the tab was suspended rather than that the app is missing. Probing is skipped entirely when no `downloadUrl` is configured. This revives the fallback mechanism designed in #60, which was superseded before it landed.
+
+  The can't-run-here hint (a desktop bundle opened on a phone) links to `learnMoreUrl` when one is supplied, and stays plain text otherwise — no probing there, since nothing can launch on that device anyway.
+
+- Add `webLoadingScreen` (`'overlay' | 'preview'`) so the Web tab can use the Preview image/video as its loading screen while the web bundle loads concurrently, then reveal the live Web view once it paints. When omitted, auto-selects `'preview'` if `defaultTab` is `'web'` and a preview image exists; otherwise `'overlay'`. ([#72](https://github.com/lynx-community/go-web/pull/72))
+
 ## 0.7.0
 
 ### Minor Changes
