@@ -73,12 +73,12 @@ const GO_I18N_EN: GoI18nCatalog = {
   'go.deeplink.open.sparkling': 'Open in Sparkling',
   'go.deeplink.hint-desktop': 'desktop only',
   'go.deeplink.hint-mobile': 'mobile only',
-  // Download link shown next to the deep link, so a viewer without the host
-  // app installed has somewhere to go. Suffixed by `nativeFramework` like the
-  // `open` keys above.
-  'go.deeplink.download.default': 'Get Lynx Explorer',
-  'go.deeplink.download.lynxtron': 'Get Lynxtron Go',
-  'go.deeplink.download.sparkling': 'Get Sparkling',
+  // Shown only after a deep-link click goes unanswered, replacing the button in
+  // place — so the copy has to explain why it changed, not just offer a
+  // download. Suffixed by `nativeFramework` like the `open` keys above.
+  'go.deeplink.download.default': "Didn't open? Get Lynx Explorer",
+  'go.deeplink.download.lynxtron': "Didn't open? Get Lynxtron Go",
+  'go.deeplink.download.sparkling': "Didn't open? Get Sparkling",
   'go.deeplink.or': 'or',
   'go.openin.show-qrcode': 'Show QR Code',
   'go.ultra': 'Open frameless',
@@ -101,9 +101,9 @@ const GO_I18N_ZH: GoI18nCatalog = {
   'go.deeplink.open.sparkling': '在 Sparkling 中打开',
   'go.deeplink.hint-desktop': '仅桌面',
   'go.deeplink.hint-mobile': '仅移动端',
-  'go.deeplink.download.default': '获取 Lynx Explorer',
-  'go.deeplink.download.lynxtron': '获取 Lynxtron Go',
-  'go.deeplink.download.sparkling': '获取 Sparkling',
+  'go.deeplink.download.default': '没有打开？获取 Lynx Explorer',
+  'go.deeplink.download.lynxtron': '没有打开？获取 Lynxtron Go',
+  'go.deeplink.download.sparkling': '没有打开？获取 Sparkling',
   'go.deeplink.or': '或',
   'go.openin.show-qrcode': '显示二维码',
   'go.ultra': '打开无边框',

@@ -922,6 +922,24 @@ function App() {
       cn: 'https://lynxjs.org/zh/guide/start/quick-start.html#download-lynx-explorer',
     },
     explorerText: 'Lynx Explorer',
+    // Site-supplied URLs for the native frameworks: where to get the host app
+    // (desktop, next to the deep link) and where to send a viewer whose device
+    // can't run the bundle (mobile hint).
+    nativeFrameworks: {
+      lynxtron: {
+        downloadUrl: {
+          en: 'https://lynxjs.org/lynxtron',
+          cn: 'https://lynxjs.org/zh/lynxtron',
+        },
+        learnMoreUrl: {
+          en: 'https://lynxjs.org/lynxtron',
+          cn: 'https://lynxjs.org/zh/lynxtron',
+        },
+      },
+      sparkling: {
+        downloadUrl: 'https://lynxjs.org/',
+      },
+    },
     // Package-owned en/zh via useLang; optional config.i18n for overrides.
     useLang: () => lang,
     useDark: () => dark,

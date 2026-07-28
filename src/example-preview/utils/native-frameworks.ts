@@ -50,8 +50,10 @@ export interface NativeFrameworkConfig {
   learnMoreUrl?: LocalizedUrl;
   /**
    * Where to get the host app. Deep links fail silently when the app isn't
-   * installed, so on a device the bundle *can* run on we offer this next to
-   * the deep link. Same ownership rule as `learnMoreUrl` — supplied per site.
+   * installed, so the deep link is probed on click and — only if nothing
+   * answers it — replaced by this URL. Not shown up front: a working deep link
+   * should never carry a download prompt beside it. Same ownership rule as
+   * `learnMoreUrl` — supplied per site.
    */
   downloadUrl?: LocalizedUrl;
 }
