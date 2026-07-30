@@ -77,15 +77,16 @@ function useDeepLinkProbe(): {
     const cleanup = () => {
       settled = true;
       document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('blur', onBlur);
       window.clearTimeout(timer);
       cleanupRef.current = null;
     };
-    // Either signal means the OS took over: the app is there, stay quiet.
+    // `hidden` fires when another window actually covers the tab — a real
+    // hand-off. `blur` alone is unreliable on Windows: the browser's protocol
+    // confirmation dialog blurs the tab whether or not an app is registered,
+    // so we ignore it and let the timeout decide.
     const onVisibility = () => {
       if (document.hidden) cleanup();
     };
-    const onBlur = () => cleanup();
 
     const timer = window.setTimeout(() => {
       if (settled) return;
@@ -97,7 +98,6 @@ function useDeepLinkProbe(): {
     }, PROBE_TIMEOUT_MS);
 
     document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('blur', onBlur);
     cleanupRef.current = cleanup;
   }, []);
 
