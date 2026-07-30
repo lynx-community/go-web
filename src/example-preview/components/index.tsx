@@ -46,6 +46,11 @@ import { tabScrollToTop } from '../utils/tool';
 const WebIframe = React.lazy(() =>
   import('./web-iframe').then((module) => ({ default: module.WebIframe })),
 );
+const WebHostIframe = React.lazy(() =>
+  import('./web-host-iframe').then((module) => ({
+    default: module.WebHostIframe,
+  })),
+);
 
 import s from './index.module.scss';
 
@@ -80,6 +85,8 @@ interface ExampleContentProps {
   highlight?: string;
   entry?: string | string[];
   defaultWebPreviewFile?: string;
+  /** Whether defaultWebPreviewFile is a complete Web application entry. */
+  defaultWebPreviewHost?: boolean;
   initState: boolean;
   rightFooter?: React.ReactNode;
   schemaOptions?: SchemaOptionsData;
@@ -118,6 +125,7 @@ export function ExampleContent({
   highlight,
   entry,
   defaultWebPreviewFile,
+  defaultWebPreviewHost = false,
   initState,
   rightFooter,
   schemaOptions,
@@ -172,8 +180,8 @@ export function ExampleContent({
   const isUltra = fullscreenMode === 'ultra';
   const isUltraRef = useRef(false);
   isUltraRef.current = isUltra;
-  // Soft-refresh of the Web preview: remount <lynx-view> after the initial
-  // bundle download. Button stays hidden until WebIframe unlocks it.
+  // Soft-refresh of the Web preview. Raw bundles call <lynx-view>.reload();
+  // complete Web hosts remount their iframe.
   const [webReloadKey, setWebReloadKey] = useState(0);
   const [canRefreshWeb, setCanRefreshWeb] = useState(false);
   // Web paint / error signals — used when Preview acts as the Web loading screen.
@@ -201,7 +209,7 @@ export function ExampleContent({
   const [previewType, setPreviewType] = useState(() => {
     if (defaultTab === 'preview' && previewImage) return PreviewType.Preview;
     if (defaultTab === 'qrcode') return PreviewType.QRCode;
-    // 'web' can't resolve synchronously (webFile loads async); handled by useEffect below
+    // 'web' can't resolve synchronously (metadata loads async); handled below.
     return previewImage ? PreviewType.Preview : PreviewType.QRCode;
   });
 
@@ -231,7 +239,7 @@ export function ExampleContent({
     webLoadError,
   ]);
 
-  // Reset paint state when the web bundle URL changes (entry switch).
+  // Reset paint state when the Web preview URL changes (entry switch).
   useEffect(() => {
     setWebRendered(false);
     setWebLoadError(null);
@@ -619,7 +627,7 @@ export function ExampleContent({
             />
           )}
           {/* Soft refresh sits immediately beside fullscreen (same Button
-              size/theme). Only after the initial web bundle has downloaded. */}
+              size/theme). Only after the initial Web preview has loaded. */}
           {hasWebPreview &&
             previewType === PreviewType.Web &&
             canRefreshWeb && (
@@ -778,25 +786,40 @@ export function ExampleContent({
             >
               <NoSSRComponent>
                 <Suspense fallback={<div>Loading...</div>}>
-                  <WebIframe
-                    show={webPanelActive}
-                    src={defaultWebPreviewFile || ''}
-                    autoGesture={autoGesture}
-                    webPreviewMode={webPreviewMode}
-                    designWidth={designWidth}
-                    designHeight={designHeight}
-                    fitThresholdScale={fitThresholdScale}
-                    fitMinScale={fitMinScale}
-                    fit={fit}
-                    reloadKey={webReloadKey}
-                    onCanRefreshChange={setCanRefreshWeb}
-                    hideOverlay={showPreviewAsCover}
-                    onLoadStateChange={({ rendered, error }) => {
-                      setWebRendered(rendered);
-                      setWebLoadError(error);
-                      if (rendered) setWebHasPaintedOnce(true);
-                    }}
-                  />
+                  {defaultWebPreviewHost ? (
+                    <WebHostIframe
+                      show={webPanelActive}
+                      src={defaultWebPreviewFile || ''}
+                      reloadKey={webReloadKey}
+                      onCanRefreshChange={setCanRefreshWeb}
+                      hideOverlay={showPreviewAsCover}
+                      onLoadStateChange={({ rendered, error }) => {
+                        setWebRendered(rendered);
+                        setWebLoadError(error);
+                        if (rendered) setWebHasPaintedOnce(true);
+                      }}
+                    />
+                  ) : (
+                    <WebIframe
+                      show={webPanelActive}
+                      src={defaultWebPreviewFile || ''}
+                      autoGesture={autoGesture}
+                      webPreviewMode={webPreviewMode}
+                      designWidth={designWidth}
+                      designHeight={designHeight}
+                      fitThresholdScale={fitThresholdScale}
+                      fitMinScale={fitMinScale}
+                      fit={fit}
+                      reloadKey={webReloadKey}
+                      onCanRefreshChange={setCanRefreshWeb}
+                      hideOverlay={showPreviewAsCover}
+                      onLoadStateChange={({ rendered, error }) => {
+                        setWebRendered(rendered);
+                        setWebLoadError(error);
+                        if (rendered) setWebHasPaintedOnce(true);
+                      }}
+                    />
+                  )}
                 </Suspense>
               </NoSSRComponent>
             </div>

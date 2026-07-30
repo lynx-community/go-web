@@ -80,6 +80,10 @@ export function generateSSGHTML(options: GenerateSSGHTMLOptions): string {
     if (entry.webFile) {
       entryHtml += ' | Web: <code>' + escapeHtml(entry.webFile) + '</code>';
     }
+    if (entry.webHostFile) {
+      entryHtml +=
+        ' | Web host: <code>' + escapeHtml(entry.webHostFile) + '</code>';
+    }
     entryHtml += '</p>';
     parts.push(entryHtml);
   }

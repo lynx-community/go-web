@@ -113,6 +113,9 @@ export const ExamplePreviewSSG = ({
       if (entryFileInfo.webFile) {
         parts.push(` | Web: \`${entryFileInfo.webFile}\``);
       }
+      if (entryFileInfo.webHostFile) {
+        parts.push(` | Web host: \`${entryFileInfo.webHostFile}\``);
+      }
       parts.push('\n\n');
     }
 

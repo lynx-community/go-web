@@ -172,7 +172,7 @@ Options:
 | ------------------ | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `example`          | `string`                                       | **Required.** Example folder name, e.g. `'hello-world'`                                                                                                                                                                                                                                             |
 | `defaultFile`      | `string`                                       | Initial file to display (default: `'src/App.tsx'`)                                                                                                                                                                                                                                                  |
-| `mode`             | `'linked' \| 'preview' \| 'source' \| 'ultra'` | Overall layout mode (default: `'linked'`). `'linked'` shows code + preview together; `'preview'` shows preview only; `'source'` shows code only; `'ultra'` is a frameless full-viewport `<lynx-view>` that dominates the browser viewport including safe-area (requires a web bundle).              |
+| `mode`             | `'linked' \| 'preview' \| 'source' \| 'ultra'` | Overall layout mode (default: `'linked'`). `'linked'` shows code + preview together; `'preview'` shows preview only; `'source'` shows code only; `'ultra'` is a frameless full-viewport Web preview that dominates the browser viewport including safe-area.                                        |
 | `defaultTab`       | `'preview' \| 'web' \| 'qrcode'`               | Default preview tab                                                                                                                                                                                                                                                                                 |
 | `webLoadingScreen` | `'overlay' \| 'preview'`                       | What to show while the Web tab loads. When omitted: `'preview'` if `defaultTab` is `'web'` and a preview image exists, otherwise `'overlay'`. `'preview'` keeps the Preview image/video visible until `<lynx-view>` paints, then reveals the Web tab. Soft refresh always uses the spinner overlay. |
 | `exampleBasePath`  | `string`                                       | Base path or full URL for example data, e.g. `'/lynx-examples'`                                                                                                                                                                                                                                     |
@@ -189,11 +189,15 @@ Options:
 
 These options control how `lynx-view` renders inside the web preview panel.
 
-Web preview bundle resolution is driven by `example-metadata.json` (`templateFiles[].webFile`) for the selected entry; it is not inferred from the Lynx bundle filename automatically.
+Web preview resolution is driven by `example-metadata.json` for the selected
+entry. Use `templateFiles[].webFile` for a raw `.web.bundle`, or
+`templateFiles[].webHostFile` for a complete Web application entry such as
+`dist/web/index.html`. `webHostFile` takes precedence when both are present,
+allowing the application to own its runtime, host bridge, and `<lynx-view>`.
 
 | Option              | Type                              | Default        | Description                                                                                                     |
 | ------------------- | --------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------- |
-| `webPreview`        | `boolean`                         | `true`         | Enable/disable the web preview tab even if `templateFiles[].webFile` exists                                     |
+| `webPreview`        | `boolean`                         | `true`         | Enable/disable the web preview tab when `templateFiles[].webHostFile` or `templateFiles[].webFile` exists       |
 | `webPreviewMode`    | `'fit' \| 'responsive' \| 'auto'` | `'responsive'` | Viewport rendering mode                                                                                         |
 | `designWidth`       | `number`                          | `375`          | Design canvas width in pixels. Used in `fit` mode.                                                              |
 | `designHeight`      | `number`                          | `812`          | Design canvas height in pixels. Used in `fit` mode.                                                             |
