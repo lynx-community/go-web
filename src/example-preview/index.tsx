@@ -44,6 +44,28 @@ const DefaultErrorWrap = ({
 
 export type ExamplePreviewMode = 'linked' | 'preview' | 'source' | 'ultra';
 
+/**
+ * Resolve an example asset to an absolute URL.
+ *
+ * `base` may be a path (`'/lynx-examples'`) or a full URL on another origin
+ * (`'https://go.lynxjs.org/lynx-examples'`), so the origin is taken from the
+ * base rather than from the page.
+ *
+ * A leading `/` means the file is published at a site path root instead of
+ * inside the example folder — the case for a complete Web application, whose
+ * runtime bakes an absolute base URL that its web workers must also resolve.
+ */
+function resolveExampleUrl(
+  base: string,
+  example: string,
+  file: string,
+): string {
+  const baseUrl = new URL(base, window.location.href);
+  if (file.startsWith('/')) return new URL(file, baseUrl).href;
+  const dir = baseUrl.pathname.replace(/\/$/, '');
+  return new URL(`${dir}/${example}/${file}`, baseUrl).href;
+}
+
 export interface ExamplePreviewProps {
   example: string;
   defaultFile?: string;
@@ -123,7 +145,8 @@ export interface ExampleMetadata {
     file: string;
     webFile?: string;
     /**
-     * Complete Web application entry (for example `dist/web/index.html`).
+     * Complete Web application entry, published at a site path root
+     * (`/<example>/index.html`) because its runtime bakes an absolute base URL.
      * Takes precedence over `webFile`; the application owns its runtime,
      * bridges and `<lynx-view>`.
      */
@@ -254,7 +277,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       (file) => file.name === currentEntry,
     );
     if (file) {
-      const url = `${window.location.origin}${EXAMPLE_BASE_URL}/${example}/${file?.file}`;
+      const url = resolveExampleUrl(EXAMPLE_BASE_URL, example, file.file);
       if (schema) {
         const schemaUrl = schema.replace('{{{url}}}', url);
         return schemaUrl;
@@ -292,8 +315,9 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       if (tmpEntry) {
         const webPreviewFile = tmpEntry.webHostFile || tmpEntry.webFile;
         if (webPreviewFile && webPreview !== false) {
-          const fullWebFile = `${window.location.origin}${EXAMPLE_BASE_URL}/${example}/${webPreviewFile}`;
-          setDefaultWebPreviewFile(fullWebFile);
+          setDefaultWebPreviewFile(
+            resolveExampleUrl(EXAMPLE_BASE_URL, example, webPreviewFile),
+          );
           setDefaultWebPreviewHost(Boolean(tmpEntry.webHostFile));
         } else {
           setDefaultWebPreviewFile('');

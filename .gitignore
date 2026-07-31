@@ -5,6 +5,9 @@ dist/
 example/dist/
 example/node_modules/
 example/public/lynx-examples/
+# Web hosts published at a site path root (see `tarballSources` in
+# example/scripts/prepare-examples.js)
+example/public/lynxtron-cross-platform-notes/
 example-rspress/node_modules/
 example-rspress/doc_build/
 example-rspress/.rspress/
