@@ -1,5 +1,13 @@
 # @lynx-js/go-web
 
+## 0.9.1
+
+### Patch Changes
+
+- Return instead of hanging when `autoGesture` is given no steps. ([#82](https://github.com/lynx-community/go-web/pull/82))
+
+  `steps: []` type-checks, and with `loop: true` the playback loop never reached an `await` — so it spun synchronously and neither a timer nor an event could set the stop flag. An empty sequence now ends the way it reads: by doing nothing.
+
 ## 0.9.0
 
 ### Minor Changes
