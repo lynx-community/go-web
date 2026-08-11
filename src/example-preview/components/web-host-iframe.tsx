@@ -46,6 +46,8 @@ export const WebHostIframe = ({
   hideOverlay = false,
 }: WebHostIframeProps) => {
   const [loaded, setLoaded] = useState(false);
+  const [navigationSrc, setNavigationSrc] = useState('');
+  const [loadError, setLoadError] = useState<string | null>(null);
   const onCanRefreshChangeRef = useRef(onCanRefreshChange);
   const onLoadStateChangeRef = useRef(onLoadStateChange);
   onCanRefreshChangeRef.current = onCanRefreshChange;
@@ -53,6 +55,8 @@ export const WebHostIframe = ({
 
   useEffect(() => {
     setLoaded(false);
+    setNavigationSrc('');
+    setLoadError(null);
     onCanRefreshChangeRef.current?.(false);
     onLoadStateChangeRef.current?.({
       ready: false,
@@ -60,6 +64,43 @@ export const WebHostIframe = ({
       stage: 'rendering',
       error: null,
     });
+
+    if (!src) return;
+    const url = new URL(src, window.location.href);
+    if (url.origin !== window.location.origin) {
+      setNavigationSrc(src);
+      return;
+    }
+
+    // iframe load events also fire for HTTP error documents. A same-origin
+    // preflight lets Go surface a missing host instead of treating a 404 page
+    // as a rendered Lynx application. Cross-origin hosts remain iframe-only so
+    // they are not incorrectly rejected when they omit CORS headers.
+    const controller = new AbortController();
+    void fetch(url, {
+      credentials: 'same-origin',
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Web host returned HTTP ${response.status}`);
+        }
+        setNavigationSrc(src);
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        const message =
+          error instanceof Error ? error.message : 'Failed to load Web host';
+        setLoadError(message);
+        onLoadStateChangeRef.current?.({
+          ready: false,
+          rendered: false,
+          stage: null,
+          error: message,
+        });
+      });
+
+    return () => controller.abort();
   }, [src, reloadKey]);
 
   useEffect(
@@ -71,6 +112,7 @@ export const WebHostIframe = ({
 
   const handleLoad = () => {
     setLoaded(true);
+    setLoadError(null);
     onCanRefreshChangeRef.current?.(true);
     onLoadStateChangeRef.current?.({
       ready: true,
@@ -80,20 +122,35 @@ export const WebHostIframe = ({
     });
   };
 
+  const handleError = () => {
+    const message = 'Failed to load Web host';
+    setLoaded(false);
+    setLoadError(message);
+    onCanRefreshChangeRef.current?.(false);
+    onLoadStateChangeRef.current?.({
+      ready: false,
+      rendered: false,
+      stage: null,
+      error: message,
+    });
+  };
+
   return (
     <div style={{ ...CONTAINER_STYLE, display: show ? 'block' : 'none' }}>
-      {src && (
+      {navigationSrc && (
         <iframe
-          key={`${src}:${reloadKey}`}
-          src={src}
+          key={`${navigationSrc}:${reloadKey}`}
+          src={navigationSrc}
           title="Web preview"
           style={IFRAME_STYLE}
           onLoad={handleLoad}
+          onError={handleError}
         />
       )}
       <LoadingOverlay
-        visible={show && !loaded && !hideOverlay}
+        visible={show && (!!loadError || (!loaded && !hideOverlay))}
         stage="rendering"
+        error={loadError}
       />
     </div>
   );

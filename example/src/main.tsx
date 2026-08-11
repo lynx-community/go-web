@@ -115,6 +115,13 @@ function getExampleSource(name: string): 'vue' | 'lynx' {
   return name.startsWith('vue-') ? 'vue' : 'lynx';
 }
 
+function hasWebPreview(entry: {
+  webFile?: string;
+  webHostFile?: string;
+}): boolean {
+  return Boolean(entry.webHostFile || entry.webFile);
+}
+
 // ---------------------------------------------------------------------------
 // URL State Persistence
 // ---------------------------------------------------------------------------
@@ -863,8 +870,9 @@ function App() {
         }
         setHighlight('');
         setImg(
-          data.previewImage ||
-            'https://lf-lynx.tiktok-cdns.com/obj/lynx-artifacts-oss-sg/lynx-website/assets/doc/hello-world-showcase-ios.png',
+          data.previewImage
+            ? `/lynx-examples/${example}/${data.previewImage}`
+            : 'https://lf-lynx.tiktok-cdns.com/obj/lynx-artifacts-oss-sg/lynx-website/assets/doc/hello-world-showcase-ios.png',
         );
         setSchema('');
       })
@@ -1267,7 +1275,7 @@ function App() {
                     }}
                   >
                     {t.name}
-                    {t.webFile ? '' : ' *'}
+                    {hasWebPreview(t) ? '' : ' *'}
                   </button>
                 ))}
               {!metadata && (
@@ -1442,12 +1450,12 @@ function App() {
                   {metadata?.templateFiles?.length > 0 && (
                     <span
                       className={`example-tag ${
-                        metadata?.templateFiles?.some((t: any) => t.webFile)
+                        metadata?.templateFiles?.some(hasWebPreview)
                           ? 'example-tag-web'
                           : 'example-tag-no-web'
                       }`}
                     >
-                      {metadata?.templateFiles?.some((t: any) => t.webFile)
+                      {metadata?.templateFiles?.some(hasWebPreview)
                         ? 'Web'
                         : 'No Web'}
                     </span>

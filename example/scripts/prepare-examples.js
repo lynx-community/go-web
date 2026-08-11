@@ -23,6 +23,7 @@ const rootDir = path.resolve(__dirname, '..');
 
 const clean = process.argv.includes('--clean');
 const outputDir = path.join(rootDir, 'public/lynx-examples');
+const outputHostDir = path.join(rootDir, 'public');
 const lynxEntryFileName = '.lynx.bundle';
 const webEntryFileName = '.web.bundle';
 
@@ -60,6 +61,48 @@ const scopes = [
     ],
   },
 ];
+
+/**
+ * Examples published as release tarballs instead of npm packages.
+ *
+ * These ship a complete Web application (`dist/web/index.html`) rather than a
+ * bare `.web.bundle`, so go.lynxjs.org hosts them as-is and the Web preview
+ * renders them in an iframe. Pinned by tag on purpose: unlike the scope-based
+ * npm sources above, this list is the allowlist of examples permitted to ship
+ * their own Web host.
+ */
+const tarballSources = [
+  {
+    dir: 'lynxtron-cross-platform-notes',
+    tarball:
+      'https://github.com/lynx-community/lynxtron-examples/releases/download/lynxtron-go-v0.0.8/lynxtron-examples-cross-platform-notes.tgz',
+    version: 'lynxtron-go-v0.0.8',
+    exampleGitBaseUrl:
+      'https://github.com/lynx-community/lynxtron-examples/tree/main',
+    nativeFramework: 'lynxtron',
+    // Ships build intermediates that duplicate `dist/` entries.
+    prune: ['output'],
+  },
+];
+
+/**
+ * Conventional location of a complete Web application inside an example.
+ *
+ * Complete Web applications are also useful as standalone, shareable demos.
+ * Go therefore gives each one a stable, human-readable path:
+ *
+ *   go hosts `<example>/dist/web/**` at `/<name>/**`
+ *
+ * The artifact must be relocatable to that directory: HTML references and
+ * runtime-loaded workers, chunks, and wasm all resolve beneath `/<name>/`.
+ * `<name>` is the example directory name, unique by construction. No server
+ * rewrite is involved.
+ */
+const webHostDir = 'dist/web';
+const webHostEntry = 'index.html';
+
+/** Site path roots a Web host must not claim. */
+const reservedHostDirs = new Set(['lynx-examples', 'static', 'embed']);
 
 const ignoreDirs = ['node_modules', '.git', '.turbo'];
 const ignoreFiles = ['.DS_Store', 'LICENSE'];
@@ -120,7 +163,7 @@ function getAllFiles(dirPath, arrayOfFiles = []) {
   return arrayOfFiles;
 }
 
-function getTemplateFiles(files) {
+function getTemplateFiles(files, webHostFile) {
   const entries = [];
   for (const file of files) {
     if (file.endsWith(lynxEntryFileName)) {
@@ -129,6 +172,7 @@ function getTemplateFiles(files) {
       const entry = { name, file };
       const webFile = file.replace(lynxEntryFileName, webEntryFileName);
       if (files.includes(webFile)) entry.webFile = webFile;
+      if (webHostFile) entry.webHostFile = webHostFile;
       entries.push(entry);
     }
   }
@@ -139,6 +183,56 @@ function sortFiles(files) {
   const dirs = files.filter((f) => f.includes('/')).sort();
   const flat = files.filter((f) => !f.includes('/')).sort();
   return [...dirs, ...flat];
+}
+
+/**
+ * Publish an example's complete Web application at the site path root it was
+ * built for, and return the site-absolute entry URL.
+ *
+ * Returns undefined when the example ships no Web host.
+ */
+function publishWebHost(destDir, dirName) {
+  const sourceDir = path.join(destDir, webHostDir);
+  if (!fs.existsSync(path.join(sourceDir, webHostEntry))) return undefined;
+
+  if (reservedHostDirs.has(dirName)) {
+    throw new Error(
+      `example "${dirName}" cannot publish a Web host: /${dirName}/ is reserved by the site`,
+    );
+  }
+
+  const hostDir = path.join(outputHostDir, dirName);
+  fs.rmSync(hostDir, { recursive: true, force: true });
+  fs.cpSync(sourceDir, hostDir, { recursive: true });
+  return `/${dirName}/${webHostEntry}`;
+}
+
+/** Scan an extracted example and write its `example-metadata.json`. */
+function writeExampleMetadata(destDir, extra, webHostFile) {
+  const allFiles = getAllFiles(destDir, []);
+  const files = allFiles.map((f) => path.relative(destDir, f));
+  const previewImageRe = /^preview-image\.(png|jpg|jpeg|webp|gif)$/;
+  const filtered = files.filter(
+    (f) => !previewImageRe.test(f) && f !== 'example-metadata.json',
+  );
+  const sorted = sortFiles(filtered);
+  const previewImage = files.find((f) => previewImageRe.test(f));
+  const templateFiles = getTemplateFiles(filtered, webHostFile);
+
+  fs.writeFileSync(
+    path.join(destDir, 'example-metadata.json'),
+    JSON.stringify(
+      {
+        ...extra,
+        files: sorted,
+        previewImage,
+        templateFiles,
+      },
+      null,
+      2,
+    ),
+  );
+  return templateFiles;
 }
 
 // --- Main ---
@@ -196,40 +290,55 @@ async function main() {
       }
 
       // Generate metadata
-      const allFiles = getAllFiles(destDir, []);
-      const files = allFiles.map((f) => path.relative(destDir, f));
-      const previewImageRe = /^preview-image\.(png|jpg|jpeg|webp|gif)$/;
-      const filtered = files.filter(
-        (f) => !previewImageRe.test(f) && f !== 'example-metadata.json',
-      );
-      const sorted = sortFiles(filtered);
-      const previewImage = files.find((f) => previewImageRe.test(f));
-      const templateFiles = getTemplateFiles(filtered);
-
       const pkgJsonPath = path.join(destDir, 'package.json');
       const pkg = fs.existsSync(pkgJsonPath)
         ? JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'))
         : {};
 
-      fs.writeFileSync(
-        path.join(destDir, 'example-metadata.json'),
-        JSON.stringify(
-          {
-            name: pkg.repository?.directory || shortName,
-            version: registryMeta.version,
-            [scopeConfig.frameworkVersionKey]: registryMeta.frameworkVersion,
-            files: sorted,
-            previewImage,
-            templateFiles,
-            exampleGitBaseUrl: scopeConfig.exampleGitBaseUrl,
-          },
-          null,
-          2,
-        ),
+      writeExampleMetadata(
+        destDir,
+        {
+          name: pkg.repository?.directory || shortName,
+          version: registryMeta.version,
+          [scopeConfig.frameworkVersionKey]: registryMeta.frameworkVersion,
+          exampleGitBaseUrl: scopeConfig.exampleGitBaseUrl,
+        },
+        publishWebHost(destDir, dirName),
       );
 
       totalCount++;
     }
+  }
+
+  for (const source of tarballSources) {
+    const destDir = path.join(outputDir, source.dir);
+    console.log(`  ${source.dir}@${source.version}`);
+    downloadAndExtract(source.tarball, destDir);
+
+    for (const dir of source.prune ?? []) {
+      fs.rmSync(path.join(destDir, dir), { recursive: true, force: true });
+    }
+
+    const webHostFile = publishWebHost(destDir, source.dir);
+    if (!webHostFile) {
+      throw new Error(
+        `${source.dir}: required Web host entry ${webHostDir}/${webHostEntry} is missing`,
+      );
+    }
+    console.log(`    ↳ Web host published at ${webHostFile}`);
+
+    writeExampleMetadata(
+      destDir,
+      {
+        name: source.dir,
+        version: source.version,
+        exampleGitBaseUrl: source.exampleGitBaseUrl,
+        nativeFramework: source.nativeFramework,
+      },
+      webHostFile,
+    );
+
+    totalCount++;
   }
 
   console.log(`\nPrepared ${totalCount} examples in public/lynx-examples/`);
