@@ -5,6 +5,7 @@ import useSWRMutation from 'swr/mutation';
 import type { PreviewTab, WebLoadingScreen } from '../config';
 import { useGoConfig } from '../config';
 import { ExampleContent } from './components';
+import { WebHostIframe } from './components/web-host-iframe';
 import { UltraLynxView } from './components/ultra-lynx-view';
 import type { SchemaOptionsData } from './hooks/use-switch-schema';
 import { isAssetFileType } from './utils/example-data';
@@ -75,7 +76,7 @@ export interface ExamplePreviewProps {
    * Takes precedence over the site-level `GoConfig.defaultTab`.
    *
    * - `'preview'` — static screenshot (requires `img`)
-   * - `'web'`     — live web preview (requires `webFile` in metadata)
+   * - `'web'`     — live web preview (requires `webHostFile` or `webFile`)
    * - `'qrcode'`  — QR code for Lynx Explorer
    */
   defaultTab?: PreviewTab;
@@ -121,6 +122,12 @@ export interface ExampleMetadata {
     name: string;
     file: string;
     webFile?: string;
+    /**
+     * Complete Web application entry (for example `dist/web/index.html`).
+     * Takes precedence over `webFile`; the application owns its runtime,
+     * bridges and `<lynx-view>`.
+     */
+    webHostFile?: string;
   }>;
   previewImage?: string;
   exampleGitBaseUrl?: string;
@@ -189,6 +196,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
   const [currentEntry, setCurrentEntry] = useState('');
 
   const [defaultWebPreviewFile, setDefaultWebPreviewFile] = useState('');
+  const [defaultWebPreviewHost, setDefaultWebPreviewHost] = useState(false);
   const [initState, setInitState] = useState(false);
   const storeRef = useRef<Record<string, string>>({});
   const highlightData = useMemo(() => {
@@ -282,11 +290,14 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
         tmpEntry = exampleData?.templateFiles[0];
       }
       if (tmpEntry) {
-        if (tmpEntry.webFile && webPreview !== false) {
-          const fullWebFile = `${window.location.origin}${EXAMPLE_BASE_URL}/${example}/${tmpEntry.webFile}`;
+        const webPreviewFile = tmpEntry.webHostFile || tmpEntry.webFile;
+        if (webPreviewFile && webPreview !== false) {
+          const fullWebFile = `${window.location.origin}${EXAMPLE_BASE_URL}/${example}/${webPreviewFile}`;
           setDefaultWebPreviewFile(fullWebFile);
+          setDefaultWebPreviewHost(Boolean(tmpEntry.webHostFile));
         } else {
           setDefaultWebPreviewFile('');
+          setDefaultWebPreviewHost(false);
         }
         setCurrentEntry(tmpEntry.name);
       } else {
@@ -321,7 +332,18 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
         />
       );
     }
-    return (
+    return defaultWebPreviewHost ? (
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: '#000',
+          zIndex: 99999,
+        }}
+      >
+        <WebHostIframe show src={defaultWebPreviewFile} />
+      </div>
+    ) : (
       <UltraLynxView
         src={defaultWebPreviewFile}
         autoGesture={autoGesture}
@@ -358,6 +380,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       highlight={highlightData[currentName]}
       entry={entry}
       defaultWebPreviewFile={defaultWebPreviewFile}
+      defaultWebPreviewHost={defaultWebPreviewHost}
       initState={initState}
       rightFooter={rightFooter}
       schemaOptions={schema ? undefined : schemaOptions}

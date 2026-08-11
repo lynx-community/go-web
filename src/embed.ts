@@ -71,7 +71,10 @@ export type EmbedOptions = {
   schema?: string;
   /** Hide the header bar for minimal embeds */
   seamless?: boolean;
-  /** Enable/disable the web preview tab even if templateFiles[].webFile exists */
+  /**
+   * Enable/disable the Web preview tab when templateFiles[].webHostFile or
+   * templateFiles[].webFile exists.
+   */
   webPreview?: boolean;
   /** Web preview viewport mode */
   webPreviewMode?: 'fit' | 'responsive' | 'auto';
