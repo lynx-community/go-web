@@ -75,8 +75,8 @@ const tarballSources = [
   {
     dir: 'lynxtron-cross-platform-notes',
     tarball:
-      'https://github.com/lynx-community/lynxtron-examples/releases/download/lynxtron-go-v0.0.7/lynxtron-examples-cross-platform-notes.tgz',
-    version: 'lynxtron-go-v0.0.7',
+      'https://github.com/lynx-community/lynxtron-examples/releases/download/lynxtron-go-v0.0.8/lynxtron-examples-cross-platform-notes.tgz',
+    version: 'lynxtron-go-v0.0.8',
     exampleGitBaseUrl:
       'https://github.com/lynx-community/lynxtron-examples/tree/main',
     nativeFramework: 'lynxtron',
@@ -88,15 +88,15 @@ const tarballSources = [
 /**
  * Conventional location of a complete Web application inside an example.
  *
- * Such a build bakes an absolute publicPath into its runtime (web workers
- * cannot resolve a document-relative one), so it must be served from a path
- * root rather than nested under the example folder. The convention is:
+ * Complete Web applications are also useful as standalone, shareable demos.
+ * Go therefore gives each one a stable, human-readable path:
  *
- *   the artifact is built with base URL `/<name>/`
  *   go hosts `<example>/dist/web/**` at `/<name>/**`
  *
- * `<name>` is the example directory name, which is unique by construction.
- * No server rewrite is involved — the artifact and the host agree on a path.
+ * The artifact must be relocatable to that directory: HTML references and
+ * runtime-loaded workers, chunks, and wasm all resolve beneath `/<name>/`.
+ * `<name>` is the example directory name, unique by construction. No server
+ * rewrite is involved.
  */
 const webHostDir = 'dist/web';
 const webHostEntry = 'index.html';
@@ -312,26 +312,20 @@ async function main() {
 
   for (const source of tarballSources) {
     const destDir = path.join(outputDir, source.dir);
-    try {
-      console.log(`  ${source.dir}@${source.version}`);
-      downloadAndExtract(source.tarball, destDir);
-    } catch (err) {
-      console.warn(`  ⚠ skipping ${source.dir}: ${err.message}`);
-      continue;
-    }
+    console.log(`  ${source.dir}@${source.version}`);
+    downloadAndExtract(source.tarball, destDir);
 
     for (const dir of source.prune ?? []) {
       fs.rmSync(path.join(destDir, dir), { recursive: true, force: true });
     }
 
     const webHostFile = publishWebHost(destDir, source.dir);
-    if (webHostFile) {
-      console.log(`    ↳ Web host published at ${webHostFile}`);
-    } else {
-      console.warn(
-        `  ⚠ ${source.dir}: no ${webHostDir}/${webHostEntry} — Web preview falls back to the raw bundle.`,
+    if (!webHostFile) {
+      throw new Error(
+        `${source.dir}: required Web host entry ${webHostDir}/${webHostEntry} is missing`,
       );
     }
+    console.log(`    ↳ Web host published at ${webHostFile}`);
 
     writeExampleMetadata(
       destDir,

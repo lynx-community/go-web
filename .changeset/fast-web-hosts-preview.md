@@ -7,7 +7,8 @@ Support complete Web application entries through
 precedence over raw `.web.bundle` previews, so examples can own their Web
 runtime, bridge, and `<lynx-view>`.
 
-A Web host is published at a site path root (`/<example>/index.html`) rather
-than inside the example folder, because such a build bakes an absolute base URL
-that its web workers must resolve too. Example assets now also resolve against
-the origin serving them, so `exampleBasePath` may point at another origin.
+Go may publish a Web host at a stable site path root
+(`/<example>/index.html`) so it is directly accessible as a standalone demo.
+The packaged host must be relocatable so its workers, chunks, and wasm resolve
+under that path. Example assets now also resolve against the origin serving
+them, so `exampleBasePath` may point at another origin.
