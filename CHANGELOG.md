@@ -1,5 +1,20 @@
 # @lynx-js/go-web
 
+## 0.10.0
+
+### Minor Changes
+
+- Support complete Web application entries through ([#77](https://github.com/lynx-community/go-web/pull/77))
+  `templateFiles[].webHostFile`. Web host entries render in an iframe and take
+  precedence over raw `.web.bundle` previews, so examples can own their Web
+  runtime, bridge, and `<lynx-view>`.
+
+  Go may publish a Web host at a stable site path root
+  (`/<example>/index.html`) so it is directly accessible as a standalone demo.
+  The packaged host must be relocatable so its workers, chunks, and wasm resolve
+  under that path. Example assets now also resolve against the origin serving
+  them, so `exampleBasePath` may point at another origin.
+
 ## 0.9.1
 
 ### Patch Changes
