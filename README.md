@@ -46,6 +46,27 @@ const config = {
 };
 ```
 
+### The `<Go/>` mark
+
+Every embed carries a `<Go/>` mark in the footer's bottom-left corner. It is
+invisible at rest, fades in while the pointer is anywhere inside the widget, and
+on its own hover becomes a link to this repo — so a reader who wants the same
+code-plus-live-preview pane on their own site can find out what it is and where
+to get it. (The GitHub button next to it goes to the _example's_ source, which
+answers a different question.)
+
+```tsx
+const config = {
+  exampleBasePath: '/lynx-examples',
+  poweredBy: false, // remove it
+  // poweredBy: 'https://mysite.dev/embedding', // …or point it at your own page
+};
+```
+
+Its wording lives in the package's own i18n (`go.poweredby`,
+`go.poweredby.cta`) and can be overridden through `config.i18n` like any other
+chrome string.
+
 ### SSG (Static Site Generation)
 
 go-web ships a built-in SSG component and a pure generation function so that pre-rendered pages include a meaningful code preview instead of an empty placeholder.

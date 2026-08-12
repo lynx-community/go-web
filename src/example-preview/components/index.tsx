@@ -18,6 +18,7 @@ import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { CodeView } from './code-view';
 import { FileTree } from './file-tree';
 import { DeepLinkRow, FloatingDeepLink, OpenInHint } from './open-in-panel';
+import { PoweredByGo } from './powered-by';
 import { PreviewImg } from './preview-img';
 import { SplitPane, type SplitPaneHandle } from './split-pane';
 import { SwitchSchema } from './switch-schema';
@@ -150,6 +151,7 @@ export function ExampleContent({
     explorerText,
     i18n: i18nOverrides,
     nativeFrameworks,
+    poweredBy,
     withBase: withBaseFn = (p: string) => p,
     useLang: useLangHook,
     NoSSR: NoSSRComponent = DefaultNoSSR,
@@ -874,6 +876,13 @@ export function ExampleContent({
               whiteSpace: 'nowrap',
             }}
           >
+            {/* Ahead of `example › file` — the widget naming itself before it
+                names what it is showing. Hidden until the box is hovered. */}
+            <PoweredByGo
+              poweredBy={poweredBy}
+              t={t}
+              getPopupContainer={getContainer}
+            />
             {mode !== 'preview' && (
               <Button
                 theme="borderless"
