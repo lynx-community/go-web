@@ -48,12 +48,12 @@ const config = {
 
 ### The `<Go/>` mark
 
-Every embed carries a `<Go/>` mark in the footer's bottom-left corner. It rests
-as faint grey chrome, brightens while the pointer is anywhere inside the widget,
-and on its own hover turns into a link to this repo — so a reader who wants the
-same code-plus-live-preview pane on their own site can find out what it is and
-where to get it. (The GitHub button next to it goes to the _example's_ source,
-which answers a different question.)
+Every embed carries a `<Go/>` mark in the footer, just ahead of the
+`example › file` breadcrumb. It rests as faint grey chrome, brightens while the
+pointer is anywhere inside the widget, and on its own hover turns into a link to
+this repo — so a reader who wants the same code-plus-live-preview pane on their
+own site can find out what it is and where to get it. (The footer's GitHub
+button goes to the _example's_ source, which answers a different question.)
 
 ```tsx
 const config = {

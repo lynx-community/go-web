@@ -17,8 +17,13 @@ interface PoweredByGoProps {
 }
 
 /**
- * The one place the widget names itself: a `<Go/>` mark in the footer's left
- * corner, resting as faint grey chrome and turning into a link on hover.
+ * The one place the widget names itself: a `<Go/>` mark sitting just ahead of
+ * the footer's `example › file` breadcrumb — the namespace of the thing being
+ * named — resting as faint grey chrome and turning into a link on hover.
+ *
+ * Not in the corner: that belongs to the file-tree button, and a brand mark
+ * that displaces an existing control to take the corner buys attention with
+ * someone else's muscle memory.
  *
  * The footer's GitHub button already links out — but to *this example's*
  * source, which is what a reader wants and not at all what someone who wants

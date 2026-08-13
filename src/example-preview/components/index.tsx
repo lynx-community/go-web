@@ -876,13 +876,6 @@ export function ExampleContent({
               whiteSpace: 'nowrap',
             }}
           >
-            {/* Ahead of `example › file` — the widget naming itself before it
-                names what it is showing. Hidden until the box is hovered. */}
-            <PoweredByGo
-              poweredBy={poweredBy}
-              t={t}
-              getPopupContainer={getContainer}
-            />
             {mode !== 'preview' && (
               <Button
                 theme="borderless"
@@ -894,6 +887,15 @@ export function ExampleContent({
                 onClick={() => setShowFileTree(true)}
               />
             )}
+            {/* The file-tree button keeps the corner it has always had; the
+                mark sits with the breadcrumb, reading as its namespace. */}
+            <span className={s['footer-mark']}>
+              <PoweredByGo
+                poweredBy={poweredBy}
+                t={t}
+                getPopupContainer={getContainer}
+              />
+            </span>
             <Space spacing={2} style={{ overflow: 'hidden' }}>
               <Typography.Text
                 size="small"

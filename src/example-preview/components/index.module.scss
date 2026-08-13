@@ -177,6 +177,15 @@
     }
   }
 
+  // The "<Go/>" mark's place in the footer: pushed clear of the file-tree
+  // button so the two don't read as one control, and tucked close to the
+  // breadcrumb it prefixes.
+  .footer-mark {
+    display: inline-flex;
+    flex-shrink: 0;
+    margin: 0 4px 0 10px;
+  }
+
   .footer {
     height: 32px;
     width: 100%;

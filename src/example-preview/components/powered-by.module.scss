@@ -1,6 +1,7 @@
 // ─── The "<Go/>" mark ────────────────────────────────────────────────────────
-// Sits in the footer's left corner, ahead of `example › file`, so it reads as
-// the namespace of what follows rather than as another control.
+// Sits just ahead of the footer's `example › file` breadcrumb, so it reads as
+// the namespace of what follows rather than as another control. (Placement and
+// its spacing live with the footer, in index.module.scss.)
 //
 // It rests as quiet grey chrome — quieter than the breadcrumb beside it, loud
 // enough that the corner reads as *something* rather than as stray padding —
