@@ -233,8 +233,8 @@ export interface GoConfig {
    */
   nativeFrameworks?: NativeFrameworkOverrides;
   /**
-   * The tiny `<Go/>` mark in the footer's left corner. It is invisible until
-   * the pointer enters the widget, and links to this component's repo — so a
+   * The tiny `<Go/>` mark in the footer's left corner. It rests as faint grey
+   * chrome and turns into a link to this component's repo on hover — so a
    * reader who wants the same code-plus-live-preview pane on their own site
    * has somewhere to click. (The footer's GitHub button goes to the example's
    * source, which is a different question.)

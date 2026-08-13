@@ -201,13 +201,13 @@
   overflow: hidden;
   position: relative;
 
-  // Reveal the "<Go/>" mark in the footer while the pointer is anywhere inside
-  // the widget — the mark itself owns how it looks (powered-by.module.scss),
-  // the box owns when it exists. Custom properties inherit across the
-  // CSS-module boundary, so neither file has to name the other's class.
+  // Bring the "<Go/>" mark in the footer up from its resting grey while the
+  // pointer is anywhere inside the widget — the mark owns how it looks
+  // (powered-by.module.scss), the box owns this one step of it. Custom
+  // properties inherit across the CSS-module boundary, so neither file has to
+  // name the other's class.
   &:hover {
-    --go-mark-opacity: 0.4;
-    --go-mark-events: auto;
+    --go-mark-opacity: 0.7;
   }
 
   @media (max-width: 600px) {

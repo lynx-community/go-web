@@ -2,27 +2,12 @@
 // Sits in the footer's left corner, ahead of `example › file`, so it reads as
 // the namespace of what follows rather than as another control.
 //
-// Whether it is visible at all belongs to the widget, not to the mark: `.box`
-// sets `--go-mark-*` on hover (see index.module.scss) and custom properties
-// inherit straight through the CSS-module boundary. At rest the mark is both
-// invisible *and* inert — an unseen link that can still be clicked is a trap.
-
-// Always hit-testable, never navigable: it reserves the mark's width so the
-// footer never shifts, and it is what the pointer lands on before the mark
-// wakes up. Hovering it is the second, closer step of the reveal.
-.slot {
-  display: inline-flex;
-  flex-shrink: 0;
-
-  // `:focus-within` covers the keyboard path: the tooltip trigger takes focus
-  // before the link does, and the mark has to be on screen by then.
-  &:hover,
-  &:focus-within,
-  &:focus-visible {
-    --go-mark-opacity: 1;
-    --go-mark-events: auto;
-  }
-}
+// It rests as quiet grey chrome — quieter than the breadcrumb beside it, loud
+// enough that the corner reads as *something* rather than as stray padding —
+// and brightens in two steps: a little when the pointer is anywhere inside the
+// widget (`--go-mark-opacity`, set by `.box:hover` in index.module.scss;
+// custom properties inherit straight through the CSS-module boundary), then
+// fully, in link blue, once the pointer is on the mark itself.
 
 .mark {
   display: inline-flex;
@@ -46,8 +31,7 @@
   white-space: nowrap;
   text-decoration: none;
   color: var(--semi-color-text-2);
-  opacity: var(--go-mark-opacity, 0);
-  pointer-events: var(--go-mark-events, none);
+  opacity: var(--go-mark-opacity, 0.42);
   transition:
     opacity 0.18s ease,
     color 0.18s ease,
@@ -55,8 +39,8 @@
     border-color 0.18s ease;
 }
 
-// Second step of the reveal: faint while you're merely inside the widget, a
-// full affordance once you're on it. Only then is it worth a tooltip.
+// The active state, and the only one worth a tooltip: now it is plainly a
+// control, not a watermark.
 .mark:hover {
   opacity: 1;
   color: var(--semi-color-link);
@@ -64,23 +48,12 @@
   border-color: var(--semi-color-border);
 }
 
-// A keyboard user never triggers the hover that reveals it, so focus does —
-// including the pointer-events the resting state withholds.
+// A keyboard user never hovers, so focus carries the same promotion.
 .mark:focus-visible {
   opacity: 1;
-  pointer-events: auto;
   color: var(--semi-color-link);
   outline: 2px solid var(--semi-color-focus-border);
   outline-offset: 1px;
-}
-
-// Touch has no hover to reveal anything with, so the mark stays faintly
-// present instead of being unreachable.
-@media (hover: none) {
-  .mark {
-    opacity: 0.34;
-    pointer-events: auto;
-  }
 }
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────

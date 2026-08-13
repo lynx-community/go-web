@@ -18,17 +18,18 @@ interface PoweredByGoProps {
 
 /**
  * The one place the widget names itself: a `<Go/>` mark in the footer's left
- * corner, invisible at rest and revealed while the pointer is anywhere inside
- * the widget.
+ * corner, resting as faint grey chrome and turning into a link on hover.
  *
  * The footer's GitHub button already links out — but to *this example's*
  * source, which is what a reader wants and not at all what someone who wants
  * the surrounding widget is looking for. That reader currently has nowhere to
  * click: the code pane, the live preview and the QR tab are all evidently
- * *something*, and nothing on screen says what. The mark closes that gap
- * without spending any of the resting composition on it — a reader who is only
- * reading never sees it, and the one who wonders "what is this thing" is
- * already hovering by the time they wonder.
+ * *something*, and nothing on screen says what.
+ *
+ * It stays legible at rest rather than appearing only on hover: a corner that
+ * holds a mark's worth of space and shows nothing reads as a layout mistake,
+ * and nobody hovers a gap on the off-chance. Quiet grey costs the composition
+ * almost nothing and still says "this is a thing, and it has a name".
  */
 export function PoweredByGo({
   poweredBy,
@@ -59,21 +60,15 @@ export function PoweredByGo({
       spacing={8}
       getPopupContainer={getPopupContainer}
     >
-      {/* The slot holds the mark's place and takes the pointer while the mark
-          itself is inert, so entering the widget *directly onto* the corner
-          reveals it (and swallows that first click) instead of hitting a link
-          that isn't there yet. */}
-      <span className={s.slot}>
-        <a
-          className={s.mark}
-          href={href}
-          target="_blank"
-          rel="noreferrer"
-          aria-label={`${title} — ${cta}`}
-        >
-          <span aria-hidden="true">&lt;Go/&gt;</span>
-        </a>
-      </span>
+      <a
+        className={s.mark}
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={`${title} — ${cta}`}
+      >
+        <span aria-hidden="true">&lt;Go/&gt;</span>
+      </a>
     </Tooltip>
   );
 }
