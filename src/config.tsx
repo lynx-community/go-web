@@ -233,11 +233,12 @@ export interface GoConfig {
    */
   nativeFrameworks?: NativeFrameworkOverrides;
   /**
-   * The tiny `<Go/>` mark in the footer's left corner. It rests as faint grey
-   * chrome and turns into a link to this component's repo on hover — so a
-   * reader who wants the same code-plus-live-preview pane on their own site
-   * has somewhere to click. (The footer's GitHub button goes to the example's
-   * source, which is a different question.)
+   * The tiny `<Go/>` mark in the footer, ahead of the `example › file`
+   * breadcrumb. It is printed in the same ink as the lettering around it and
+   * lights up on hover as a link to this component's repo — so a reader who
+   * wants the same code-plus-live-preview pane on their own site has somewhere
+   * to click. (The footer's GitHub button goes to the example's source, which
+   * is a different question.)
    *
    * `false` removes it; a string points it elsewhere, e.g. an internal mirror
    * or a page of your own about embedding it.

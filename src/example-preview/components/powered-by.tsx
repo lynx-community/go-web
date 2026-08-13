@@ -19,7 +19,8 @@ interface PoweredByGoProps {
 /**
  * The one place the widget names itself: a `<Go/>` mark sitting just ahead of
  * the footer's `example › file` breadcrumb — the namespace of the thing being
- * named — resting as faint grey chrome and turning into a link on hover.
+ * named — printed in the same ink as the lettering around it and lighting up
+ * in link blue on hover.
  *
  * Not in the corner: that belongs to the file-tree button, and a brand mark
  * that displaces an existing control to take the corner buys attention with

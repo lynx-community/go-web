@@ -177,13 +177,14 @@
     }
   }
 
-  // The "<Go/>" mark's place in the footer: pushed clear of the file-tree
-  // button so the two don't read as one control, and tucked close to the
-  // breadcrumb it prefixes.
+  // The "<Go/>" mark's place in the footer. Its gaps are judged from the
+  // glyphs, not the boxes: the file-tree button and the mark both carry their
+  // own padding, so the button side already sits far enough and only the
+  // breadcrumb side needs anything added.
   .footer-mark {
     display: inline-flex;
     flex-shrink: 0;
-    margin: 0 4px 0 10px;
+    margin-right: 2px;
   }
 
   .footer {
@@ -209,15 +210,6 @@
   flex-direction: column;
   overflow: hidden;
   position: relative;
-
-  // Bring the "<Go/>" mark in the footer up from its resting grey while the
-  // pointer is anywhere inside the widget — the mark owns how it looks
-  // (powered-by.module.scss), the box owns this one step of it. Custom
-  // properties inherit across the CSS-module boundary, so neither file has to
-  // name the other's class.
-  &:hover {
-    --go-mark-opacity: 0.7;
-  }
 
   @media (max-width: 600px) {
     height: 800px;

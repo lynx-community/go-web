@@ -3,21 +3,19 @@
 // the namespace of what follows rather than as another control. (Placement and
 // its spacing live with the footer, in index.module.scss.)
 //
-// It rests as quiet grey chrome — quieter than the breadcrumb beside it, loud
-// enough that the corner reads as *something* rather than as stray padding —
-// and brightens in two steps: a little when the pointer is anywhere inside the
-// widget (`--go-mark-opacity`, set by `.box:hover` in index.module.scss;
-// custom properties inherit straight through the CSS-module boundary), then
-// fully, in link blue, once the pointer is on the mark itself.
+// It is printed into the footer rather than laid on top of it: same ink as the
+// file-tree icon on one side and the breadcrumb on the other, no badge, no
+// button. Hover lights the lettering up from underneath — colour and glow, no
+// border or fill — which is enough to say "this is live" without pretending
+// the mark was a control all along.
 
 .mark {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
   height: 18px;
-  padding: 0 4px;
-  border: 1px solid transparent;
-  border-radius: 5px;
+  padding: 0 3px;
+  border-radius: 4px;
   font-family: var(
     --semi-font-family-mono,
     ui-monospace,
@@ -32,27 +30,25 @@
   white-space: nowrap;
   text-decoration: none;
   color: var(--semi-color-text-2);
-  opacity: var(--go-mark-opacity, 0.42);
   transition:
-    opacity 0.18s ease,
     color 0.18s ease,
-    background-color 0.18s ease,
-    border-color 0.18s ease;
+    text-shadow 0.18s ease;
 }
 
-// The active state, and the only one worth a tooltip: now it is plainly a
-// control, not a watermark.
-.mark:hover {
-  opacity: 1;
-  color: var(--semi-color-link);
-  background: var(--semi-color-fill-0);
-  border-color: var(--semi-color-border);
-}
-
-// A keyboard user never hovers, so focus carries the same promotion.
+.mark:hover,
 .mark:focus-visible {
-  opacity: 1;
   color: var(--semi-color-link);
+  // Flat fallback first; the layered version wins wherever `color-mix` is
+  // understood, where the two radii read as light bleeding out of the glyphs
+  // instead of a uniform halo around them.
+  text-shadow: 0 0 8px currentColor;
+  text-shadow:
+    0 0 6px color-mix(in srgb, var(--semi-color-link) 55%, transparent),
+    0 0 14px color-mix(in srgb, var(--semi-color-link) 28%, transparent);
+}
+
+// A keyboard user never hovers, so focus needs the ring the glow doesn't give.
+.mark:focus-visible {
   outline: 2px solid var(--semi-color-focus-border);
   outline-offset: 1px;
 }
