@@ -39,7 +39,9 @@ export type GoI18nKey =
   | 'go.openin.show-qrcode'
   | 'go.ultra'
   | 'go.ultra.exit'
-  | 'go.refresh';
+  | 'go.refresh'
+  | 'go.poweredby'
+  | 'go.poweredby.cta';
 
 export type GoI18nCatalog = Record<GoI18nKey, string>;
 
@@ -84,6 +86,10 @@ const GO_I18N_EN: GoI18nCatalog = {
   'go.ultra': 'Open frameless',
   'go.ultra.exit': 'Exit frameless',
   'go.refresh': 'Refresh',
+  // The hover-revealed `<Go/>` mark in the footer. The title names the thing;
+  // the CTA answers the only question the mark is there to answer.
+  'go.poweredby': 'Powered by <Go/>',
+  'go.poweredby.cta': 'Want one on your own site? Open the repo',
 };
 
 const GO_I18N_ZH: GoI18nCatalog = {
@@ -109,6 +115,8 @@ const GO_I18N_ZH: GoI18nCatalog = {
   'go.ultra': '打开无边框',
   'go.ultra.exit': '退出无边框',
   'go.refresh': '刷新',
+  'go.poweredby': '由 <Go/> 驱动',
+  'go.poweredby.cta': '想在自己的网站上使用？打开仓库',
 };
 
 const BUILTIN_I18N: Record<'en' | 'zh', GoI18nCatalog> = {
@@ -224,6 +232,18 @@ export interface GoConfig {
    * `platform` is not overridable — it's a property of the framework itself.
    */
   nativeFrameworks?: NativeFrameworkOverrides;
+  /**
+   * The tiny `<Go/>` mark in the footer, ahead of the `example › file`
+   * breadcrumb. It is printed in the same ink as the lettering around it and
+   * lights up on hover as a link to this component's repo — so a reader who
+   * wants the same code-plus-live-preview pane on their own site has somewhere
+   * to click. (The footer's GitHub button goes to the example's source, which
+   * is a different question.)
+   *
+   * `false` removes it; a string points it elsewhere, e.g. an internal mirror
+   * or a page of your own about embedding it.
+   */
+  poweredBy?: boolean | string;
   /** Custom error component for failed example loading */
   ErrorComponent?: React.ComponentType<{
     example: string;

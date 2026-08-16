@@ -177,6 +177,16 @@
     }
   }
 
+  // The "<Go/>" mark's place in the footer. Its gaps are judged from the
+  // glyphs, not the boxes: the file-tree button and the mark both carry their
+  // own padding, so the button side already sits far enough and only the
+  // breadcrumb side needs anything added.
+  .footer-mark {
+    display: inline-flex;
+    flex-shrink: 0;
+    margin-right: 2px;
+  }
+
   .footer {
     height: 32px;
     width: 100%;

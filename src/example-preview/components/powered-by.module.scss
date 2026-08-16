@@ -1,0 +1,77 @@
+// ─── The "<Go/>" mark ────────────────────────────────────────────────────────
+// Sits just ahead of the footer's `example › file` breadcrumb, so it reads as
+// the namespace of what follows rather than as another control. (Placement and
+// its spacing live with the footer, in index.module.scss.)
+//
+// It is printed into the footer rather than laid on top of it: same ink as the
+// file-tree icon on one side and the breadcrumb on the other, no badge, no
+// button. Hover lights the lettering up from underneath — colour and glow, no
+// border or fill — which is enough to say "this is live" without pretending
+// the mark was a control all along.
+
+.mark {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 18px;
+  padding: 0 3px;
+  border-radius: 4px;
+  font-family: var(
+    --semi-font-family-mono,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace
+  );
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--semi-color-text-2);
+  transition:
+    color 0.18s ease,
+    text-shadow 0.18s ease;
+}
+
+.mark:hover,
+.mark:focus-visible {
+  color: var(--semi-color-link);
+  // Flat fallback first; the layered version wins wherever `color-mix` is
+  // understood, where the two radii read as light bleeding out of the glyphs
+  // instead of a uniform halo around them.
+  text-shadow: 0 0 8px currentColor;
+  text-shadow:
+    0 0 6px color-mix(in srgb, var(--semi-color-link) 55%, transparent),
+    0 0 14px color-mix(in srgb, var(--semi-color-link) 28%, transparent);
+}
+
+// A keyboard user never hovers, so focus needs the ring the glow doesn't give.
+.mark:focus-visible {
+  outline: 2px solid var(--semi-color-focus-border);
+  outline-offset: 1px;
+}
+
+// ─── Tooltip ─────────────────────────────────────────────────────────────────
+// Names the component, then says the thing the mark exists to say: you can
+// have this one too.
+
+.tip {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-width: 240px;
+}
+
+.tip-title {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.tip-cta {
+  font-size: 11px;
+  line-height: 1.45;
+  opacity: 0.75;
+}
