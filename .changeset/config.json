@@ -11,6 +11,7 @@
   "linked": [],
   "access": "public",
   "baseBranch": "main",
+  "changedFilePatterns": ["src/**"],
   "updateInternalDependencies": "patch",
   "privatePackages": {
     "tag": false,
