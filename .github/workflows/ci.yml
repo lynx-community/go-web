@@ -18,10 +18,47 @@ jobs:
     permissions:
       contents: read
 
+  preview:
+    name: Package Preview
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup
+        uses: ./.github/actions/ci-setup
+
+      - name: Test Preview Gate
+        run: node --test .github/scripts/preview-package.test.mjs
+
+      - name: Collect Package with Changeset
+        id: changeset
+        env:
+          CHANGESET_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          node .github/scripts/preview-package.mjs \
+            "$CHANGESET_BASE_SHA" "$RUNNER_TEMP/changeset-status.json"
+
+      # Fork PRs use the same read-only token and no base-repo secrets
+      # as validation. The installed pkg.pr.new App posts preview links.
+      - name: Publish to pkg.pr.new
+        if: steps.changeset.outputs.publish == 'true'
+        run: |
+          pnpm exec pkg-pr-new publish --pnpm --no-template \
+            --commentWithSha --packageManager=pnpm ./
+
+  # Include every required job in the aggregate branch protection check.
   done:
     name: Done
     needs:
       - validate
+      - preview
     if: ${{ always() }}
     runs-on: ubuntu-latest
     permissions: {}

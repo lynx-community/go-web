@@ -256,6 +256,9 @@ Transition behavior:
 
 ## Development
 
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for prerequisites, installation,
+Rspress development, checks, and contribution conventions.
+
 ```bash
 pnpm dev
 ```
@@ -268,21 +271,27 @@ The `@lynx-example/*` packages are fetched directly from the npm registry at bui
 
 ```bash
 # Local dev: uses cached examples if available (instant)
-pnpm prepare
+pnpm --dir example prepare
 
 # Force re-fetch latest from npm registry
-pnpm prepare:clean
+pnpm --dir example prepare:clean
 ```
 
 CI always runs `prepare:clean` to ensure that examples are up to date.
 
 ## CI
 
-All three checks must pass on every PR:
+The following checks must pass on every PR:
 
+- **Format Check** — `pnpm format:check` at the repo root
 - **Type Check** — `pnpm typecheck` at the repo root
 - **Build Example App** — standalone Rsbuild example
 - **Build Rspress Example** — rspress integration example
+- **Package Preview** — gate checks and pkg.pr.new publishing when a
+  PR changeset bumps the package
+
+See [PR package previews](./CONTRIBUTING.md#pr-package-previews) for
+installation and GitHub App setup.
 
 ## License
 
