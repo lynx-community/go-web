@@ -1,3 +1,4 @@
+import type React from 'react';
 import { getFileIcon, getFolderIcon } from './icon';
 
 export function pathNormalize(name: string) {
@@ -8,7 +9,7 @@ export interface TreeNode {
   label: string;
   key: string;
   children?: TreeNode[];
-  icon: JSX.Element;
+  icon: React.JSX.Element;
   highlight?: boolean;
 }
 export interface EntryFile {

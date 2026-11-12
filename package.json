@@ -40,6 +40,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky",
+    "test:react": "pnpm --dir tests/react-compat install --frozen-lockfile && node tests/react-compat/check.mjs",
     "typecheck": "tsc --noEmit"
   },
   "lint-staged": {

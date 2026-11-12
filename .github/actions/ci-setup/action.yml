@@ -26,6 +26,7 @@ runs:
           pnpm-lock.yaml
           example/pnpm-lock.yaml
           example-rspress/pnpm-lock.yaml
+          tests/react-compat/pnpm-lock.yaml
 
     - name: Setup Node.js (no cache)
       if: ${{ inputs.package-manager-cache != 'true' }}

@@ -40,18 +40,21 @@ export function Code({
           setTimeout(() => {
             const container = containerRef.current;
             if (container) {
-              const firstHighlightElement = containerRef.current.querySelector(
+              const firstHighlightElement = container.querySelector(
                 `pre.shiki code span.highlighted`,
               );
 
               if (firstHighlightElement) {
-                const container = containerRef.current.parentElement;
-                if (container) {
+                const scrollContainer = container.parentElement;
+                if (scrollContainer) {
                   const offsetTop =
                     firstHighlightElement.getBoundingClientRect().top -
-                    containerRef.current.getBoundingClientRect().top -
+                    container.getBoundingClientRect().top -
                     50;
-                  container.scrollTo({ top: offsetTop, behavior: 'smooth' });
+                  scrollContainer.scrollTo({
+                    top: offsetTop,
+                    behavior: 'smooth',
+                  });
                 }
               }
             }

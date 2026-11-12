@@ -285,6 +285,8 @@ The following checks must pass on every PR:
 
 - **Format Check** — `pnpm format:check` at the repo root
 - **Type Check** — `pnpm typecheck` at the repo root
+- **React 18/19 Compatibility** — `pnpm test:react` checks source types,
+  public exports, and code scrolling on both runtimes
 - **Build Example App** — standalone Rsbuild example
 - **Build Rspress Example** — rspress integration example
 - **Package Preview** — gate checks and pkg.pr.new publishing when a
