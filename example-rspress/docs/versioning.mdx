@@ -1,0 +1,55 @@
+# Example package version
+
+import { Go } from '../src/components/Go';
+
+The footer shows the version of the loaded example package. The preview
+image below uses a site-root path that follows the Rspress base.
+
+## Default version
+
+This container stays wide so the version prefix remains visible.
+
+<div style={{ overflowX: 'auto' }}>
+  <div style={{ minWidth: '640px' }}>
+    <Go
+      example="hello-world"
+      mode="preview"
+      webPreview={false}
+      img="/lynx-examples/hello-world/src/assets/lynx-logo.png"
+    />
+  </div>
+</div>
+
+## Custom footer
+
+The caller replaces the default with a string using the built-in small text.
+
+<Go
+  example="hello-world"
+  mode="preview"
+  webPreview={false}
+  img="/lynx-examples/hello-world/src/assets/lynx-logo.png"
+  rightFooter="Host release v1.2.3"
+/>
+
+## Hidden version
+
+An explicit `null` suppresses the default.
+
+<Go
+  example="hello-world"
+  mode="preview"
+  webPreview={false}
+  img="/lynx-examples/hello-world/src/assets/lynx-logo.png"
+  rightFooter={null}
+/>
+
+## Narrow container
+
+<div style={{ maxWidth: '320px', containerType: 'inline-size' }}>
+  <Go
+    example="hello-world"
+    webPreview={false}
+    img="/lynx-examples/hello-world/src/assets/lynx-logo.png"
+  />
+</div>

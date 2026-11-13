@@ -11,9 +11,10 @@
 import fs from 'fs';
 import path from 'path';
 import { useMemo } from 'react';
-import { useGoConfig } from './config';
+import { translateGoI18n, useGoConfig } from './config';
 import type { ExampleMetadata, ExamplePreviewProps } from './example-preview';
 import { getFileCodeLanguage } from './example-preview/utils/example-data';
+import { getExampleVersionText } from './example-preview/utils/example-version';
 
 export { generateSSGHTML } from './ssg-generate';
 export type { GenerateSSGHTMLOptions } from './ssg-generate';
@@ -39,8 +40,10 @@ export const ExamplePreviewSSG = ({
   highlight,
   entry,
   langAlias,
+  rightFooter,
+  mode,
 }: ExamplePreviewProps) => {
-  const { useLang, ssgExampleRoot } = useGoConfig();
+  const { useLang, ssgExampleRoot, i18n } = useGoConfig();
   const lang = useLang?.() ?? 'en';
 
   const exampleRoot = ssgExampleRoot!;
@@ -137,5 +140,28 @@ export const ExamplePreviewSSG = ({
     highlightMeta,
   ]);
 
-  return <p>{markdownContent}</p>;
+  const footer =
+    rightFooter === undefined
+      ? getExampleVersionText(
+          exampleMetadata?.version,
+          lang,
+          translateGoI18n('go.example.version', lang, i18n),
+        )
+      : rightFooter;
+
+  return (
+    <>
+      <p>{markdownContent}</p>
+      {mode !== 'ultra' &&
+        (typeof footer === 'string' ? (
+          footer ? (
+            <p style={{ color: 'var(--semi-color-text-2)', fontSize: '12px' }}>
+              {footer}
+            </p>
+          ) : null
+        ) : (
+          footer
+        ))}
+    </>
+  );
 };

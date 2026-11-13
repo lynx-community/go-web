@@ -5,12 +5,14 @@ import useSWRMutation from 'swr/mutation';
 import type { PreviewTab, WebLoadingScreen } from '../config';
 import { useGoConfig } from '../config';
 import { ExampleContent } from './components';
+import { ExampleFooter } from './components/example-footer';
 import { WebHostIframe } from './components/web-host-iframe';
 import { UltraLynxView } from './components/ultra-lynx-view';
 import type { SchemaOptionsData } from './hooks/use-switch-schema';
 import { isAssetFileType } from './utils/example-data';
 import type { AutoGestureOptions } from '../auto-gesture';
 import type { WebPreviewMode } from './utils/resolve-web-preview';
+import { resolveSiteUrl } from './utils/site-url';
 
 const DefaultErrorWrap = ({
   example,
@@ -59,9 +61,16 @@ function resolveExampleUrl(
   base: string,
   example: string,
   file: string,
+  withBase?: (path: string) => string,
 ): string {
   const baseUrl = new URL(base, window.location.href);
-  if (file.startsWith('/')) return new URL(file, baseUrl).href;
+  if (file.startsWith('/')) {
+    const siteFile =
+      baseUrl.origin === window.location.origin
+        ? resolveSiteUrl(file, withBase)
+        : file;
+    return new URL(siteFile, baseUrl).href;
+  }
   const dir = baseUrl.pathname.replace(/\/$/, '');
   return new URL(`${dir}/${example}/${file}`, baseUrl).href;
 }
@@ -69,12 +78,18 @@ function resolveExampleUrl(
 export interface ExamplePreviewProps {
   example: string;
   defaultFile?: string;
+  /** Preview image/video URL. Site-root paths use the host's `withBase`. */
   img?: string;
   defaultEntryFile?: string;
   defaultEntryName?: string;
   highlight?: string | Record<string, string>;
   entry?: string | string[];
   schema?: string;
+  /**
+   * Override the default example package version in the footer.
+   * Undefined uses metadata.version; null/false hides the default.
+   * Strings use the built-in small-text style; other nodes render as supplied.
+   */
   rightFooter?: React.ReactNode;
   schemaOptions?: SchemaOptionsData;
   langAlias?: Record<string, string>;
@@ -139,6 +154,8 @@ export interface ExamplePreviewProps {
 
 export interface ExampleMetadata {
   name: string;
+  /** Version of the loaded example's package.json, independent of its host. */
+  version?: string;
   files: string[];
   templateFiles: Array<{
     name: string;
@@ -167,9 +184,9 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     SSGComponent,
     defaultTab: configDefaultTab,
     webLoadingScreen: configWebLoadingScreen,
-    withBase: withBaseFn = (p: string) => p,
+    withBase,
   } = useGoConfig();
-  const EXAMPLE_BASE_URL = withBaseFn(exampleBasePath);
+  const EXAMPLE_BASE_URL = resolveSiteUrl(exampleBasePath, withBase);
 
   if (import.meta.env.SSG_MD && SSGComponent) {
     return <SSGComponent {...props} />;
@@ -276,7 +293,12 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       (file) => file.name === currentEntry,
     );
     if (file) {
-      const url = resolveExampleUrl(EXAMPLE_BASE_URL, example, file.file);
+      const url = resolveExampleUrl(
+        EXAMPLE_BASE_URL,
+        example,
+        file.file,
+        withBase,
+      );
       if (schema) {
         const schemaUrl = schema.replace('{{{url}}}', url);
         return schemaUrl;
@@ -284,7 +306,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       return url;
     }
     return '';
-  }, [exampleData, currentEntry, schema]);
+  }, [exampleData, currentEntry, schema, EXAMPLE_BASE_URL, example, withBase]);
 
   useEffect(() => {
     if (exampleData?.templateFiles && exampleData?.templateFiles.length > 0) {
@@ -315,7 +337,12 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
         const webPreviewFile = tmpEntry.webHostFile || tmpEntry.webFile;
         if (webPreviewFile && webPreview !== false) {
           setDefaultWebPreviewFile(
-            resolveExampleUrl(EXAMPLE_BASE_URL, example, webPreviewFile),
+            resolveExampleUrl(
+              EXAMPLE_BASE_URL,
+              example,
+              webPreviewFile,
+              withBase,
+            ),
           );
           setDefaultWebPreviewHost(Boolean(tmpEntry.webHostFile));
         } else {
@@ -330,7 +357,15 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       }
       setInitState(true);
     }
-  }, [exampleData, defaultEntryFile, defaultEntryName, webPreview]);
+  }, [
+    exampleData,
+    defaultEntryFile,
+    defaultEntryName,
+    webPreview,
+    EXAMPLE_BASE_URL,
+    example,
+    withBase,
+  ]);
 
   if (error) {
     const ErrorComp = ErrorComponent || DefaultErrorWrap;
@@ -390,7 +425,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       currentFileName={currentName}
       fileNames={exampleData?.files || []}
       previewImage={
-        img ||
+        (img ? resolveSiteUrl(img, withBase) : '') ||
         (exampleData?.previewImage
           ? `${EXAMPLE_BASE_URL}/${example}/${exampleData?.previewImage}`
           : '')
@@ -405,7 +440,12 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       defaultWebPreviewFile={defaultWebPreviewFile}
       defaultWebPreviewHost={defaultWebPreviewHost}
       initState={initState}
-      rightFooter={rightFooter}
+      rightFooter={
+        <ExampleFooter
+          version={exampleData?.version}
+          rightFooter={rightFooter}
+        />
+      }
       schemaOptions={schema ? undefined : schemaOptions}
       exampleGitBaseUrl={exampleData?.exampleGitBaseUrl}
       defaultTab={resolvedDefaultTab}

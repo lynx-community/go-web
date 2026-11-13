@@ -78,6 +78,8 @@ for (const major of majors) {
         'src',
         'tests/react-consumer.tsx',
         'tests/react-compat/runtime.tsx',
+        'tests/react-compat/preview.tsx',
+        'tests/ssg-node-consumer.tsx',
       ],
       exclude: [],
     },
@@ -141,44 +143,71 @@ for (const major of majors) {
     `React ${major}: source and all package exports pass type checking.`,
   );
 
-  const bundle = path.join(output, 'runtime.mjs');
-  await build({
-    entryPoints: [path.join(fixture, 'runtime.tsx')],
-    outfile: bundle,
-    bundle: true,
-    platform: 'node',
-    format: 'esm',
-    plugins: [
+  for (const suite of ['runtime', 'preview', 'ssg-node']) {
+    const bundle = path.join(output, `${suite}.mjs`);
+    await build({
+      entryPoints: [
+        suite === 'ssg-node'
+          ? path.join(root, 'tests/ssg-node-consumer.tsx')
+          : path.join(fixture, `${suite}.tsx`),
+      ],
+      outfile: bundle,
+      bundle: true,
+      platform: 'node',
+      format: 'esm',
+      external: ['@lynx-js/web-core/*'],
+      define: { 'import.meta.env.SSG_MD': 'false' },
+      banner: {
+        js: 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);',
+      },
+      plugins: [
+        {
+          name: 'react-runtime',
+          setup(builder) {
+            builder.onResolve(
+              { filter: /^react(?:-dom)?(?:\/.*)?$/ },
+              ({ path: specifier }) => ({
+                path: require.resolve(specifier),
+                external: true,
+              }),
+            );
+          },
+        },
+        {
+          name: 'ssg-node-styles',
+          setup(builder) {
+            if (suite !== 'ssg-node') return;
+            builder.onResolve(
+              { filter: /\.(?:css|scss|sass|less)$/ },
+              ({ path: file }) => ({
+                errors: [
+                  {
+                    text: `The Node SSG entry must not import styles: ${file}`,
+                  },
+                ],
+              }),
+            );
+          },
+        },
+      ],
+      loader: suite === 'ssg-node' ? {} : { '.scss': 'empty' },
+      logLevel: 'warning',
+    });
+    const result = spawnSync(
+      process.execPath,
+      ['--test', path.join(fixture, `${suite}.test.mjs`)],
       {
-        name: 'react-runtime',
-        setup(builder) {
-          builder.onResolve(
-            { filter: /^react(?:-dom)?(?:\/.*)?$/ },
-            ({ path: specifier }) => ({
-              path: require.resolve(specifier),
-              external: true,
-            }),
-          );
+        cwd: root,
+        stdio: 'inherit',
+        timeout: 30_000,
+        env: {
+          ...process.env,
+          GO_WEB_REACT_MAJOR: major,
+          GO_WEB_REACT_BUNDLE: bundle,
         },
       },
-    ],
-    loader: { '.scss': 'empty' },
-    logLevel: 'warning',
-  });
-  const result = spawnSync(
-    process.execPath,
-    ['--test', path.join(fixture, 'runtime.test.mjs')],
-    {
-      cwd: root,
-      stdio: 'inherit',
-      timeout: 30_000,
-      env: {
-        ...process.env,
-        GO_WEB_REACT_MAJOR: major,
-        GO_WEB_REACT_BUNDLE: bundle,
-      },
-    },
-  );
-  assert.ifError(result.error);
-  if (result.status !== 0) process.exitCode = 1;
+    );
+    assert.ifError(result.error);
+    if (result.status !== 0) process.exitCode = 1;
+  }
 }
