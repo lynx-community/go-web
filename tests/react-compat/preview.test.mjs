@@ -306,8 +306,8 @@ test('React SSG and pure Node HTML preserve default, override and hide semantics
     /<a href="\/release">Host release<\/a>/,
   );
   const textSSG = ssg({ rightFooter: '<Host release>' });
-  assert.match(textSSG, /<span[^>]*title="&lt;Host release&gt;"/);
-  assert.match(textSSG, />&lt;Host release&gt;<\/span>/);
+  assert.match(textSSG, /<p[^>]*font-size:12px/);
+  assert.match(textSSG, />&lt;Host release&gt;<\/p>/);
   assert.doesNotMatch(textSSG, /Example version:/);
   assert.match(
     generateSSGHTML({ ...options, rightFooter: '<Host release>' }),

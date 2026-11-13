@@ -147,6 +147,8 @@ base resolution in client and static rendering. These checks do not
 replace testing the full examples or consumer-specific framework
 configuration.
 Generated bundles and resolution reports stay in `dist/react-compat/`.
+The public SSG export is also bundled and exercised in Node without DOM
+globals or a stylesheet loader; style imports fail this check.
 
 ## Pull requests
 
