@@ -8,6 +8,7 @@ import fs from 'fs';
 import path from 'path';
 import type { ExampleMetadata } from './example-preview';
 import { getFileCodeLanguage } from './example-preview/utils/example-data';
+import { getExampleVersionText } from './example-preview/utils/example-version';
 
 const TEXT: Record<string, string> = {
   zh: '下面是一个示例: ',
@@ -25,6 +26,11 @@ export interface GenerateSSGHTMLOptions {
   lang?: string;
   /** File extension → language alias mapping */
   langAlias?: Record<string, string>;
+  /**
+   * Plain-text footer override. Undefined displays the example package
+   * version; null/false hides it. This Node entry does not accept JSX.
+   */
+  rightFooter?: string | null | false;
 }
 
 /**
@@ -39,6 +45,7 @@ export function generateSSGHTML(options: GenerateSSGHTMLOptions): string {
     defaultFile = 'package.json',
     lang = 'en',
     langAlias,
+    rightFooter,
   } = options;
 
   const metadataPath = path.join(exampleRoot, example, 'example-metadata.json');
@@ -98,6 +105,12 @@ export function generateSSGHTML(options: GenerateSSGHTMLOptions): string {
         '</code></pre>',
     );
   }
+
+  const footer =
+    rightFooter === undefined
+      ? getExampleVersionText(metadata?.version, lang)
+      : rightFooter;
+  if (footer) parts.push(`<p>${escapeHtml(footer)}</p>`);
 
   return parts.join('\n');
 }

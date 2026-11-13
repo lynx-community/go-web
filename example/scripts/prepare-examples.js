@@ -76,7 +76,6 @@ const tarballSources = [
     dir: 'lynxtron-cross-platform-notes',
     tarball:
       'https://github.com/lynx-community/lynxtron-examples/releases/download/lynxtron-go-v0.0.8/lynxtron-examples-cross-platform-notes.tgz',
-    version: 'lynxtron-go-v0.0.8',
     exampleGitBaseUrl:
       'https://github.com/lynx-community/lynxtron-examples/tree/main',
     nativeFramework: 'lynxtron',
@@ -312,7 +311,7 @@ async function main() {
 
   for (const source of tarballSources) {
     const destDir = path.join(outputDir, source.dir);
-    console.log(`  ${source.dir}@${source.version}`);
+    console.log(`  ${source.dir}: ${source.tarball}`);
     downloadAndExtract(source.tarball, destDir);
 
     for (const dir of source.prune ?? []) {
@@ -327,11 +326,15 @@ async function main() {
     }
     console.log(`    ↳ Web host published at ${webHostFile}`);
 
+    const pkgJsonPath = path.join(destDir, 'package.json');
+    const pkg = fs.existsSync(pkgJsonPath)
+      ? JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'))
+      : {};
     writeExampleMetadata(
       destDir,
       {
         name: source.dir,
-        version: source.version,
+        version: pkg.version,
         exampleGitBaseUrl: source.exampleGitBaseUrl,
         nativeFramework: source.nativeFramework,
       },

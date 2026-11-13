@@ -197,6 +197,38 @@
     padding: 0 12px;
     border-top: 1px solid var(--semi-color-border);
   }
+
+  .footer-compact .footer-version-label {
+    display: none;
+  }
+}
+
+.footer-text {
+  color: var(--semi-color-text-2);
+  font-size: 12px;
+  display: block;
+  min-width: 0;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.footer-version {
+  display: flex;
+}
+
+.footer-version-label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: pre;
+}
+
+.footer-version-number {
+  flex-shrink: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .box {

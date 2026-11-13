@@ -47,6 +47,14 @@ pnpm --dir example-rspress dev
 Open the address printed by Rspress. This example consumes the root
 package through `file:..`.
 
+To check a deployment base locally:
+
+```sh
+GO_WEB_BASE=/next/ pnpm --dir example-rspress dev
+```
+
+Visit `/next/versioning` to inspect version footers and site-root media.
+
 The root, examples, and React compatibility fixture have separate
 manifests and lockfiles. Install each app you use; this repository is
 not a pnpm workspace.
@@ -134,8 +142,10 @@ invalid URLs and loading modes.
 
 DOM integration checks run the code component on each React runtime.
 They cover highlight scrolling, code changes, and unmounting before a
-delayed scroll. These checks do not replace testing the full examples
-or consumer-specific framework configuration.
+delayed scroll, as well as example versions, footer overrides and URL
+base resolution in client and static rendering. These checks do not
+replace testing the full examples or consumer-specific framework
+configuration.
 Generated bundles and resolution reports stay in `dist/react-compat/`.
 
 ## Pull requests

@@ -37,6 +37,9 @@ importers:
       react-dom:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
+      react-render-to-markdown:
+        specifier: ^18.3.1
+        version: 18.3.2(react@18.3.1)
       swr:
         specifier: ^2.2.5
         version: 2.4.1(react@18.3.1)
@@ -2332,6 +2335,15 @@ packages:
         integrity: sha512-ONSb8gizLE5jFpdHAclZ6EAAKuFX2JydnFXPPPjoUImZlLjGtKzyBS8SJgJq7CpLgsGKh9QCZdugJyEEOVC16Q==,
       }
 
+  react-reconciler@0.29.2:
+    resolution:
+      {
+        integrity: sha512-zZQqIiYgDCTP/f1N/mAR10nJGrPD2ZR+jDSEsKWJHYC7Cm2wodlwbR3upZRdC3cjIjSlTLNVyO7Iu0Yy7t2AYg==,
+      }
+    engines: { node: '>=0.10.0' }
+    peerDependencies:
+      react: ^18.3.1
+
   react-reconciler@0.33.0:
     resolution:
       {
@@ -2347,6 +2359,14 @@ packages:
         integrity: sha512-QgT5//D3jfjJb6Gsjxv0Slpj23ip+HtOpnNgnb2S5zU3CB26G/IDPGoy4RJB42wzFE46DRsstbW6tKHoKbhAxw==,
       }
     engines: { node: '>=0.10.0' }
+
+  react-render-to-markdown@18.3.2:
+    resolution:
+      {
+        integrity: sha512-sBYF4ItGTbP3+EXik2wWV7AwrLbD1OVIfWh53a3ueEzicZgZc64eW4Fw8j19bx0GXLVNOAQzs/isSPPVSIqmlw==,
+      }
+    peerDependencies:
+      react: '>=18.2.0'
 
   react-render-to-markdown@19.0.1:
     resolution:
@@ -4828,12 +4848,23 @@ snapshots:
 
   react-lazy-with-preload@2.2.1: {}
 
+  react-reconciler@0.29.2(react@18.3.1):
+    dependencies:
+      loose-envify: 1.4.0
+      react: 18.3.1
+      scheduler: 0.23.2
+
   react-reconciler@0.33.0(react@19.2.5):
     dependencies:
       react: 19.2.5
       scheduler: 0.27.0
 
   react-refresh@0.18.0: {}
+
+  react-render-to-markdown@18.3.2(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+      react-reconciler: 0.29.2(react@18.3.1)
 
   react-render-to-markdown@19.0.1(react@19.2.5):
     dependencies:

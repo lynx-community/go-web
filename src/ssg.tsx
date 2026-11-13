@@ -14,6 +14,7 @@ import { useMemo } from 'react';
 import { useGoConfig } from './config';
 import type { ExampleMetadata, ExamplePreviewProps } from './example-preview';
 import { getFileCodeLanguage } from './example-preview/utils/example-data';
+import { ExampleFooter } from './example-preview/components/example-footer';
 
 export { generateSSGHTML } from './ssg-generate';
 export type { GenerateSSGHTMLOptions } from './ssg-generate';
@@ -39,6 +40,8 @@ export const ExamplePreviewSSG = ({
   highlight,
   entry,
   langAlias,
+  rightFooter,
+  mode,
 }: ExamplePreviewProps) => {
   const { useLang, ssgExampleRoot } = useGoConfig();
   const lang = useLang?.() ?? 'en';
@@ -137,5 +140,15 @@ export const ExamplePreviewSSG = ({
     highlightMeta,
   ]);
 
-  return <p>{markdownContent}</p>;
+  return (
+    <>
+      <p>{markdownContent}</p>
+      {mode !== 'ultra' && (
+        <ExampleFooter
+          version={exampleMetadata?.version}
+          rightFooter={rightFooter}
+        />
+      )}
+    </>
+  );
 };

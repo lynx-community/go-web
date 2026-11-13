@@ -67,6 +67,43 @@ Its wording lives in the package's own i18n (`go.poweredby`,
 `go.poweredby.cta`) and can be overridden through `config.i18n` like any other
 chrome string.
 
+### Example package version
+
+The footer displays `example-metadata.json`'s optional `version`, which is
+the loaded example's `package.json.version`. It does not describe the Go
+component package, a host application release, or runtime compatibility.
+
+```tsx
+<Go example="hello-world" />
+<Go example="hello-world" rightFooter={null} />
+<Go example="hello-world" rightFooter="Host release v1.2.3" />
+```
+
+An undefined `rightFooter` uses the default; any supplied content replaces
+it, including `null` or `false` to hide it. Missing metadata versions leave
+the default empty. Strings reuse the built-in small-text and ellipsis style;
+other React nodes render as supplied. Narrow Go containers display the
+version without its prefix, and retain the full description in the tooltip.
+Client and React SSG use the same default and override rules. The pure Node
+`generateSSGHTML` function accepts a plain-text `rightFooter` override.
+Customize the version prefix through `config.i18n['go.example.version']`.
+The frameless `ultra` mode has no footer.
+
+### Site base paths
+
+With the Rspress adapter, site-root paths such as `/images/demo.png` and
+`/lynxtron/go` use the configured documentation base. This applies to
+`exampleBasePath`, `img` (images and videos), `explorerUrl`,
+`nativeFrameworks.*.learnMoreUrl`, `nativeFrameworks.*.downloadUrl`, and
+custom `poweredBy` URLs. Pass these paths directly; Go resolves them.
+
+External URLs, protocol-relative URLs, relative paths, and schemes pass
+through unchanged. Example-relative metadata files resolve under
+`exampleBasePath`; site-root metadata entries such as `webHostFile` use
+the site base when the data is on the page's origin. Assets hosted on a
+different origin retain that host's root. `schema` and `deepLinkUrl`
+remain templates around the resolved entry URL.
+
 ### SSG (Static Site Generation)
 
 go-web ships a built-in SSG component and a pure generation function so that pre-rendered pages include a meaningful code preview instead of an empty placeholder.

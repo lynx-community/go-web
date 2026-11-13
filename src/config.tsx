@@ -3,6 +3,10 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ExamplePreviewProps } from './example-preview';
 import type { NativeFrameworkOverrides } from './example-preview/utils/native-frameworks';
 import { useIsClient } from './example-preview/hooks/use-is-client';
+import {
+  EXAMPLE_VERSION_EN,
+  EXAMPLE_VERSION_ZH,
+} from './example-preview/utils/example-version';
 
 export type PreviewTab = 'preview' | 'web' | 'qrcode';
 
@@ -40,6 +44,7 @@ export type GoI18nKey =
   | 'go.ultra'
   | 'go.ultra.exit'
   | 'go.refresh'
+  | 'go.example.version'
   | 'go.poweredby'
   | 'go.poweredby.cta';
 
@@ -86,6 +91,7 @@ const GO_I18N_EN: GoI18nCatalog = {
   'go.ultra': 'Open frameless',
   'go.ultra.exit': 'Exit frameless',
   'go.refresh': 'Refresh',
+  'go.example.version': EXAMPLE_VERSION_EN,
   // The hover-revealed `<Go/>` mark in the footer. The title names the thing;
   // the CTA answers the only question the mark is there to answer.
   'go.poweredby': 'Powered by <Go/>',
@@ -115,6 +121,7 @@ const GO_I18N_ZH: GoI18nCatalog = {
   'go.ultra': '打开无边框',
   'go.ultra.exit': '退出无边框',
   'go.refresh': '刷新',
+  'go.example.version': EXAMPLE_VERSION_ZH,
   'go.poweredby': '由 <Go/> 驱动',
   'go.poweredby.cta': '想在自己的网站上使用？打开仓库',
 };
@@ -230,6 +237,7 @@ export interface GoConfig {
    * ```
    *
    * `platform` is not overridable — it's a property of the framework itself.
+   * Site-root `learnMoreUrl` and `downloadUrl` paths use `withBase`.
    */
   nativeFrameworks?: NativeFrameworkOverrides;
   /**
@@ -241,7 +249,7 @@ export interface GoConfig {
    * is a different question.)
    *
    * `false` removes it; a string points it elsewhere, e.g. an internal mirror
-   * or a page of your own about embedding it.
+   * or a page of your own about embedding it. Site-root paths use `withBase`.
    */
   poweredBy?: boolean | string;
   /** Custom error component for failed example loading */
@@ -264,7 +272,12 @@ export interface GoConfig {
 
   // --- Framework adapter ---
 
-  /** Prepend site base path to URLs. Default: identity */
+  /**
+   * Resolve site-root URLs for example data, `img`, Explorer links,
+   * native-framework links and `poweredBy`. Default: identity.
+   * External URLs, protocol-relative URLs, relative paths and schemes pass
+   * through unchanged. Rspress consumers supply this through its adapter.
+   */
   withBase?: (path: string) => string;
   /** Language detection hook. Default: () => 'en'. Selects builtin en/zh catalogs. */
   useLang?: () => string;
