@@ -1,5 +1,5 @@
 import { Typography } from '@douyinfe/semi-ui';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type {
   FrameworkPlatform,
   NativeFrameworkConfig,
@@ -7,22 +7,7 @@ import type {
 
 import s from './open-in-panel.module.scss';
 
-/**
- * How long to wait after navigating to the deep link before deciding the host
- * app isn't installed. Generous on purpose: the OS may show a "Open Lynxtron
- * Go?" confirmation dialog, and the user has to read and click it before the
- * tab loses focus. Too short and we tell someone who *does* have the app to go
- * download it.
- */
-const PROBE_TIMEOUT_MS = 5000;
-
-/**
- * Upper bound on a *trustworthy* probe. Background tabs get their timers
- * throttled, so a callback firing far past its deadline means the tab was
- * suspended and came back — we learned nothing about the app, and guessing
- * would be worse than staying quiet.
- */
-const PROBE_MAX_ELAPSED_MS = 8000;
+const FALLBACK_DELAY_MS = 500;
 
 interface DeepLinkProps {
   resolvedDeepLinkUrl: string;
@@ -30,7 +15,7 @@ interface DeepLinkProps {
   nativeFramework: string | undefined;
   /**
    * The framework's `downloadUrl`, already resolved for the current language.
-   * Shown only after an unanswered click; absent means no probing.
+   * Shown after the first open attempt so users have an immediate fallback.
    */
   downloadUrl?: string;
   t: (key: string) => string;
@@ -44,74 +29,15 @@ function downloadLabelKey(nativeFramework: string | undefined): string {
   return `go.deeplink.download.${nativeFramework || 'default'}`;
 }
 
-/**
- * Did the deep link launch anything?
- *
- * The web platform gives no way to ask whether a protocol handler is
- * registered — `registerProtocolHandler` only registers, and
- * `getInstalledRelatedApps()` covers PWAs and app-declared associations, not a
- * third-party desktop app. So we infer it: if the app launches, the OS takes
- * focus and the tab goes hidden or blurred. Still visible after the timeout —
- * nothing handled it.
- *
- * Deliberately one-way: we only ever conclude "not installed", never
- * "installed", because a false "not installed" costs a stale hint while a false
- * "installed" would hide the only way out of a dead click.
- */
-function useDeepLinkProbe(): {
-  /** True once a click has gone unanswered — show the download fallback. */
-  unanswered: boolean;
-  probe: () => void;
-} {
-  const [unanswered, setUnanswered] = useState(false);
-  const cleanupRef = useRef<(() => void) | null>(null);
-
-  // A probe outliving its component would setState on an unmounted tree.
-  useEffect(() => () => cleanupRef.current?.(), []);
-
-  const probe = useCallback(() => {
-    cleanupRef.current?.();
-    const start = Date.now();
-    let settled = false;
-
-    const cleanup = () => {
-      settled = true;
-      document.removeEventListener('visibilitychange', onVisibility);
-      window.clearTimeout(timer);
-      cleanupRef.current = null;
-    };
-    // `hidden` fires when another window actually covers the tab — a real
-    // hand-off. `blur` alone is unreliable on Windows: the browser's protocol
-    // confirmation dialog blurs the tab whether or not an app is registered,
-    // so we ignore it and let the timeout decide.
-    const onVisibility = () => {
-      if (document.hidden) cleanup();
-    };
-
-    const timer = window.setTimeout(() => {
-      if (settled) return;
-      const elapsed = Date.now() - start;
-      cleanup();
-      if (elapsed < PROBE_MAX_ELAPSED_MS && !document.hidden) {
-        setUnanswered(true);
-      }
-    }, PROBE_TIMEOUT_MS);
-
-    document.addEventListener('visibilitychange', onVisibility);
-    cleanupRef.current = cleanup;
-  }, []);
-
-  return { unanswered, probe };
-}
-
 // The single deep-link affordance — one bordered link, used everywhere it
 // appears (appended inside the QR tab, or floating for a desktop framework), so
 // the "open in app" action always reads the same.
 //
-// The download URL is not shown up front. A deep link that works needs no
-// download prompt, and showing one next to every button reads as "this probably
-// won't work". Instead the click itself is the test: if nothing answers it, the
-// link is replaced in place by the way out.
+// The download URL is revealed shortly after the first open attempt. The
+// web platform cannot reliably tell whether a desktop protocol handler opened,
+// so a short fixed delay gives the launch action visible precedence without
+// making users wait for an unreliable failure probe. The open action remains
+// available beside it for retries.
 function DeepLinkLink({
   resolvedDeepLinkUrl,
   canOpenDeepLink,
@@ -119,45 +45,63 @@ function DeepLinkLink({
   downloadUrl,
   t,
 }: DeepLinkProps) {
-  const { unanswered, probe } = useDeepLinkProbe();
+  const [attempted, setAttempted] = useState(false);
+  const fallbackTimerRef = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (fallbackTimerRef.current !== null) {
+        window.clearTimeout(fallbackTimerRef.current);
+      }
+    },
+    [],
+  );
   if (!resolvedDeepLinkUrl) return null;
   const disabled = !canOpenDeepLink;
 
-  if (unanswered && downloadUrl) {
-    return (
+  return (
+    <span className={s['open-link-group']}>
       <a
         className={s['open-link']}
-        href={downloadUrl}
-        target="_blank"
-        rel="noreferrer"
-        data-fallback="true"
+        // Drop the href when disabled so it isn't activatable and leaves the tab
+        // order; `aria-disabled` conveys the state to assistive tech.
+        href={disabled ? undefined : resolvedDeepLinkUrl}
+        onClick={(e) => {
+          if (disabled) {
+            e.preventDefault();
+            return;
+          }
+          // Let the browser do the navigation — a manual `location.href` would
+          // break middle-click and modifier-click. Reveal the fallback after a
+          // brief beat; the browser cannot reliably report whether the custom
+          // scheme opened.
+          if (downloadUrl) {
+            if (fallbackTimerRef.current !== null) {
+              window.clearTimeout(fallbackTimerRef.current);
+            }
+            fallbackTimerRef.current = window.setTimeout(() => {
+              setAttempted(true);
+              fallbackTimerRef.current = null;
+            }, FALLBACK_DELAY_MS);
+          }
+        }}
+        aria-disabled={disabled || undefined}
+        tabIndex={disabled ? -1 : undefined}
+        data-disabled={disabled || undefined}
       >
-        {t(downloadLabelKey(nativeFramework))} &#x2197;
+        {t(deepLinkLabelKey(nativeFramework))} &#x2197;
       </a>
-    );
-  }
-
-  return (
-    <a
-      className={s['open-link']}
-      // Drop the href when disabled so it isn't activatable and leaves the tab
-      // order; `aria-disabled` conveys the state to assistive tech.
-      href={disabled ? undefined : resolvedDeepLinkUrl}
-      onClick={(e) => {
-        if (disabled) {
-          e.preventDefault();
-          return;
-        }
-        // Let the browser do the navigation — a manual `location.href` would
-        // break middle-click and modifier-click. We only start the timer.
-        if (downloadUrl) probe();
-      }}
-      aria-disabled={disabled || undefined}
-      tabIndex={disabled ? -1 : undefined}
-      data-disabled={disabled || undefined}
-    >
-      {t(deepLinkLabelKey(nativeFramework))} &#x2197;
-    </a>
+      {attempted && downloadUrl ? (
+        <a
+          className={s['open-link']}
+          href={downloadUrl}
+          target="_blank"
+          rel="noreferrer"
+          data-fallback="true"
+        >
+          {t(downloadLabelKey(nativeFramework))} &#x2197;
+        </a>
+      ) : null}
+    </span>
   );
 }
 
