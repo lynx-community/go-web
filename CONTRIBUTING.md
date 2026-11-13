@@ -47,8 +47,9 @@ pnpm --dir example-rspress dev
 Open the address printed by Rspress. This example consumes the root
 package through `file:..`.
 
-The root and two example apps have separate manifests and lockfiles.
-Install each app you use; this repository is not a pnpm workspace.
+The root, examples, and React compatibility fixture have separate
+manifests and lockfiles. Install each app you use; this repository is
+not a pnpm workspace.
 When changing dependencies, update the corresponding lockfile with
 `pnpm install` in that package directory.
 
@@ -100,8 +101,9 @@ pnpm --dir example-rspress prepare:clean
 pnpm --dir example-rspress build
 ```
 
-PR CI requires formatting, root type checking, and both example builds.
-There is currently no root test or package build script.
+PR CI requires formatting, root type checking, React 18 and 19
+compatibility checks, and both example builds.
+There is no package build script.
 Root type checking excludes `src/adapters/rspress.tsx`, which resolves
 Rspress and `@theme` imports in a consumer site.
 For adapter changes, check its types in that context and build the site.
@@ -109,6 +111,32 @@ For adapter changes, check its types in that context and build the site.
 The development dependencies currently use React 18. For compatibility
 changes, verify the affected source and interactions against both React
 18 and 19 with matching runtime and type packages.
+
+Run the same React compatibility checks locally and in CI:
+
+```sh
+pnpm test:react
+```
+
+To check one major, run `pnpm test:react 18` or `pnpm test:react 19`.
+The command installs the test fixture with its frozen lockfile.
+React 18 uses root dependencies; React 19 uses the isolated fixture in
+`tests/react-compat/`. Root development dependencies stay on React 18.
+
+Each check covers all package source and all five public exports,
+including the Rspress adapter against real Rspress theme declarations.
+It retains the root's strict settings and `skipLibCheck: true`;
+third-party declaration bodies are not fully checked.
+The check verifies the actual React and ReactDOM declaration paths,
+including type references, and rejects mixed type majors.
+Consumer cases cover scoped and global `lynx-view` props and reject
+invalid URLs and loading modes.
+
+DOM integration checks run the code component on each React runtime.
+They cover highlight scrolling, code changes, and unmounting before a
+delayed scroll. These checks do not replace testing the full examples
+or consumer-specific framework configuration.
+Generated bundles and resolution reports stay in `dist/react-compat/`.
 
 ## Pull requests
 

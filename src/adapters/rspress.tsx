@@ -17,7 +17,7 @@
  */
 import React from 'react';
 import { useLang, useDark, withBase, NoSSR } from '@rspress/core/runtime';
-import { CodeBlockRuntime } from '@theme';
+import { CodeBlockRuntime, type CodeBlockRuntimeProps } from '@theme';
 import { transformerAddLineNumbers } from '@rspress/core/shiki-transformers';
 import type { GoConfig } from '../config';
 
@@ -30,16 +30,14 @@ const RspressCodeBlock = ({
   lang,
   onRendered,
   shikiOptions,
-}: {
-  code: string;
-  lang: string;
-  onRendered?: () => void;
-  shikiOptions?: Record<string, unknown>;
-}) => {
-  const mergedOptions = {
+}: Pick<
+  CodeBlockRuntimeProps,
+  'code' | 'lang' | 'onRendered' | 'shikiOptions'
+>) => {
+  const mergedOptions: CodeBlockRuntimeProps['shikiOptions'] = {
     ...shikiOptions,
     transformers: [
-      ...((shikiOptions?.transformers as unknown[]) || []),
+      ...(shikiOptions?.transformers ?? []),
       transformerAddLineNumbers(),
     ],
   };

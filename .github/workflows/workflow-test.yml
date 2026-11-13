@@ -43,11 +43,36 @@ jobs:
       - name: Type Check
         run: pnpm typecheck
 
+  react-compatibility:
+    name: React ${{ matrix.react }} Compatibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        react: [18, 19]
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup
+        uses: ./.github/actions/ci-setup
+
+      - name: Test React Compatibility
+        env:
+          REACT_MAJOR: ${{ matrix.react }}
+        run: pnpm test:react "$REACT_MAJOR"
+
   build-example:
     name: Build Example App
     needs:
       - format-check
       - typecheck
+      - react-compatibility
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

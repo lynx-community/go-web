@@ -31,6 +31,14 @@ declare global {
   }
 }
 
+declare module 'react' {
+  namespace JSX {
+    interface IntrinsicElements {
+      'lynx-view': React.DetailedHTMLProps<LynxViewAttributes, HTMLElement>;
+    }
+  }
+}
+
 type LynxViewAttributes = React.HTMLAttributes<HTMLElement> & {
   'lynx-group-id'?: number;
   'transform-vh'?: boolean;
