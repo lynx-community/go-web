@@ -10,6 +10,9 @@ export default defineConfig({
   },
   builderConfig: {
     plugins: [pluginSass()],
+    source: {
+      preEntry: ['@douyinfe/semi-ui/react19-adapter'],
+    },
     tools: {
       rspack: {
         resolve: {
