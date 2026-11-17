@@ -1,0 +1,644 @@
+import assert from 'node:assert/strict';
+import { after, afterEach, beforeEach, test } from 'node:test';
+import { pathToFileURL } from 'node:url';
+import { JSDOM } from 'jsdom';
+
+const dom = new JSDOM('<!doctype html><html><body></body></html>', {
+  url: 'https://go.example.test/next/',
+  pretendToBeVisual: true,
+});
+for (const key of [
+  'window',
+  'document',
+  'navigator',
+  'HTMLElement',
+  'Element',
+  'Node',
+  'Event',
+  'MouseEvent',
+  'getComputedStyle',
+]) {
+  Object.defineProperty(globalThis, key, {
+    configurable: true,
+    value: dom.window[key],
+  });
+}
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+globalThis.ResizeObserver = class {
+  observe() {}
+  disconnect() {}
+  unobserve() {}
+};
+window.matchMedia = () => ({
+  matches: false,
+  addListener() {},
+  removeListener() {},
+  addEventListener() {},
+  removeEventListener() {},
+});
+HTMLElement.prototype.scrollTo = () => {};
+// JSDOM does not implement the Range layout API used by Semi Typography.
+window.Range.prototype.getBoundingClientRect = () => new window.DOMRect();
+globalThis.requestAnimationFrame = window.requestAnimationFrame.bind(window);
+globalThis.cancelAnimationFrame = window.cancelAnimationFrame.bind(window);
+
+const {
+  act,
+  createElement,
+  createRoot,
+  Profiler,
+  version,
+  renderToStaticMarkup,
+  QRCodeSVG,
+  Select,
+  Toast,
+  GoConfigProvider,
+  ExampleContent,
+  ExamplePreview,
+  SWRConfig,
+  rspressAdapter,
+} = await import(pathToFileURL(process.env.GO_WEB_REACT_BUNDLE).href);
+assert.equal(version.split('.')[0], process.env.GO_WEB_REACT_MAJOR);
+// Controlled Semi selects notify onChange after closing their popup.
+// Disable motion in the fixture so DOM assertions do not depend on animation.
+Select.defaultProps = { ...Select.defaultProps, motion: false };
+
+const entryUrl = 'https://assets.example.test/demo/main.lynx.bundle';
+const options = {
+  // Map keys need not duplicate the caller's type field.
+  a: {
+    type: 'host-a',
+    name: 'Host A',
+    schema: 'host-a://open?url={{{url}}}',
+    prefix: 'host-a',
+  },
+  b: {
+    type: 'host-b',
+    name: 'Host B',
+    schema: 'host-b://open?url={{{url}}}',
+    prefix: 'host-b',
+  },
+};
+const metadata = {
+  name: 'demo',
+  files: ['package.json'],
+  templateFiles: [
+    { name: 'first', file: 'first.lynx.bundle' },
+    { name: 'second', file: 'second.lynx.bundle' },
+  ],
+};
+let host;
+let root;
+let errors;
+let cache;
+let onCommit;
+const originalError = console.error;
+const originalFetch = globalThis.fetch;
+const nextTask = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+beforeEach(() => {
+  host = document.createElement('div');
+  document.body.append(host);
+  root = createRoot(host);
+  errors = [];
+  cache = new Map();
+  onCommit = undefined;
+  console.error = (...args) => errors.push(args.join(' '));
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => metadata,
+    text: async () => '{}',
+  });
+});
+
+afterEach(async () => {
+  await act(async () => {
+    Toast.destroyAll();
+    root.unmount();
+    await nextTask();
+  });
+  host.remove();
+  console.error = originalError;
+  globalThis.fetch = originalFetch;
+  // Semi's resize detector reports its own findDOMNode deprecation on
+  // React 18. Keep all other diagnostics, especially render-phase updates.
+  assert.deepEqual(
+    errors.filter((message) => !message.includes('findDOMNode')),
+    [],
+    'React must not report render-phase updates',
+  );
+});
+after(() => dom.window.close());
+
+function observeCommits(element) {
+  return createElement(
+    Profiler,
+    { id: 'preview', onRender: () => onCommit?.() },
+    element,
+  );
+}
+
+function renderContent(config = {}, overrides = {}) {
+  act(() => {
+    root.render(
+      observeCommits(
+        createElement(
+          'div',
+          null,
+          createElement(
+            GoConfigProvider,
+            { config: { exampleBasePath: '/examples', ...config } },
+            createElement(ExampleContent, {
+              fileNames: [],
+              previewImage: '',
+              currentFileName: '',
+              currentFile: '',
+              updateCurrentName() {},
+              isAssetFile: false,
+              name: 'demo',
+              currentEntryFileUrl: entryUrl,
+              currentEntry: 'first',
+              entryFiles: metadata.templateFiles,
+              setCurrentEntry() {},
+              initState: true,
+              mode: 'preview',
+              defaultTab: 'qrcode',
+              ...overrides,
+            }),
+          ),
+        ),
+      ),
+    );
+  });
+}
+
+async function renderExample(overrides = {}) {
+  await act(async () => {
+    root.render(
+      observeCommits(
+        createElement(
+          'div',
+          null,
+          createElement(
+            SWRConfig,
+            { value: { provider: () => cache } },
+            createElement(
+              GoConfigProvider,
+              { config: { exampleBasePath: '/examples' } },
+              createElement(ExamplePreview, {
+                example: 'demo',
+                mode: 'preview',
+                defaultTab: 'qrcode',
+                schemaOptions: options,
+                ...overrides,
+              }),
+            ),
+          ),
+        ),
+      ),
+    );
+    await nextTask();
+  });
+}
+
+function qrPath(value) {
+  const markup = renderToStaticMarkup(createElement(QRCodeSVG, { value }));
+  const container = document.createElement('div');
+  container.innerHTML = markup;
+  return container.querySelector('svg path:last-child').getAttribute('d');
+}
+function assertQR(value) {
+  assert.equal(
+    host.querySelector('svg[width="128"] path:last-child').getAttribute('d'),
+    qrPath(value),
+  );
+}
+function schemaUrl(schema, url) {
+  const resolved = new URL(schema);
+  resolved.searchParams.set('url', url);
+  return resolved.toString();
+}
+function editSchema(value) {
+  const input = host.querySelector('.semi-input');
+  assert(input, 'Schema input is visible');
+  const setter = Object.getOwnPropertyDescriptor(
+    window.HTMLInputElement.prototype,
+    'value',
+  ).set;
+  act(() => {
+    setter.call(input, value);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+}
+async function choose(selectIndex, label) {
+  const select = host.querySelectorAll('.semi-select')[selectIndex];
+  assert(select, `Select ${selectIndex} is visible`);
+  await act(async () => {
+    select.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await nextTask();
+  });
+  const option = [...document.querySelectorAll('.semi-select-option')].find(
+    (item) => item.textContent.includes(label),
+  );
+  assert(option, `Option ${label} is visible: ${document.body.textContent}`);
+  await act(async () => {
+    option.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await nextTask();
+  });
+}
+
+test('plain scan links preserve English and Chinese spacing and app names', () => {
+  renderContent({
+    explorerText: 'Example Host',
+    explorerUrl: { en: '/download', cn: '/zh/download' },
+  });
+  let link = host.querySelector('a[href="/download"]');
+  assert(link);
+  assert.equal(
+    link.parentElement.textContent,
+    'Scan the QR code with Example Host to preview on device.',
+  );
+  assert.equal(link.target, '_blank');
+  assert.equal(link.rel, 'noopener noreferrer');
+  renderContent({
+    explorerText: '应用',
+    explorerUrl: { cn: '/zh/download' },
+    useLang: () => 'zh',
+  });
+  link = host.querySelector('a[href="/zh/download"]');
+  assert.equal(link.parentElement.textContent, '请下载 应用 扫描二维码预览');
+});
+
+test('Rspress adapter renders the actual theme Link with one version base', () => {
+  for (const href of [
+    '/download?platform=ios#app',
+    '/next/download?platform=ios#app',
+  ]) {
+    renderContent({
+      ...rspressAdapter,
+      explorerText: 'Example Host',
+      explorerUrl: { en: href },
+    });
+    const link = host.querySelector('a.rp-link');
+    assert(link, 'Theme Link supplies its class');
+    assert.equal(link.getAttribute('href'), '/next/download?platform=ios#app');
+    assert.equal(link.textContent, 'Example Host');
+    assert.equal(link.target, '_blank');
+    assert.equal(link.rel, 'noopener noreferrer');
+  }
+});
+
+test('copying a QR link mounts a Semi toast on the selected React runtime', async () => {
+  renderContent();
+  const button = [...host.querySelectorAll('button')].find(
+    (item) => item.textContent === 'Copy link',
+  );
+  assert(button, 'QR copy action is visible');
+  const execCommand = document.execCommand;
+  document.execCommand = (command) => command === 'copy';
+  try {
+    await act(async () => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await nextTask();
+    });
+    assert.equal(
+      document.querySelector('.semi-toast-content')?.textContent,
+      'Copied!',
+    );
+  } finally {
+    document.execCommand = execCommand;
+  }
+});
+
+test('host edits survive A → B → A and update the rendered QR independently', async () => {
+  const original = structuredClone(options);
+  renderContent({}, { schemaOptions: options });
+  assertQR(schemaUrl(options.a.schema, entryUrl));
+  const editedA = 'edited-a://open?url={{{url}}}&schema_probe=1';
+  const editedB = 'edited-b://open?url={{{url}}}&schema_probe=2';
+  editSchema(editedA);
+  assertQR(schemaUrl(editedA, entryUrl));
+  await choose(0, 'Host B');
+  assert.equal(host.querySelector('.semi-input').value, options.b.schema);
+  editSchema(editedB);
+  assertQR(schemaUrl(editedB, entryUrl));
+  await choose(0, 'Host A');
+  assert.equal(host.querySelector('.semi-input').value, editedA);
+  assertQR(schemaUrl(editedA, entryUrl));
+  await choose(0, 'Host B');
+  assert.equal(host.querySelector('.semi-input').value, editedB);
+  assertQR(schemaUrl(editedB, entryUrl));
+  assert.deepEqual(options, original, 'Caller configuration is not mutated');
+});
+
+test('entry switching keeps the selected host and edited schema in ExamplePreview', async () => {
+  await renderExample();
+  await choose(0, 'Host B');
+  const edited = 'edited-b://open?url={{{url}}}&schema_probe=1';
+  editSchema(edited);
+  const firstUrl = 'https://go.example.test/examples/demo/first.lynx.bundle';
+  assertQR(schemaUrl(edited, firstUrl));
+  await choose(1, 'second');
+  const secondUrl = 'https://go.example.test/examples/demo/second.lynx.bundle';
+  assert.equal(host.querySelector('.semi-input').value, edited);
+  assert(
+    host.querySelectorAll('.semi-select')[0].textContent.includes('Host B'),
+  );
+  assertQR(schemaUrl(edited, secondUrl));
+  // A new prop object does not reset this instance's edits.
+  await renderExample({ schemaOptions: structuredClone(options) });
+  assert.equal(host.querySelector('.semi-input').value, edited);
+  assertQR(schemaUrl(edited, secondUrl));
+});
+
+test('schema options reconcile replacements, new defaults and preserved edits', async () => {
+  renderContent({}, { schemaOptions: options });
+  const edited = 'edited-a://open?url={{{url}}}';
+  editSchema(edited);
+  const updated = {
+    a: {
+      ...options.a,
+      name: 'Updated A',
+      schema: 'new-a://open?url={{{url}}}',
+    },
+    b: {
+      ...options.b,
+      name: 'Updated B',
+      schema: 'new-b://open?url={{{url}}}',
+    },
+    c: { ...options.b, name: 'Host C', schema: 'host-c://open?url={{{url}}}' },
+  };
+  renderContent({}, { schemaOptions: updated });
+  assert(host.querySelector('.semi-select').textContent.includes('Updated A'));
+  assert.equal(host.querySelector('.semi-input').value, edited);
+  assertQR(schemaUrl(edited, entryUrl));
+  await choose(0, 'Updated B');
+  assert.equal(host.querySelector('.semi-input').value, updated.b.schema);
+  assertQR(schemaUrl(updated.b.schema, entryUrl));
+  await choose(0, 'Host C');
+  assert.equal(host.querySelector('.semi-input').value, updated.c.schema);
+  assertQR(schemaUrl(updated.c.schema, entryUrl));
+  renderContent({}, { schemaOptions: { b: updated.b } });
+  assert(host.querySelector('.semi-select').textContent.includes('Updated B'));
+  assert.equal(host.querySelector('.semi-input').value, updated.b.schema);
+  assertQR(schemaUrl(updated.b.schema, entryUrl));
+  // Removed hosts lose their edits, even if the same key is added again.
+  renderContent({}, { schemaOptions: updated });
+  await choose(0, 'Updated A');
+  assert.equal(host.querySelector('.semi-input').value, updated.a.schema);
+  assertQR(schemaUrl(updated.a.schema, entryUrl));
+});
+
+test('empty or removed schema options recover when hosts are added', async () => {
+  for (const empty of [{}, undefined]) {
+    renderContent({}, { schemaOptions: options });
+    await choose(0, 'Host A');
+    editSchema('edited-a://open?url={{{url}}}');
+    renderContent({}, { schemaOptions: empty });
+    assertQR(entryUrl);
+    if (empty) assert.equal(host.querySelector('.semi-input').value, '');
+    else assert.equal(host.querySelector('.semi-input'), null);
+    renderContent({}, { schemaOptions: { b: options.b } });
+    assert(host.querySelector('.semi-select').textContent.includes('Host B'));
+    assert.equal(host.querySelector('.semi-input').value, options.b.schema);
+    assertQR(schemaUrl(options.b.schema, entryUrl));
+  }
+});
+
+test('temporary empty options preserve the selected host and its edits', async () => {
+  renderContent({}, { schemaOptions: options });
+  const editedA = 'edited-a://open?url={{{url}}}';
+  const editedB = 'edited-b://open?url={{{url}}}';
+  editSchema(editedA);
+  await choose(0, 'Host B');
+  editSchema(editedB);
+  for (const empty of [{}, undefined]) {
+    renderContent({}, { schemaOptions: empty });
+    assertQR(entryUrl);
+    renderContent({}, { schemaOptions: structuredClone(options) });
+    assert(host.querySelector('.semi-select').textContent.includes('Host B'));
+    assert.equal(host.querySelector('.semi-input').value, editedB);
+    assertQR(schemaUrl(editedB, entryUrl));
+  }
+  await choose(0, 'Host A');
+  assert.equal(host.querySelector('.semi-input').value, editedA);
+  assertQR(schemaUrl(editedA, entryUrl));
+});
+
+test('incomplete schema drafts keep QR and copy valid across hosts and entries', async () => {
+  await renderExample();
+  const edited = 'edited-a://open?url={{{url}}}&schema_probe=1';
+  editSchema(edited);
+  let previewUrl = schemaUrl(
+    edited,
+    'https://go.example.test/examples/demo/first.lynx.bundle',
+  );
+  const originalExecCommand = document.execCommand;
+  const copied = [];
+  document.execCommand = () => {
+    copied.push(window.getSelection().toString());
+    return true;
+  };
+  try {
+    for (const draft of ['h', 'ht', 'https://', '']) {
+      let commitCount = 0;
+      onCommit = () => {
+        commitCount++;
+        assertQR(previewUrl);
+      };
+      editSchema(draft);
+      assert(commitCount > 0, 'The draft commits without changing the QR');
+      onCommit = undefined;
+      assert.equal(host.querySelector('.semi-input').value, draft);
+      assert.equal(
+        host.querySelector('.semi-input').getAttribute('aria-invalid'),
+        'true',
+      );
+      const button = [...host.querySelectorAll('button')].find(
+        (item) => item.textContent === 'Copy link',
+      );
+      await act(async () => {
+        button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await nextTask();
+      });
+      assert.equal(copied.at(-1), previewUrl);
+    }
+    await choose(0, 'Host B');
+    assertQR(
+      schemaUrl(
+        options.b.schema,
+        'https://go.example.test/examples/demo/first.lynx.bundle',
+      ),
+    );
+    await choose(0, 'Host A');
+    assert.equal(host.querySelector('.semi-input').value, '');
+    assertQR(previewUrl);
+    await choose(1, 'second');
+    previewUrl = schemaUrl(
+      edited,
+      'https://go.example.test/examples/demo/second.lynx.bundle',
+    );
+    assert.equal(host.querySelector('.semi-input').value, '');
+    assertQR(previewUrl);
+    const completed = 'https://host.example.test/open?url={{{url}}}';
+    previewUrl = schemaUrl(
+      completed,
+      'https://go.example.test/examples/demo/second.lynx.bundle',
+    );
+    onCommit = () => assertQR(previewUrl);
+    editSchema(completed);
+    assert.equal(
+      host.querySelector('.semi-input').getAttribute('aria-invalid'),
+      'false',
+    );
+    assertQR(previewUrl);
+  } finally {
+    onCommit = undefined;
+    document.execCommand = originalExecCommand;
+  }
+});
+
+test('QR and copied links use the current schema and entry on the first commit', async () => {
+  const originalExecCommand = document.execCommand;
+  let commits;
+  let copied;
+  document.execCommand = (command) => {
+    assert.equal(command, 'copy');
+    copied.push(window.getSelection().toString());
+    return true;
+  };
+  const observe = (isCurrentSelection = () => true) => {
+    commits = [];
+    copied = [];
+    let selectionCommitted = false;
+    onCommit = () => {
+      const path = host.querySelector('svg[width="128"] path:last-child');
+      if (!path) return;
+      if (!selectionCommitted) {
+        if (!isCurrentSelection()) return;
+        selectionCommitted = true;
+      }
+      const firstCommit = commits.length === 0;
+      commits.push({
+        qr: path.getAttribute('d'),
+        host: host.querySelector('.semi-select')?.textContent,
+        schema: host.querySelector('.semi-input')?.value,
+      });
+      if (firstCommit) {
+        const button = [...host.querySelectorAll('button')].find(
+          (item) => item.textContent === 'Copy link',
+        );
+        button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      }
+    };
+  };
+  const assertCommitted = (url, schema, appName) => {
+    assert(commits.length > 0, 'At least one QR render was committed');
+    const expectedPath = qrPath(url);
+    for (const commit of commits) {
+      if (appName !== undefined) {
+        assert(
+          commit.host?.includes(appName),
+          'Every committed host matches the current selection',
+        );
+      }
+      assert.equal(
+        commit.schema,
+        schema,
+        'Every committed schema uses the current selection',
+      );
+      assert.equal(
+        commit.qr,
+        expectedPath,
+        'Every committed QR uses the current selection',
+      );
+    }
+    assert.deepEqual(copied, [url], 'Copy uses the first committed URL');
+    onCommit = undefined;
+  };
+  try {
+    observe();
+    await renderExample();
+    const firstUrl = 'https://go.example.test/examples/demo/first.lynx.bundle';
+    assertCommitted(schemaUrl(options.a.schema, firstUrl), options.a.schema);
+    const edited = 'edited-a://open?url={{{url}}}';
+    observe();
+    editSchema(edited);
+    assertCommitted(schemaUrl(edited, firstUrl), edited);
+    // Semi closes the popup before notifying controlled onChange. Observe
+    // the first commit displaying the new host, before passive effects run.
+    // A stale schema must be recorded so the assertions reject it.
+    observe(() =>
+      host.querySelector('.semi-select').textContent.includes(options.b.name),
+    );
+    await choose(0, 'Host B');
+    assertCommitted(
+      schemaUrl(options.b.schema, firstUrl),
+      options.b.schema,
+      options.b.name,
+    );
+    observe(() =>
+      host.querySelectorAll('.semi-select')[1].textContent.includes('second'),
+    );
+    await choose(1, 'second');
+    const secondUrl =
+      'https://go.example.test/examples/demo/second.lynx.bundle';
+    assertCommitted(
+      schemaUrl(options.b.schema, secondUrl),
+      options.b.schema,
+      options.b.name,
+    );
+    observe();
+    await renderExample({ schemaOptions: { a: options.a } });
+    assertCommitted(schemaUrl(edited, secondUrl), edited);
+  } finally {
+    onCommit = undefined;
+    document.execCommand = originalExecCommand;
+  }
+});
+
+test('explicit schema takes priority and hides schemaOptions even after an edit', async () => {
+  await renderExample();
+  editSchema('edited-a://open?url={{{url}}}&schema_probe=1');
+  const schema = 'explicit://open?url={{{url}}}';
+  await renderExample({ schema });
+  assert.equal(Boolean(host.querySelector('.semi-input')), false);
+  assertQR(
+    schema.replace(
+      '{{{url}}}',
+      'https://go.example.test/examples/demo/first.lynx.bundle',
+    ),
+  );
+  await choose(0, 'second');
+  assertQR(
+    schema.replace(
+      '{{{url}}}',
+      'https://go.example.test/examples/demo/second.lynx.bundle',
+    ),
+  );
+});
+
+test('mobile frameworks retain their own QR and hide schema controls', () => {
+  renderContent(
+    {},
+    {
+      schemaOptions: options,
+      nativeFramework: 'sparkling',
+      deepLinkUrl: 'sparkling://open?url={{{urlEncoded}}}',
+    },
+  );
+  assert.equal(Boolean(host.querySelector('.semi-input')), false);
+  assert.equal(Boolean(host.querySelector('a[href^="/guide/"]')), false);
+  assertQR(`sparkling://open?url=${encodeURIComponent(entryUrl)}`);
+});
+
+test('desktop frameworks hide QR and schema controls', () => {
+  renderContent({}, { schemaOptions: options, nativeFramework: 'lynxtron' });
+  assert.equal(Boolean(host.querySelector('.semi-input')), false);
+  assert.equal(Boolean(host.querySelector('svg[width="128"]')), false);
+});
+
+test('empty schema options fall back to the entry URL', () => {
+  renderContent({}, { schemaOptions: {} });
+  assertQR(entryUrl);
+});

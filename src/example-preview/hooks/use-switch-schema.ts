@@ -1,74 +1,134 @@
 import { useMemo, useState } from 'react';
-import { getCloneData, getUrlFromMustacheSchema } from '../utils/tool';
+import { getUrlFromMustacheSchema } from '../utils/tool';
 
 export interface SchemaOptionType {
-  type: string;
+  /** Display label in the host selector. */
   name: string;
+  /**
+   * Default URL template for opening an entry in the host app.
+   * Supports `{{{url}}}` for the current entry file URL.
+   */
   schema: string;
-  prefix: string;
+  /**
+   * @deprecated The containing `SchemaOptionsData` property name identifies
+   * the host. This field is ignored.
+   */
+  type?: string;
+  /** @deprecated Retained for compatibility; URLs use the schema protocol. */
+  prefix?: string;
 }
+/**
+ * Maps caller-defined host IDs to their schema options.
+ * Each object property name is a host ID: in `{ hostA: option }`, it is `hostA`.
+ * Keep IDs stable across updates to preserve selection and saved edits.
+ * `option.name` is the display label; the legacy `option.type` is ignored.
+ * The first property in `Object.keys` order is selected by default.
+ */
 export interface SchemaOptionsData {
   [key: string]: SchemaOptionType;
 }
 
+export type SwitchSchemaResult = ReturnType<typeof useSwitchSchema>;
+
+interface SchemaState {
+  currentAppType: string | undefined;
+  editedSchemas: Record<string, { schema: string; previewSchema: string }>;
+}
+
+const EMPTY_OPTIONS: SchemaOptionsData = {};
+
 export const useSwitchSchema = ({
   currentEntryFileUrl,
-  optionsData,
-  onSwitchSchema,
+  optionsData = EMPTY_OPTIONS,
 }: {
   currentEntryFileUrl: string;
-  optionsData: SchemaOptionsData;
-  onSwitchSchema: (schema: string) => void;
+  optionsData?: SchemaOptionsData;
 }) => {
-  const [currentApp, setCurrentApp] = useState<SchemaOptionType>(
-    Object.values(optionsData)[0],
+  const [state, setState] = useState<SchemaState>(() => ({
+    currentAppType: Object.keys(optionsData)[0],
+    editedSchemas: {},
+  }));
+  const appKeys = Object.keys(optionsData);
+  const currentAppType =
+    state.currentAppType !== undefined && appKeys.includes(state.currentAppType)
+      ? state.currentAppType
+      : appKeys[0];
+  const validEdits = Object.entries(state.editedSchemas).filter(([key]) =>
+    appKeys.includes(key),
   );
-  const [allAppData, setAllAppData] = useState<SchemaOptionType>(
-    getCloneData(optionsData),
+  // Empty options can be a loading state. Reconcile once hosts are available;
+  // only hosts removed from a nonempty configuration lose their edits.
+  if (
+    appKeys.length > 0 &&
+    (currentAppType !== state.currentAppType ||
+      validEdits.length !== Object.keys(state.editedSchemas).length)
+  ) {
+    setState({
+      currentAppType,
+      editedSchemas: Object.fromEntries(validEdits),
+    });
+  }
+  const appOptions = useMemo(
+    () =>
+      Object.entries(optionsData).map(([key, option]) => ({
+        ...option,
+        schema: state.editedSchemas[key]?.schema ?? option.schema,
+        key,
+      })),
+    [optionsData, state.editedSchemas],
   );
+  const currentApp = appOptions.find((option) => option.key === currentAppType);
+  const currentEdit =
+    currentAppType === undefined
+      ? undefined
+      : state.editedSchemas[currentAppType];
+  const previewSchema = currentEdit?.previewSchema ?? currentApp?.schema ?? '';
+  const isSchemaValid =
+    currentEdit === undefined ||
+    currentEdit.schema === currentEdit.previewSchema;
   const onAppTypeChange = (v: string) => {
-    setCurrentApp(optionsData[v]);
+    if (appKeys.includes(v)) {
+      setState((data) =>
+        data.currentAppType === v ? data : { ...data, currentAppType: v },
+      );
+    }
   };
   const onSchemaChange = (schema: string) => {
-    if (!currentApp) {
+    if (
+      currentAppType === undefined ||
+      !currentApp ||
+      schema === currentApp.schema
+    ) {
       return;
     }
-    if (schema !== currentApp.schema) {
-      const newAllAppData = getCloneData(allAppData);
-
-      let { prefix } = newAllAppData[currentApp.type];
-      try {
-        prefix = new URL(schema).protocol.replace(/:/g, '');
-      } catch (e) {
-        console.error(e);
-      }
-
-      newAllAppData[currentApp.type].schema = schema;
-      newAllAppData[currentApp.type].prefix = prefix;
-
-      setCurrentApp(getCloneData(newAllAppData[currentApp.type]));
-      setAllAppData(getCloneData(newAllAppData));
+    let nextPreviewSchema = previewSchema;
+    try {
+      new URL(schema);
+      nextPreviewSchema = schema;
+    } catch {
+      // Keep incomplete input as a draft, using the last valid URL for QR/copy.
     }
+    setState((data) => ({
+      ...data,
+      editedSchemas: {
+        ...data.editedSchemas,
+        [currentAppType]: { schema, previewSchema: nextPreviewSchema },
+      },
+    }));
   };
 
-  const schemaWithTemplateUrl = useMemo(() => {
-    const schema = getUrlFromMustacheSchema(
-      currentApp?.schema ?? '',
-      currentEntryFileUrl || '',
-    );
-    onSwitchSchema(schema);
-    return schema;
-  }, [currentApp?.schema, currentEntryFileUrl]);
+  const schemaWithTemplateUrl = useMemo(
+    () => getUrlFromMustacheSchema(previewSchema, currentEntryFileUrl || ''),
+    [previewSchema, currentEntryFileUrl],
+  );
 
-  const appOptions: SchemaOptionType[] = useMemo(() => {
-    return Object.values(allAppData);
-  }, [allAppData]);
   return {
     schemaWithTemplateUrl,
     currentApp,
+    isSchemaValid,
     onSchemaChange,
     onAppTypeChange,
-    currentAppType: currentApp?.type,
+    currentAppType,
     appOptions,
   };
 };

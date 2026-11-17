@@ -15,9 +15,9 @@
  * chrome strings (en/zh via `useLang`); override with `config.i18n` if needed.
  * Site `i18n.json` does not need `go.*` keys.
  */
-import React from 'react';
 import { useLang, useDark, withBase, NoSSR } from '@rspress/core/runtime';
-import { CodeBlockRuntime, type CodeBlockRuntimeProps } from '@theme';
+import { CodeBlockRuntime, Link } from '@theme';
+import type { CodeBlockRuntimeProps } from '@theme';
 import { transformerAddLineNumbers } from '@rspress/core/shiki-transformers';
 import type { GoConfig } from '../config';
 
@@ -53,17 +53,18 @@ const RspressCodeBlock = ({
 
 /**
  * Spread this into your GoConfig to wire up rspress integrations:
- * `withBase`, `useLang`, `useDark`, `NoSSR`, and `CodeBlock`.
+ * `withBase`, `useLang`, `useDark`, `NoSSR`, `Link`, and `CodeBlock`.
  *
  * Does not include `useI18n` — `<Go>` chrome copy is package-owned.
  */
 export const rspressAdapter: Pick<
   GoConfig,
-  'withBase' | 'useLang' | 'useDark' | 'NoSSR' | 'CodeBlock'
+  'withBase' | 'useLang' | 'useDark' | 'NoSSR' | 'Link' | 'CodeBlock'
 > = {
   withBase,
   useLang: () => useLang(),
   useDark: () => useDark(),
   NoSSR,
+  Link,
   CodeBlock: RspressCodeBlock,
 };

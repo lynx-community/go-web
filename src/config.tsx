@@ -96,7 +96,7 @@ const GO_I18N_ZH: GoI18nCatalog = {
   'go.preview': '预览',
   'go.qrcode': '二维码',
   'go.files': '文件',
-  'go.scan.message-1': '请下载 ',
+  'go.scan.message-1': '请下载',
   'go.scan.message-2': '扫描二维码预览',
   'go.qrcode.copy-link': '复制链接',
   'go.qrcode.copied': '已复制',
@@ -264,6 +264,11 @@ export interface GoConfig {
 
   // --- Framework adapter ---
 
+  /**
+   * Link component for QR scanning instructions. Default: a Semi-themed anchor.
+   * Receives standard anchor props and an href resolved through `withBase`.
+   */
+  Link?: React.ComponentType<React.AnchorHTMLAttributes<HTMLAnchorElement>>;
   /** Prepend site base path to URLs. Default: identity */
   withBase?: (path: string) => string;
   /** Language detection hook. Default: () => 'en'. Selects builtin en/zh catalogs. */
