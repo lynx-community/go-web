@@ -18,6 +18,19 @@ const config = {
 </GoConfigProvider>;
 ```
 
+On React 19, import Semi's adapter before rendering `<Go>`:
+
+```tsx
+import '@douyinfe/semi-ui/react19-adapter';
+```
+
+For Rspress, add it to `builderConfig.source.preEntry`. This enables
+Semi's dynamic mounting APIs, including the QR copy confirmation toast.
+React 18 does not require this import.
+
+Web previews using `@lynx-js/web-core@0.26.8` also require its
+`@lynx-js/lynx-core@0.1.4` optional peer dependency.
+
 ### With rspress
 
 ```tsx
@@ -26,7 +39,7 @@ import { rspressAdapter } from '@lynx-js/go-web/adapters/rspress';
 
 const config = {
   exampleBasePath: '/lynx-examples',
-  ...rspressAdapter, // withBase, useLang, useDark, NoSSR, CodeBlock — not useI18n
+  ...rspressAdapter, // withBase, useLang, useDark, NoSSR, Link, CodeBlock — not useI18n
 };
 
 <GoConfigProvider config={config}>
@@ -45,6 +58,11 @@ const config = {
   },
 };
 ```
+
+The adapter uses the Rspress theme `Link` for QR scanning instructions.
+Without an adapter, these links use a plain anchor. A custom `config.Link`
+receives standard anchor props, including an href resolved by `withBase`;
+it must preserve paths that already contain the site's base.
 
 ### The `<Go/>` mark
 

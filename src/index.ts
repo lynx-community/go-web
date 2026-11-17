@@ -15,6 +15,10 @@ export type {
 } from './config';
 export { ExamplePreview, type ExamplePreviewProps } from './example-preview';
 export type { ExampleMetadata, ExamplePreviewMode } from './example-preview';
+export type {
+  SchemaOptionType,
+  SchemaOptionsData,
+} from './example-preview/hooks/use-switch-schema';
 export { getFileCodeLanguage } from './example-preview/utils/example-data';
 export type {
   LocalizedUrl,

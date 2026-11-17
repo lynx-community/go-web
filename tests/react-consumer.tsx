@@ -1,14 +1,16 @@
-import React, { useRef } from 'react';
-import {
-  Go,
-  GoConfigProvider,
-  UltraLynxView,
-  type GoConfig,
-  type AutoGestureOptions,
+import { useRef } from 'react';
+import type React from 'react';
+import { Go, GoConfigProvider, UltraLynxView } from '@lynx-js/go-web';
+import type {
+  GoConfig,
+  AutoGestureOptions,
+  SchemaOptionType,
+  SchemaOptionsData,
 } from '@lynx-js/go-web';
 import { rspressAdapter } from '@lynx-js/go-web/adapters/rspress';
 import { ExamplePreviewSSG, generateSSGHTML } from '@lynx-js/go-web/ssg';
-import { mount, type EmbedOptions } from '@lynx-js/go-web/embed';
+import { mount } from '@lynx-js/go-web/embed';
+import type { EmbedOptions } from '@lynx-js/go-web/embed';
 import { playAutoGesture } from '@lynx-js/go-web/auto-gesture';
 
 const gesture: AutoGestureOptions = {
@@ -27,11 +29,42 @@ const config: GoConfig = {
   SSGComponent: ExamplePreviewSSG,
 };
 
+const schemaOption: SchemaOptionType = {
+  type: 'host',
+  name: 'Example host',
+  schema: 'host://open?url={{{url}}}',
+  prefix: 'host',
+};
+const schemaOptions: SchemaOptionsData = {
+  host: schemaOption,
+  anotherHost: {
+    name: 'Another host',
+    schema: 'another-host://open?url={{{url}}}',
+  },
+};
+
+const AnchorLink: NonNullable<GoConfig['Link']> = (props) => <a {...props} />;
+const link = (
+  <AnchorLink
+    href="/guide"
+    target="_blank"
+    rel="noopener noreferrer"
+    onClick={(event) => event.currentTarget.focus()}
+  >
+    Example host
+  </AnchorLink>
+);
+
 export function Consumer(): React.JSX.Element {
   const ref = useRef<HTMLElement>(null);
   return (
     <GoConfigProvider config={config}>
-      <Go example="hello-world" highlight="{4}" autoGesture={gesture} />
+      <Go
+        example="hello-world"
+        highlight="{4}"
+        autoGesture={gesture}
+        schemaOptions={schemaOptions}
+      />
       <UltraLynxView src="/main.web.bundle" autoGesture={gesture} />
       <lynx-view ref={ref} url="/main.web.bundle" lynx-group-id={1} />
     </GoConfigProvider>
@@ -62,5 +95,13 @@ export function useEntryPoints(host: HTMLElement) {
     exampleRoot: '/lynx-examples',
     example: 'hello-world',
   });
-  return { embed, autoGesture, html, scopedProps, invalidProps, invalidConfig };
+  return {
+    embed,
+    autoGesture,
+    html,
+    scopedProps,
+    invalidProps,
+    invalidConfig,
+    link,
+  };
 }

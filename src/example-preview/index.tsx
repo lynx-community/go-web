@@ -76,6 +76,14 @@ export interface ExamplePreviewProps {
   entry?: string | string[];
   schema?: string;
   rightFooter?: React.ReactNode;
+  /**
+   * Host schema choices; map keys identify each host.
+   * Existing hosts retain user edits when options change. Unedited schemas
+   * follow current defaults. Empty options preserve selection and edits;
+   * removing a host from nonempty options clears its edits.
+   * Incomplete URL edits remain drafts; QR and copy use the last valid schema.
+   * An explicit `schema` takes priority.
+   */
   schemaOptions?: SchemaOptionsData;
   langAlias?: Record<string, string>;
   mode?: ExamplePreviewMode;

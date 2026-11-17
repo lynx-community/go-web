@@ -46,13 +46,6 @@ export function getUrlFromMustacheSchema(
   return replaceUrlInUrl(schema);
 }
 
-export const getCloneData = (data: any) => {
-  if (typeof data === 'object') {
-    return JSON.parse(JSON.stringify(data));
-  }
-  return data;
-};
-
 export const tabScrollToTop = (tabsRef: HTMLDivElement | null) => {
   if (tabsRef) {
     const activeTab = tabsRef.querySelector(

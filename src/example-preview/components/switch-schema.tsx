@@ -1,41 +1,39 @@
 import { Input, Select } from '@douyinfe/semi-ui';
-import { SchemaOptionsData, useSwitchSchema } from '../hooks/use-switch-schema';
+import type { SwitchSchemaResult } from '../hooks/use-switch-schema';
 import s from './index.module.scss';
 
-export interface SwitchSchemaProps {
-  currentEntryFileUrl: string;
-  optionsData: SchemaOptionsData;
-  onSwitchSchema: (schema: string) => void;
-}
+export type SwitchSchemaProps = Pick<
+  SwitchSchemaResult,
+  | 'appOptions'
+  | 'currentApp'
+  | 'onSchemaChange'
+  | 'onAppTypeChange'
+  | 'currentAppType'
+  | 'isSchemaValid'
+>;
 export const SwitchSchema = ({
-  currentEntryFileUrl,
-  optionsData,
-  onSwitchSchema,
+  appOptions,
+  currentApp,
+  onSchemaChange,
+  onAppTypeChange,
+  currentAppType,
+  isSchemaValid,
 }: SwitchSchemaProps) => {
-  const {
-    appOptions,
-    currentApp,
-    onSchemaChange,
-    onAppTypeChange,
-    currentAppType,
-  } = useSwitchSchema({
-    currentEntryFileUrl,
-    optionsData,
-    onSwitchSchema,
-  });
   return (
     <div className={s['switch-schema']}>
       <div className={s['switch-schema-select']}>
         <Select
           style={{ width: '120px' }}
           value={currentAppType}
-          onChange={(v) => onAppTypeChange(v as string)}
+          onChange={(v) => {
+            if (typeof v === 'string') onAppTypeChange(v);
+          }}
         >
-          {appOptions?.map((item) => (
+          {appOptions.map((item) => (
             <Select.Option
               style={{ fontSize: '12px' }}
-              key={item.name}
-              value={item.type}
+              key={item.key}
+              value={item.key}
             >
               {item.name}
             </Select.Option>
@@ -43,8 +41,10 @@ export const SwitchSchema = ({
         </Select>
         <Input
           style={{ marginLeft: '4px' }}
-          value={currentApp?.schema}
+          value={currentApp?.schema ?? ''}
           onChange={onSchemaChange}
+          aria-invalid={!isSchemaValid}
+          validateStatus={isSchemaValid ? 'default' : 'error'}
         />
       </div>
     </div>

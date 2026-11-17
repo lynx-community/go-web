@@ -45,7 +45,8 @@ pnpm --dir example-rspress dev
 ```
 
 Open the address printed by Rspress. This example consumes the root
-package through `file:..`.
+package through `file:..` and uses React 19. Its entry configuration loads
+Semi's `react19-adapter` before rendering components.
 
 The root, examples, and React compatibility fixture have separate
 manifests and lockfiles. Install each app you use; this repository is
@@ -104,9 +105,13 @@ pnpm --dir example-rspress build
 PR CI requires formatting, root type checking, React 18 and 19
 compatibility checks, and both example builds.
 There is no package build script.
-Root type checking excludes `src/adapters/rspress.tsx`, which resolves
-Rspress and `@theme` imports in a consumer site.
-For adapter changes, check its types in that context and build the site.
+Root type checking includes `src/adapters/rspress.tsx`. The root's
+Rspress development dependency and `@theme` type mapping also let
+editors resolve the adapter's imports.
+React type mappings keep Rspress declarations on the root's React
+type major.
+For adapter changes, also build the Rspress example to check the
+consumer site's runtime aliases and bundling.
 
 The development dependencies currently use React 18. For compatibility
 changes, verify the affected source and interactions against both React
@@ -134,8 +139,13 @@ invalid URLs and loading modes.
 
 DOM integration checks run the code component on each React runtime.
 They cover highlight scrolling, code changes, and unmounting before a
-delayed scroll. These checks do not replace testing the full examples
-or consumer-specific framework configuration.
+delayed scroll. Preview checks cover scan links, edited schemas, host
+and entry switching, explicit schema and native-framework rules, and the
+QR copy confirmation toast. The React 19 preview entry loads Semi's
+`react19-adapter`; React 18 uses Semi without the adapter.
+The Rspress Link check uses the real theme component and base utility
+with fixture router hooks and site data. These checks do not replace
+testing the full examples or consumer-specific framework configuration.
 Generated bundles and resolution reports stay in `dist/react-compat/`.
 
 ## Pull requests

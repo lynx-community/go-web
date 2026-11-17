@@ -160,6 +160,27 @@
       // so Copy Link / Entry / the deep link stay reachable instead of clipped.
       overflow-y: auto;
       margin-top: 12px;
+      .scan-link {
+        color: var(--semi-color-link);
+        text-decoration: underline;
+
+        &:visited {
+          color: var(--semi-color-link-visited);
+        }
+
+        &:hover {
+          color: var(--semi-color-link-hover);
+        }
+
+        &:active {
+          color: var(--semi-color-link-active);
+        }
+
+        &:focus-visible {
+          outline: 2px solid var(--semi-color-link);
+          outline-offset: 2px;
+        }
+      }
       .qrcode-svg {
         margin-bottom: 16px;
         margin-top: 12px;

@@ -78,6 +78,7 @@ for (const major of majors) {
         'src',
         'tests/react-consumer.tsx',
         'tests/react-compat/runtime.tsx',
+        'tests/react-compat/preview.tsx',
       ],
       exclude: [],
     },
@@ -141,44 +142,113 @@ for (const major of majors) {
     `React ${major}: source and all package exports pass type checking.`,
   );
 
-  const bundle = path.join(output, 'runtime.mjs');
-  await build({
-    entryPoints: [path.join(fixture, 'runtime.tsx')],
-    outfile: bundle,
-    bundle: true,
-    platform: 'node',
-    format: 'esm',
-    plugins: [
+  for (const suite of ['runtime', 'preview']) {
+    const bundle = path.join(output, `${suite}.mjs`);
+    await build({
+      ...(major === '19' && suite === 'preview'
+        ? {
+            stdin: {
+              contents: `import '@douyinfe/semi-ui/react19-adapter';
+                export * from ${JSON.stringify(path.join(fixture, `${suite}.tsx`))};`,
+              resolveDir: root,
+              sourcefile: 'react19-preview.tsx',
+              loader: 'tsx',
+            },
+          }
+        : { entryPoints: [path.join(fixture, `${suite}.tsx`)] }),
+      outfile: bundle,
+      bundle: true,
+      platform: 'node',
+      format: 'esm',
+      external: ['@lynx-js/web-core/*'],
+      define: { 'import.meta.env.SSG_MD': 'false' },
+      banner: {
+        js: 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);',
+      },
+      plugins: [
+        {
+          name: 'react-runtime',
+          setup(builder) {
+            builder.onResolve(
+              { filter: /^react(?:-dom)?(?:\/.*)?$/ },
+              ({ path: specifier }) => ({
+                path: require.resolve(specifier),
+                external: true,
+              }),
+            );
+          },
+        },
+        {
+          name: 'rspress-link-fixture',
+          setup(builder) {
+            if (suite !== 'preview') return;
+            const core = packageRoot(fixtureRequire, '@rspress/core');
+            builder.onResolve(
+              { filter: /^@rspress\/core\/shiki-transformers$/ },
+              ({ path: specifier }) => ({
+                path: fixtureRequire.resolve(specifier),
+              }),
+            );
+            // Exercise the real theme Link and base utility. Router hooks and
+            // site data are supplied by Rspress only inside a running site.
+            builder.onResolve({ filter: /^@theme$/ }, () => ({
+              path: 'theme',
+              namespace: 'rspress-fixture',
+            }));
+            builder.onResolve({ filter: /^@rspress\/core\/runtime$/ }, () => ({
+              path: 'runtime',
+              namespace: 'rspress-fixture',
+            }));
+            builder.onResolve({ filter: /^virtual-site-data$/ }, () => ({
+              path: 'site',
+              namespace: 'rspress-fixture',
+            }));
+            builder.onLoad(
+              { filter: /.*/, namespace: 'rspress-fixture' },
+              ({ path: name }) => ({
+                resolveDir: root,
+                contents:
+                  name === 'site'
+                    ? 'export default { base: "/next/" };'
+                    : name === 'theme'
+                      ? `export { Link } from ${JSON.stringify(path.join(core, 'dist/theme/components/Link/index.js'))};
+                   export { DefaultCodeBlock as CodeBlockRuntime } from ${JSON.stringify(path.join(root, 'src/config.tsx'))};`
+                      : `export { withBase, removeBase, cleanUrlByConfig } from ${JSON.stringify(path.join(core, 'dist/runtime/utils.js'))};
+                   export { isExternalUrl } from ${JSON.stringify(createRequire(path.join(core, 'package.json')).resolve('@rspress/shared'))};
+                   export const useLang = () => 'en';
+                   export const useDark = () => false;
+                   export const NoSSR = ({ children }) => children;
+                   export const useLocation = () => ({ pathname: '/' });
+                   export const useNavigate = () => () => {};
+                   export const useSite = () => ({ site: {} });
+                   export const preloadLink = () => {};
+                   export const initPageData = () => {};
+                   export const warmPageData = () => {};
+                   export const isActive = () => false;
+                   export const pathnameToRouteService = () => undefined;`,
+              }),
+            );
+          },
+        },
+      ],
+      loader: { '.scss': 'empty', '.css': 'empty' },
+      logLevel: 'warning',
+    });
+    const result = spawnSync(
+      process.execPath,
+      ['--test', path.join(fixture, `${suite}.test.mjs`)],
       {
-        name: 'react-runtime',
-        setup(builder) {
-          builder.onResolve(
-            { filter: /^react(?:-dom)?(?:\/.*)?$/ },
-            ({ path: specifier }) => ({
-              path: require.resolve(specifier),
-              external: true,
-            }),
-          );
+        cwd: root,
+        stdio: 'inherit',
+        timeout: 30_000,
+        env: {
+          ...process.env,
+          GO_WEB_REACT_MAJOR: major,
+          GO_WEB_REACT_BUNDLE: bundle,
         },
       },
-    ],
-    loader: { '.scss': 'empty' },
-    logLevel: 'warning',
-  });
-  const result = spawnSync(
-    process.execPath,
-    ['--test', path.join(fixture, 'runtime.test.mjs')],
-    {
-      cwd: root,
-      stdio: 'inherit',
-      timeout: 30_000,
-      env: {
-        ...process.env,
-        GO_WEB_REACT_MAJOR: major,
-        GO_WEB_REACT_BUNDLE: bundle,
-      },
-    },
-  );
-  assert.ifError(result.error);
-  if (result.status !== 0) process.exitCode = 1;
+    );
+    assert.ifError(result.error);
+    if (result.status !== 0) process.exitCode = 1;
+  }
 }

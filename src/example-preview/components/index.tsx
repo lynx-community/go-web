@@ -20,12 +20,14 @@ import { FileTree } from './file-tree';
 import { DeepLinkRow, FloatingDeepLink, OpenInHint } from './open-in-panel';
 import { PoweredByGo } from './powered-by';
 import { PreviewImg } from './preview-img';
-import { SplitPane, type SplitPaneHandle } from './split-pane';
+import { SplitPane } from './split-pane';
+import type { SplitPaneHandle } from './split-pane';
 import { SwitchSchema } from './switch-schema';
 
 import type { PreviewTab, WebLoadingScreen } from '../../config';
 import { DefaultNoSSR, translateGoI18n, useGoConfig } from '../../config';
 import { useIsMobile } from '../hooks/use-is-mobile';
+import { useSwitchSchema } from '../hooks/use-switch-schema';
 import type { SchemaOptionsData } from '../hooks/use-switch-schema';
 import { useTreeController } from '../hooks/use-tree-controller';
 import {
@@ -155,6 +157,7 @@ export function ExampleContent({
     withBase: withBaseFn = (p: string) => p,
     useLang: useLangHook,
     NoSSR: NoSSRComponent = DefaultNoSSR,
+    Link: LinkComponent = 'a',
   } = useGoConfig();
   const LYNX_EXPLORER_URL_CN = explorerUrl?.cn || DEFAULT_EXPLORER_URL_CN;
   const LYNX_EXPLORER_URL_EN = explorerUrl?.en || DEFAULT_EXPLORER_URL_EN;
@@ -249,7 +252,10 @@ export function ExampleContent({
     setWebHasPaintedOnce(false);
   }, [defaultWebPreviewFile]);
 
-  const [qrcodeUrlWithSchema, setQrcodeUrlWithSchema] = useState('');
+  const switchSchema = useSwitchSchema({
+    currentEntryFileUrl,
+    optionsData: schemaOptions,
+  });
   const { hasPreview, hasWebPreview } = useMemo(() => {
     const count =
       Number(Boolean(previewImage)) +
@@ -381,9 +387,6 @@ export function ExampleContent({
     }
   };
 
-  const onSwitchSchema = (schema: string) => {
-    setQrcodeUrlWithSchema(schema);
-  };
   // Deep-link template: an explicit `deepLinkUrl` prop overrides the framework's
   // default scheme (e.g. lynxtron → lynxtron-go://…). Universal bundles have no
   // default, so they only offer a deep link when one is passed explicitly.
@@ -424,7 +427,7 @@ export function ExampleContent({
   // up), or the resolved deep link for a framework (scanning opens that app).
   const qrcodeUrl = nativeFramework
     ? resolvedDeepLinkUrl
-    : qrcodeUrlWithSchema || currentEntryFileUrl;
+    : switchSchema.schemaWithTemplateUrl || currentEntryFileUrl;
 
   const isMobileUA = useIsMobile();
   const isMobile = _forceMobile ?? isMobileUA;
@@ -682,21 +685,21 @@ export function ExampleContent({
                     type="tertiary"
                     style={{ margin: '28px 12px', textAlign: 'center' }}
                   >
-                    {t('go.scan.message-1')}
-                    <Typography.Text
-                      link={{
-                        href: withBaseFn(
-                          lang === 'zh'
-                            ? LYNX_EXPLORER_URL_CN
-                            : LYNX_EXPLORER_URL_EN,
-                        ),
-                        target: '_blank',
-                      }}
-                      size="small"
-                      underline
+                    {t('go.scan.message-1')}{' '}
+                    <LinkComponent
+                      className={
+                        LinkComponent === 'a' ? s['scan-link'] : undefined
+                      }
+                      href={withBaseFn(
+                        lang === 'zh'
+                          ? LYNX_EXPLORER_URL_CN
+                          : LYNX_EXPLORER_URL_EN,
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
                       {lynxExplorerText}
-                    </Typography.Text>{' '}
+                    </LinkComponent>{' '}
                     {t('go.scan.message-2')}
                   </Typography.Text>
                 )}
@@ -720,11 +723,7 @@ export function ExampleContent({
                   </CopyToClipboard>
                 </div>
                 {!nativeFramework && schemaOptions && (
-                  <SwitchSchema
-                    optionsData={schemaOptions}
-                    currentEntryFileUrl={currentEntryFileUrl}
-                    onSwitchSchema={onSwitchSchema}
-                  />
+                  <SwitchSchema {...switchSchema} />
                 )}
                 <div className={s['qrcode-entry']}>
                   <Typography.Text
