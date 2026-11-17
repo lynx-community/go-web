@@ -1,5 +1,30 @@
 # @lynx-js/go-web
 
+## 0.13.0
+
+### Minor Changes
+
+- Add `GoConfig.Link` for QR scanning instructions and use the Rspress theme ([#92](https://github.com/lynx-community/go-web/pull/92))
+  link in `rspressAdapter`. Keep the default anchor themed in standalone
+  consumers and preserve English scan-hint spacing.
+
+- Export `SchemaOptionType` and `SchemaOptionsData` from the package entry ([#92](https://github.com/lynx-community/go-web/pull/92))
+  so consumers can type their host schema options. Allow omitting the
+  deprecated `type` and `prefix` fields.
+
+### Patch Changes
+
+- Declare `@rspress/core` as an optional peer without adding a version ([#92](https://github.com/lynx-community/go-web/pull/92))
+  restriction.
+
+- Preserve host selection and edited schemas across host and entry changes, ([#92](https://github.com/lynx-community/go-web/pull/92))
+  including temporary empty options. Apply current defaults to unedited
+  hosts and clear edits when a host is removed from nonempty options.
+
+  Derive QR and copied links together without render-phase parent updates.
+  Keep incomplete URL edits as drafts and use the last valid schema for
+  QR and copy.
+
 ## 0.12.0
 
 ### Minor Changes
