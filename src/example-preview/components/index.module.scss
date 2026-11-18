@@ -208,15 +208,20 @@
         padding: 10px 12px;
         border-radius: 6px;
         background: var(--semi-color-fill-0);
-        color: color-mix(
-          in srgb,
-          var(--semi-color-text-2) 85%,
-          var(--semi-color-text-1)
-        );
-        font-size: 12px;
+        color: var(--semi-color-text-1);
+        font-size: 11px;
         line-height: 1.6;
         text-align: start;
         white-space: pre-wrap;
+
+        // Keep the fallback separate so CSS minifiers retain it.
+        @supports (color: color-mix(in srgb, black, white)) {
+          color: color-mix(
+            in srgb,
+            var(--semi-color-text-2) 85%,
+            var(--semi-color-text-1)
+          );
+        }
       }
     }
   }
