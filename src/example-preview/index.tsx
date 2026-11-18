@@ -77,6 +77,12 @@ export interface ExamplePreviewProps {
   schema?: string;
   rightFooter?: React.ReactNode;
   /**
+   * Caller content below the QR code's copy action and above the host selector.
+   * Strings receive a default text callout; React nodes retain their styling.
+   * Only renders in the QR tab; it does not change schemas or host compatibility.
+   */
+  qrcodeNote?: React.ReactNode;
+  /**
    * Host schema choices; map keys identify each host.
    * Existing hosts retain user edits when options change. Unedited schemas
    * follow current defaults. Empty options preserve selection and edits;
@@ -193,6 +199,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     entry,
     schema,
     rightFooter,
+    qrcodeNote,
     schemaOptions,
     langAlias,
     defaultTab: propsDefaultTab,
@@ -414,6 +421,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       defaultWebPreviewHost={defaultWebPreviewHost}
       initState={initState}
       rightFooter={rightFooter}
+      qrcodeNote={qrcodeNote}
       schemaOptions={schema ? undefined : schemaOptions}
       exampleGitBaseUrl={exampleData?.exampleGitBaseUrl}
       defaultTab={resolvedDefaultTab}

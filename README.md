@@ -64,6 +64,40 @@ Without an adapter, these links use a plain anchor. A custom `config.Link`
 receives standard anchor props, including an href resolved by `withBase`;
 it must preserve paths that already contain the site's base.
 
+### QR code notes
+
+Pass `qrcodeNote` to explain an example's host requirements or preview limits:
+
+```tsx
+<Go
+  example="hello-world"
+  defaultTab="qrcode"
+  qrcodeNote="Use a compatible host for this example. Changing the schema does not change binary compatibility."
+/>
+```
+
+Strings receive a compact, theme-aware text callout with preserved line breaks
+and automatic wrapping. For custom styling or links, pass a React node:
+
+```tsx
+<Go
+  example="hello-world"
+  qrcodeNote={
+    <aside aria-label="Host compatibility">
+      Use a compatible host.{' '}
+      <a href="https://example.com/hosts">Host details</a>
+    </aside>
+  }
+/>
+```
+
+React nodes retain caller-owned styling. The note appears below Copy link
+and above the host selector, only while the QR tab is visible. It also
+works with an explicit `schema` or a native framework that supports QR
+codes. Omit it, or pass `null`, `false`, or an empty string, to leave the
+panel unchanged. The caller owns the note's wording and localization.
+Source-only SSG output does not include this QR-panel content.
+
 ### The `<Go/>` mark
 
 Every embed carries a `<Go/>` mark in the footer, just ahead of the

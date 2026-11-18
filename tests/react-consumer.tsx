@@ -64,6 +64,7 @@ export function Consumer(): React.JSX.Element {
         highlight="{4}"
         autoGesture={gesture}
         schemaOptions={schemaOptions}
+        qrcodeNote={<aside>Use a compatible preview host.</aside>}
       />
       <UltraLynxView src="/main.web.bundle" autoGesture={gesture} />
       <lynx-view ref={ref} url="/main.web.bundle" lynx-group-id={1} />
