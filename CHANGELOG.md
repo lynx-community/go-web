@@ -1,5 +1,14 @@
 # @lynx-js/go-web
 
+## 0.14.0
+
+### Minor Changes
+
+- Add a `qrcodeNote` React prop for caller-owned compatibility notes beside the ([#94](https://github.com/lynx-community/go-web/pull/94))
+  QR code and host selector, with a theme-aware default callout for strings.
+  The note only appears in the QR tab and does not change schemas or
+  native-framework behavior.
+
 ## 0.13.0
 
 ### Minor Changes
