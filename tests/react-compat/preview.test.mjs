@@ -16,6 +16,8 @@ for (const key of [
   'Node',
   'Event',
   'MouseEvent',
+  'ShadowRoot',
+  'SVGElement',
   'getComputedStyle',
 ]) {
   Object.defineProperty(globalThis, key, {
@@ -37,6 +39,9 @@ window.matchMedia = () => ({
   removeEventListener() {},
 });
 HTMLElement.prototype.scrollTo = () => {};
+// JSDOM does not implement media playback; these tests check the source URL.
+window.HTMLMediaElement.prototype.play = async () => {};
+window.HTMLMediaElement.prototype.pause = () => {};
 // JSDOM does not implement the Range layout API used by Semi Typography.
 window.Range.prototype.getBoundingClientRect = () => new window.DOMRect();
 globalThis.requestAnimationFrame = window.requestAnimationFrame.bind(window);
@@ -87,11 +92,24 @@ const metadata = {
     { name: 'second', file: 'second.lynx.bundle' },
   ],
 };
+const hostMetadata = {
+  name: 'host',
+  files: ['package.json'],
+  templateFiles: [
+    {
+      name: 'main',
+      file: 'dist/main.lynx.bundle',
+      webHostFile: '/host/index.html',
+    },
+  ],
+};
+const withBase = (url) => (url.startsWith('/next/') ? url : `/next${url}`);
 let host;
 let root;
 let errors;
 let cache;
 let onCommit;
+let requests;
 const originalError = console.error;
 const originalFetch = globalThis.fetch;
 const nextTask = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -103,12 +121,16 @@ beforeEach(() => {
   errors = [];
   cache = new Map();
   onCommit = undefined;
+  requests = [];
   console.error = (...args) => errors.push(args.join(' '));
-  globalThis.fetch = async () => ({
-    ok: true,
-    json: async () => metadata,
-    text: async () => '{}',
-  });
+  globalThis.fetch = async (url) => {
+    requests.push(url);
+    return {
+      ok: true,
+      json: async () => (url.includes('/host/') ? hostMetadata : metadata),
+      text: async () => '{}',
+    };
+  };
 });
 
 afterEach(async () => {
@@ -172,7 +194,7 @@ function renderContent(config = {}, overrides = {}) {
   });
 }
 
-async function renderExample(overrides = {}) {
+async function renderExample(overrides = {}, config = {}) {
   await act(async () => {
     root.render(
       observeCommits(
@@ -184,7 +206,7 @@ async function renderExample(overrides = {}) {
             { value: { provider: () => cache } },
             createElement(
               GoConfigProvider,
-              { config: { exampleBasePath: '/examples' } },
+              { config: { exampleBasePath: '/examples', ...config } },
               createElement(ExamplePreview, {
                 example: 'demo',
                 mode: 'preview',
@@ -691,4 +713,150 @@ test('desktop frameworks hide QR and schema controls', () => {
 test('empty schema options fall back to the entry URL', () => {
   renderContent({}, { schemaOptions: {} });
   assertQR(entryUrl);
+});
+
+for (const [exampleBasePath, expected] of [
+  ['/examples', '/next/examples/demo/example-metadata.json'],
+  ['/next/examples', '/next/examples/demo/example-metadata.json'],
+  [
+    'https://assets.example.test/examples',
+    'https://assets.example.test/examples/demo/example-metadata.json',
+  ],
+]) {
+  test(`example data uses one metadata request for ${exampleBasePath}`, async () => {
+    await renderExample({}, { withBase, exampleBasePath });
+    await act(nextTask);
+    assert.deepEqual(requests, [expected]);
+    const entry = new URL(
+      expected.replace('example-metadata.json', 'first.lynx.bundle'),
+      window.location.href,
+    ).href;
+    assertQR(schemaUrl(options.a.schema, entry));
+  });
+}
+
+for (const [img, expected] of [
+  ['/images/demo.png', '/next/images/demo.png'],
+  ['/next/images/demo.png', '/next/images/demo.png'],
+  ['https://cdn.example.test/demo.png', 'https://cdn.example.test/demo.png'],
+  ['//cdn.example.test/demo.png', '//cdn.example.test/demo.png'],
+  ['images/demo.png', 'images/demo.png'],
+  ['data:image/png;base64,AA==', 'data:image/png;base64,AA=='],
+  ['/videos/demo.mp4', '/next/videos/demo.mp4'],
+]) {
+  test(`preview media preserves the URL meaning of ${img}`, async () => {
+    await renderExample(
+      { img, defaultTab: 'preview', webPreview: false },
+      { withBase },
+    );
+    await act(nextTask);
+    assert.equal(
+      host.querySelector('img, video source').getAttribute('src'),
+      expected,
+    );
+  });
+}
+
+test('localized native-framework and poweredBy links resolve the site base', () => {
+  for (const [lang, expected] of [
+    ['en', '/next/lynxtron/go'],
+    ['zh-CN', '/next/zh/lynxtron/go'],
+  ]) {
+    renderContent(
+      {
+        withBase,
+        useLang: () => lang,
+        poweredBy: '/embedding',
+        nativeFrameworks: {
+          lynxtron: {
+            learnMoreUrl: { en: '/lynxtron/go', cn: '/zh/lynxtron/go' },
+          },
+        },
+      },
+      { nativeFramework: 'lynxtron', _forceMobile: true },
+    );
+    const links = [...host.querySelectorAll('a')].map((link) =>
+      link.getAttribute('href'),
+    );
+    assert(links.includes(expected), links.join(', '));
+    assert(links.includes('/next/embedding'), links.join(', '));
+  }
+});
+
+for (const href of [
+  'https://cdn.example.test/download',
+  '//cdn.example.test/download',
+  'download',
+  'host://download',
+]) {
+  test(`Explorer and poweredBy links preserve ${href}`, () => {
+    renderContent({
+      withBase,
+      explorerText: 'Example Host',
+      explorerUrl: { en: href },
+      poweredBy: href,
+    });
+    assert.equal(host.querySelectorAll(`a[href="${href}"]`).length, 2);
+  });
+}
+
+for (const [exampleBasePath, expected] of [
+  ['/examples', 'https://go.example.test/next/host/index.html'],
+  [
+    'https://go.example.test/examples',
+    'https://go.example.test/next/host/index.html',
+  ],
+  [
+    'https://assets.example.test/examples',
+    'https://assets.example.test/host/index.html',
+  ],
+]) {
+  test(`Web host root follows the asset origin for ${exampleBasePath}`, async () => {
+    await renderExample(
+      { example: 'host', mode: 'ultra' },
+      { withBase, exampleBasePath },
+    );
+    await act(nextTask);
+    assert.equal(host.querySelector('iframe').getAttribute('src'), expected);
+  });
+}
+
+test('download fallback uses the base without changing the deep-link scheme', async () => {
+  await renderExample(
+    { nativeFramework: 'lynxtron' },
+    {
+      withBase,
+      nativeFrameworks: { lynxtron: { downloadUrl: '/lynxtron/download' } },
+    },
+  );
+  await act(nextTask);
+  const link = host.querySelector('a[href^="lynxtron-go:"]');
+  assert(link);
+  assert(
+    decodeURIComponent(link.getAttribute('href')).includes(
+      'https://go.example.test/next/examples/demo/first.lynx.bundle',
+    ),
+  );
+  const originalTimer = window.setTimeout;
+  let finishProbe;
+  window.setTimeout = (callback, delay, ...args) => {
+    if (delay === 5000) {
+      finishProbe = callback;
+      return 987654;
+    }
+    return originalTimer(callback, delay, ...args);
+  };
+  try {
+    link.addEventListener('click', (event) => event.preventDefault());
+    act(() => {
+      link.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true }),
+      );
+    });
+    assert.equal(typeof finishProbe, 'function');
+    act(() => finishProbe());
+    assert(host.querySelector('a[href="/next/lynxtron/download"]'));
+  } finally {
+    window.setTimeout = originalTimer;
+  }
 });

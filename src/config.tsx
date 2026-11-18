@@ -230,6 +230,7 @@ export interface GoConfig {
    * ```
    *
    * `platform` is not overridable — it's a property of the framework itself.
+   * Site-root `learnMoreUrl` and `downloadUrl` paths use `withBase`.
    */
   nativeFrameworks?: NativeFrameworkOverrides;
   /**
@@ -241,7 +242,7 @@ export interface GoConfig {
    * is a different question.)
    *
    * `false` removes it; a string points it elsewhere, e.g. an internal mirror
-   * or a page of your own about embedding it.
+   * or a page of your own about embedding it. Site-root paths use `withBase`.
    */
   poweredBy?: boolean | string;
   /** Custom error component for failed example loading */
@@ -269,7 +270,15 @@ export interface GoConfig {
    * Receives standard anchor props and an href resolved through `withBase`.
    */
   Link?: React.ComponentType<React.AnchorHTMLAttributes<HTMLAnchorElement>>;
-  /** Prepend site base path to URLs. Default: identity */
+  /**
+   * Resolve site-root URLs for example data, `img`, Explorer links,
+   * native-framework links and `poweredBy`. Default: identity.
+   * External URLs, protocol-relative URLs, relative paths and schemes pass
+   * through unchanged. Rspress consumers supply this through its adapter.
+   *
+   * The function must be idempotent: a path that already includes the base
+   * must be returned unchanged, since callers may pass an already-based URL.
+   */
   withBase?: (path: string) => string;
   /** Language detection hook. Default: () => 'en'. Selects builtin en/zh catalogs. */
   useLang?: () => string;
