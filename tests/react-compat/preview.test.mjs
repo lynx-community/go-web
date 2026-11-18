@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 import { after, afterEach, beforeEach, test } from 'node:test';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { JSDOM } from 'jsdom';
 
 const dom = new JSDOM('<!doctype html><html><body></body></html>', {
@@ -57,16 +59,27 @@ const {
   QRCodeSVG,
   Select,
   Toast,
+  Tooltip,
   GoConfigProvider,
+  GO_I18N_EN,
   ExampleContent,
   ExamplePreview,
   SWRConfig,
   rspressAdapter,
+  Go,
+  ExamplePreviewSSG,
+  generateSSGHTML,
 } = await import(pathToFileURL(process.env.GO_WEB_REACT_BUNDLE).href);
 assert.equal(version.split('.')[0], process.env.GO_WEB_REACT_MAJOR);
 // Controlled Semi selects notify onChange after closing their popup.
 // Disable motion in the fixture so DOM assertions do not depend on animation.
 Select.defaultProps = { ...Select.defaultProps, motion: false };
+Tooltip.defaultProps = {
+  ...Tooltip.defaultProps,
+  motion: false,
+  mouseEnterDelay: 0,
+  mouseLeaveDelay: 0,
+};
 
 const entryUrl = 'https://assets.example.test/demo/main.lynx.bundle';
 const options = {
@@ -113,6 +126,56 @@ let requests;
 const originalError = console.error;
 const originalFetch = globalThis.fetch;
 const nextTask = () => new Promise((resolve) => setTimeout(resolve, 0));
+const h = createElement;
+const legacyCatalog = { ...GO_I18N_EN };
+delete legacyCatalog['go.example.version'];
+
+const exampleRoot = path.join(
+  path.dirname(fileURLToPath(pathToFileURL(process.env.GO_WEB_REACT_BUNDLE))),
+  'examples',
+);
+const versionMetadata = {
+  first: {
+    name: 'examples/first',
+    version: '1.2.3-beta.1+build.4',
+    files: ['package.json'],
+    templateFiles: [{ name: 'main', file: 'dist/main.lynx.bundle' }],
+  },
+  second: {
+    name: 'examples/second',
+    version: '2.0.0',
+    files: ['package.json'],
+    templateFiles: [{ name: 'main', file: 'dist/main.lynx.bundle' }],
+  },
+  unversioned: {
+    name: 'examples/unversioned',
+    files: ['package.json'],
+    templateFiles: [{ name: 'main', file: 'dist/main.lynx.bundle' }],
+  },
+  host: {
+    name: 'examples/host',
+    version: '1.0.0',
+    files: ['package.json'],
+    templateFiles: [
+      {
+        name: 'main',
+        file: 'dist/main.lynx.bundle',
+        webHostFile: '/host/index.html',
+      },
+    ],
+  },
+};
+for (const [name, data] of Object.entries(versionMetadata)) {
+  const dir = path.join(exampleRoot, name);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, 'example-metadata.json'), JSON.stringify(data));
+  writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name }));
+}
+
+const config = {
+  exampleBasePath: '/lynx-examples',
+  useDark: () => false,
+};
 
 beforeEach(() => {
   host = document.createElement('div');
@@ -124,10 +187,14 @@ beforeEach(() => {
   requests = [];
   console.error = (...args) => errors.push(args.join(' '));
   globalThis.fetch = async (url) => {
-    requests.push(url);
+    const address = String(url);
+    requests.push(address);
+    const name = address.split('/').at(-2);
     return {
       ok: true,
-      json: async () => (url.includes('/host/') ? hostMetadata : metadata),
+      json: async () =>
+        versionMetadata[name] ??
+        (address.includes('/host/') ? hostMetadata : metadata),
       text: async () => '{}',
     };
   };
@@ -735,6 +802,208 @@ for (const [exampleBasePath, expected] of [
   });
 }
 
+async function render(props = {}, overrides = {}) {
+  await act(async () => {
+    root.render(
+      h(
+        SWRConfig,
+        { value: { provider: () => cache } },
+        h(
+          GoConfigProvider,
+          { config: { ...config, ...overrides } },
+          h(Go, {
+            example: 'first',
+            mode: 'preview',
+            webPreview: false,
+            ...props,
+          }),
+        ),
+      ),
+    );
+    await nextTask();
+  });
+  await act(nextTask);
+}
+
+function versionFooter() {
+  return (
+    host.querySelector('span[aria-describedby] > span[aria-hidden="true"]')
+      ?.parentElement ?? null
+  );
+}
+
+function visibleVersion() {
+  const version = versionFooter();
+  return version
+    ? [...version.querySelectorAll('[aria-hidden="true"]')]
+        .map((part) => part.textContent)
+        .join('')
+    : null;
+}
+
+test('client uses one metadata request and follows the current example version', async () => {
+  await render();
+  assert.equal(visibleVersion(), 'v1.2.3-beta.1+build.4');
+  assert.equal(versionFooter()?.getAttribute('title'), null);
+  assert.deepEqual(requests, ['/lynx-examples/first/example-metadata.json']);
+  await render({ example: 'second' });
+  assert.equal(visibleVersion(), 'v2.0.0');
+  assert.doesNotMatch(host.textContent, /1\.2\.3-beta/);
+  await render({ example: 'unversioned' });
+  assert.doesNotMatch(host.textContent, /Example version:/);
+  await render({ example: 'host', mode: 'ultra', webPreview: true });
+  assert.doesNotMatch(host.textContent, /Example version:/);
+});
+
+test('client replaces or suppresses footer information', async () => {
+  await render({ footerInfo: 'Host release v3' });
+  const textFooter = host.querySelector('span[title="Host release v3"]');
+  assert.equal(textFooter?.textContent, 'Host release v3');
+  assert.doesNotMatch(host.textContent, /Example version:/);
+  await render({ footerInfo: h('span', null, 'Host release v3') });
+  assert.match(host.textContent, /Host release v3/);
+  assert.equal(host.querySelector('span[title="Host release v3"]'), null);
+  assert.doesNotMatch(host.textContent, /Example version:/);
+  for (const footerInfo of [null, false, '']) {
+    await render({ footerInfo });
+    assert.doesNotMatch(host.textContent, /Example version:|Host release v3/);
+  }
+});
+
+test('version descriptions use Go i18n independently of the visible prefix', async () => {
+  async function assertDescription(prefix) {
+    const footer = versionFooter();
+    assert(footer);
+    const description = `${prefix}1.2.3-beta.1+build.4`;
+    assert.equal(footer.getAttribute('title'), null);
+    assert.equal(
+      footer.querySelector('span:not([aria-hidden])')?.textContent,
+      description,
+    );
+    assert.equal(visibleVersion(), 'v1.2.3-beta.1+build.4');
+    await act(async () => {
+      footer.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      await nextTask();
+    });
+    const tooltip = document.getElementById(
+      footer.getAttribute('aria-describedby'),
+    );
+    assert(tooltip);
+    assert.equal(tooltip.getAttribute('role'), 'tooltip');
+    assert.equal(tooltip.textContent, description);
+    assert(host.contains(tooltip), 'tooltip stays inside the widget');
+    await act(async () => {
+      footer.dispatchEvent(
+        new MouseEvent('mouseout', {
+          bubbles: true,
+          relatedTarget: document.body,
+        }),
+      );
+      await nextTask();
+    });
+  }
+  for (const [lang, prefix] of [
+    ['en', 'Example version: '],
+    ['zh-CN', '示例版本：'],
+    ['fr-FR', 'Example version: '],
+  ]) {
+    await render({}, { useLang: () => lang });
+    await assertDescription(prefix);
+    await render({}, { useLang: () => lang, i18n: legacyCatalog });
+    await assertDescription(prefix);
+    await render(
+      {},
+      {
+        useLang: () => lang,
+        i18n: {
+          ...legacyCatalog,
+          'go.example.version': 'Version de l’exemple : ',
+        },
+      },
+    );
+    await assertDescription('Version de l’exemple : ');
+  }
+});
+
+test('version labels honor instance and config precedence independently of i18n', async () => {
+  const config = {
+    versionLabel: 'Version: ',
+    i18n: { 'go.example.version': 'Example ' },
+  };
+  await render({}, config);
+  assert.equal(visibleVersion(), 'Version: 1.2.3-beta.1+build.4');
+  await render({ versionLabel: 'v' }, config);
+  assert.equal(visibleVersion(), 'v1.2.3-beta.1+build.4');
+  await render({ versionLabel: '' }, config);
+  assert.equal(visibleVersion(), '1.2.3-beta.1+build.4');
+  assert.equal(
+    versionFooter()?.querySelector('span:not([aria-hidden])')?.textContent,
+    'Example 1.2.3-beta.1+build.4',
+  );
+  await render({}, { versionLabel: '' });
+  assert.equal(visibleVersion(), '1.2.3-beta.1+build.4');
+});
+
+test('footer information precedes GitHub and rightFooter retains its trailing position', async () => {
+  await render({ rightFooter: 'Source notes' });
+  assert.equal(visibleVersion(), 'v1.2.3-beta.1+build.4');
+  assert.match(host.textContent, /Source notes/);
+  assert.equal(host.querySelector('span[title="Source notes"]'), null);
+  for (const rightFooter of [null, false, '']) {
+    await render({ rightFooter });
+    assert.equal(visibleVersion(), 'v1.2.3-beta.1+build.4');
+  }
+  renderContent(
+    {},
+    {
+      mode: 'linked',
+      directory: 'examples/demo',
+      currentFileName: 'src/App.tsx',
+      exampleGitBaseUrl: 'https://github.com/example/examples/tree/main',
+      footerInfo: h(
+        'a',
+        { 'data-footer': 'info', href: '/release' },
+        'Release',
+      ),
+      rightFooter: h(
+        'a',
+        { 'data-footer': 'right', href: '/notes', style: { width: 64 } },
+        h('svg', { role: 'img', 'aria-label': 'Brand', width: 64, height: 20 }),
+      ),
+    },
+  );
+  const info = host.querySelector('[data-footer="info"]');
+  const right = host.querySelector('[data-footer="right"]');
+  assert(
+    info.compareDocumentPosition(right) & Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+  const footer = info.parentElement.parentElement;
+  const actions = footer.lastElementChild;
+  assert(info.parentElement.nextElementSibling === actions);
+  const github = actions.querySelector('button');
+  assert(github, 'The action group starts with GitHub');
+  assert.equal(actions.firstElementChild.contains(github), true);
+  assert.equal(actions.lastElementChild.contains(right), true);
+  assert.equal(right.style.width, '64px');
+  assert.equal(right.querySelector('svg')?.getAttribute('width'), '64');
+  // No new slot wrapper or small-text renderer may intercept legacy logos.
+  assert(right.parentElement === actions);
+  const open = window.open;
+  let opened;
+  window.open = (...args) => {
+    opened = args;
+  };
+  try {
+    act(() => github.click());
+    assert.deepEqual(opened, [
+      'https://github.com/example/examples/tree/main/examples/demo/src/App.tsx',
+      '_blank',
+    ]);
+  } finally {
+    window.open = open;
+  }
+});
+
 for (const [img, expected] of [
   ['/images/demo.png', '/next/images/demo.png'],
   ['/next/images/demo.png', '/next/images/demo.png'],
@@ -859,4 +1128,96 @@ test('download fallback uses the base without changing the deep-link scheme', as
   } finally {
     window.setTimeout = originalTimer;
   }
+});
+
+test('React SSG and pure Node HTML preserve default, override and hide semantics', () => {
+  function ssg(props = {}, overrides = {}) {
+    return renderToStaticMarkup(
+      h(
+        GoConfigProvider,
+        { config: { ...config, ssgExampleRoot: exampleRoot, ...overrides } },
+        h(ExamplePreviewSSG, { example: 'first', ...props }),
+      ),
+    );
+  }
+  const options = { exampleRoot, example: 'first' };
+  for (const output of [ssg(), generateSSGHTML(options)]) {
+    assert.match(output, />v1\.2\.3-beta\.1\+build\.4<\/p>/);
+  }
+  for (const lang of ['en', 'zh-CN', 'fr-FR']) {
+    assert.match(
+      ssg({}, { useLang: () => lang, i18n: legacyCatalog }),
+      />v1\.2\.3/,
+    );
+    assert.match(
+      ssg(
+        {},
+        {
+          useLang: () => lang,
+          i18n: {
+            ...legacyCatalog,
+            'go.example.version': 'Version de l’exemple : ',
+          },
+        },
+      ),
+      />v1\.2\.3/,
+    );
+  }
+  for (const footerInfo of [null, false, '']) {
+    assert.doesNotMatch(ssg({ footerInfo }), />v1\.2\.3/);
+    assert.doesNotMatch(
+      generateSSGHTML({ ...options, footerInfo }),
+      />v1\.2\.3/,
+    );
+  }
+  assert.match(
+    ssg({ footerInfo: h('a', { href: '/release' }, 'Host release') }),
+    /<a href="\/release">Host release<\/a>/,
+  );
+  const textSSG = ssg({ footerInfo: '<Host release>' });
+  assert.match(textSSG, /<p[^>]*font-size:12px/);
+  assert.match(textSSG, />&lt;Host release&gt;<\/p>/);
+  assert.doesNotMatch(textSSG, />v1\.2\.3/);
+  assert.match(
+    generateSSGHTML({ ...options, footerInfo: '<Host release>' }),
+    /&lt;Host release&gt;/,
+  );
+  for (const versionLabel of ['Version: ', '']) {
+    const expected = `${versionLabel}1.2.3-beta.1+build.4`;
+    assert(ssg({ versionLabel }).includes(`>${expected}</p>`));
+    assert(
+      generateSSGHTML({ ...options, versionLabel }).includes(
+        `>${expected}</p>`,
+      ),
+    );
+  }
+  assert.match(ssg({}, { versionLabel: 'Version ' }), />Version 1\.2\.3/);
+  assert.match(ssg({}, { versionLabel: '' }), />1\.2\.3/);
+  assert.match(
+    ssg({ versionLabel: '' }, { versionLabel: 'Version ' }),
+    />1\.2\.3/,
+  );
+  assert.match(ssg({ rightFooter: 'Source notes' }), />v1\.2\.3/);
+  assert.match(ssg({ rightFooter: 'Source notes' }), /<\/p>Source notes$/);
+  assert.match(
+    ssg({ rightFooter: h('a', { href: '/notes' }, 'Source notes') }),
+    /<\/p><a href="\/notes">Source notes<\/a>$/,
+  );
+  assert.match(
+    generateSSGHTML({ ...options, rightFooter: 'Source notes' }),
+    />v1\.2\.3/,
+  );
+  assert.match(
+    generateSSGHTML({ ...options, rightFooter: 'Source notes' }),
+    />Source notes<\/p>/,
+  );
+  assert.doesNotMatch(
+    ssg({ mode: 'ultra', rightFooter: 'Source notes' }),
+    />v1\.2\.3|Source notes/,
+  );
+  assert.doesNotMatch(ssg({ example: 'unversioned' }), />v1\.2\.3/);
+  assert.doesNotMatch(
+    generateSSGHTML({ ...options, example: 'unversioned' }),
+    />v1\.2\.3/,
+  );
 });

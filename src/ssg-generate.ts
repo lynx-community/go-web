@@ -8,6 +8,7 @@ import fs from 'fs';
 import path from 'path';
 import type { ExampleMetadata } from './example-preview';
 import { getFileCodeLanguage } from './example-preview/utils/example-data';
+import { getExampleVersionText } from './example-preview/utils/example-version';
 
 const TEXT: Record<string, string> = {
   zh: '下面是一个示例: ',
@@ -25,6 +26,15 @@ export interface GenerateSSGHTMLOptions {
   lang?: string;
   /** File extension → language alias mapping */
   langAlias?: Record<string, string>;
+  /**
+   * Plain-text footer information. Undefined displays the metadata version;
+   * null/false hides it. This Node entry does not accept JSX.
+   */
+  footerInfo?: string | null | false;
+  /** Example version prefix, including any separator. Defaults to 'v'. */
+  versionLabel?: string;
+  /** Additional plain-text right footer content, independent of the version. */
+  rightFooter?: string | null | false;
 }
 
 /**
@@ -39,6 +49,9 @@ export function generateSSGHTML(options: GenerateSSGHTMLOptions): string {
     defaultFile = 'package.json',
     lang = 'en',
     langAlias,
+    footerInfo,
+    versionLabel,
+    rightFooter,
   } = options;
 
   const metadataPath = path.join(exampleRoot, example, 'example-metadata.json');
@@ -98,6 +111,13 @@ export function generateSSGHTML(options: GenerateSSGHTMLOptions): string {
         '</code></pre>',
     );
   }
+
+  const footer =
+    footerInfo === undefined
+      ? getExampleVersionText(metadata?.version, versionLabel)
+      : footerInfo;
+  if (footer) parts.push(`<p>${escapeHtml(footer)}</p>`);
+  if (rightFooter) parts.push(`<p>${escapeHtml(rightFooter)}</p>`);
 
   return parts.join('\n');
 }

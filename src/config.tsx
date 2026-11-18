@@ -40,10 +40,18 @@ export type GoI18nKey =
   | 'go.ultra'
   | 'go.ultra.exit'
   | 'go.refresh'
+  | 'go.example.version'
   | 'go.poweredby'
   | 'go.poweredby.cta';
 
-export type GoI18nCatalog = Record<GoI18nKey, string>;
+/** Existing keys stay required; example versions fall back to built-in strings. */
+export type GoI18nCatalog = Record<
+  Exclude<GoI18nKey, 'go.example.version'>,
+  string
+> &
+  Partial<Record<'go.example.version', string>>;
+
+type BuiltinGoI18nCatalog = Record<GoI18nKey, string>;
 
 /**
  * Partial overrides for package-owned chrome strings (never via host i18n hooks).
@@ -57,7 +65,7 @@ export type GoI18nOverrides = Partial<
   >
 >;
 
-const GO_I18N_EN: GoI18nCatalog = {
+const GO_I18N_EN: BuiltinGoI18nCatalog = {
   'go.preview': 'Preview',
   'go.qrcode': 'QR Code',
   'go.files': 'Files',
@@ -86,13 +94,14 @@ const GO_I18N_EN: GoI18nCatalog = {
   'go.ultra': 'Open frameless',
   'go.ultra.exit': 'Exit frameless',
   'go.refresh': 'Refresh',
+  'go.example.version': 'Example version: ',
   // The hover-revealed `<Go/>` mark in the footer. The title names the thing;
   // the CTA answers the only question the mark is there to answer.
   'go.poweredby': 'Powered by <Go/>',
   'go.poweredby.cta': 'Want one on your own site? Open the repo',
 };
 
-const GO_I18N_ZH: GoI18nCatalog = {
+const GO_I18N_ZH: BuiltinGoI18nCatalog = {
   'go.preview': '预览',
   'go.qrcode': '二维码',
   'go.files': '文件',
@@ -115,11 +124,12 @@ const GO_I18N_ZH: GoI18nCatalog = {
   'go.ultra': '打开无边框',
   'go.ultra.exit': '退出无边框',
   'go.refresh': '刷新',
+  'go.example.version': '示例版本：',
   'go.poweredby': '由 <Go/> 驱动',
   'go.poweredby.cta': '想在自己的网站上使用？打开仓库',
 };
 
-const BUILTIN_I18N: Record<'en' | 'zh', GoI18nCatalog> = {
+const BUILTIN_I18N: Record<'en' | 'zh', BuiltinGoI18nCatalog> = {
   en: GO_I18N_EN,
   zh: GO_I18N_ZH,
 };
@@ -194,6 +204,11 @@ function defaultUseDark(): boolean {
 export interface GoConfig {
   /** Base path for examples, e.g. '/lynx-examples' or '/examples' */
   exampleBasePath: string;
+  /**
+   * Example version prefix, including any separator. Defaults to 'v'.
+   * An instance's versionLabel takes precedence; '' shows only the number.
+   */
+  versionLabel?: string;
   /**
    * Default preview tab. Applies to all `<Go>` instances under this provider
    * unless overridden by the `defaultTab` prop on individual instances.

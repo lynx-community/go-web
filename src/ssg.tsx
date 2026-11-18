@@ -10,10 +10,12 @@
  */
 import fs from 'fs';
 import path from 'path';
+import type React from 'react';
 import { useMemo } from 'react';
 import { useGoConfig } from './config';
 import type { ExampleMetadata, ExamplePreviewProps } from './example-preview';
 import { getFileCodeLanguage } from './example-preview/utils/example-data';
+import { getExampleVersionText } from './example-preview/utils/example-version';
 
 export { generateSSGHTML } from './ssg-generate';
 export type { GenerateSSGHTMLOptions } from './ssg-generate';
@@ -22,6 +24,18 @@ const TEXT: Record<string, string> = {
   zh: '下面是一个示例: ',
   en: 'This is an example below: ',
 };
+
+function renderFooterInfo(content: React.ReactNode) {
+  return typeof content === 'string' ? (
+    content ? (
+      <p style={{ color: 'var(--semi-color-text-2)', fontSize: '12px' }}>
+        {content}
+      </p>
+    ) : null
+  ) : (
+    content
+  );
+}
 
 // ---------------------------------------------------------------------------
 // React component — for rspress / SSR
@@ -39,8 +53,16 @@ export const ExamplePreviewSSG = ({
   highlight,
   entry,
   langAlias,
+  footerInfo,
+  versionLabel,
+  rightFooter,
+  mode,
 }: ExamplePreviewProps) => {
-  const { useLang, ssgExampleRoot } = useGoConfig();
+  const {
+    useLang,
+    ssgExampleRoot,
+    versionLabel: configVersionLabel,
+  } = useGoConfig();
   const lang = useLang?.() ?? 'en';
 
   const exampleRoot = ssgExampleRoot!;
@@ -137,5 +159,19 @@ export const ExamplePreviewSSG = ({
     highlightMeta,
   ]);
 
-  return <p>{markdownContent}</p>;
+  const footer =
+    footerInfo === undefined
+      ? getExampleVersionText(
+          exampleMetadata?.version,
+          versionLabel ?? configVersionLabel,
+        )
+      : footerInfo;
+
+  return (
+    <>
+      <p>{markdownContent}</p>
+      {mode !== 'ultra' && renderFooterInfo(footer)}
+      {mode !== 'ultra' && rightFooter}
+    </>
+  );
 };

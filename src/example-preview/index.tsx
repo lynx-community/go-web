@@ -84,6 +84,19 @@ export interface ExamplePreviewProps {
   highlight?: string | Record<string, string>;
   entry?: string | string[];
   schema?: string;
+  /**
+   * Information immediately before the GitHub button and other footer actions.
+   * Does not occupy a centered region.
+   * Undefined uses metadata.version; null/false hides the default.
+   * Strings use the built-in small-text style; other nodes render as supplied.
+   */
+  footerInfo?: React.ReactNode;
+  /** Example version prefix, including any separator. Defaults to 'v'. */
+  versionLabel?: string;
+  /**
+   * Custom content after all built-in footer actions, rendered as supplied.
+   * Independent of footerInfo; no custom content by default.
+   */
   rightFooter?: React.ReactNode;
   /**
    * Caller content below the QR code's copy action and above the host selector.
@@ -162,6 +175,8 @@ export interface ExamplePreviewProps {
 
 export interface ExampleMetadata {
   name: string;
+  /** Example version supplied by the metadata producer. */
+  version?: string;
   files: string[];
   templateFiles: Array<{
     name: string;
@@ -207,6 +222,8 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
     img,
     entry,
     schema,
+    footerInfo,
+    versionLabel,
     rightFooter,
     qrcodeNote,
     schemaOptions,
@@ -447,6 +464,9 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       defaultWebPreviewFile={defaultWebPreviewFile}
       defaultWebPreviewHost={defaultWebPreviewHost}
       initState={initState}
+      version={exampleData?.version}
+      versionLabel={versionLabel}
+      footerInfo={footerInfo}
       rightFooter={rightFooter}
       qrcodeNote={qrcodeNote}
       schemaOptions={schema ? undefined : schemaOptions}

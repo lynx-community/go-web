@@ -117,19 +117,26 @@ props apply to the raw-bundle `<lynx-view>` preview.
 
 #### Host URLs and custom content
 
-| Prop              | Type                | Description                                                                                                                                                                                |
-| ----------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `schema`          | `string`            | Entry URL template using `{{{url}}}` for the raw bundle URL. Sets the QR URL for universal bundles and takes precedence over `schemaOptions`. See [Native frameworks](#native-frameworks). |
-| `schemaOptions`   | `SchemaOptionsData` | Caller-defined host choices and their URL templates. See [Host schema choices](#host-schema-choices).                                                                                      |
-| `deepLinkUrl`     | `string`            | URL template for opening a local app. Supports `{{{url}}}` and `{{{urlEncoded}}}`; overrides the native framework's default deep-link template.                                            |
-| `nativeFramework` | `string`            | Runtime framework required by the bundle; overrides metadata. Known values include `'lynxtron'` and `'sparkling'`. See [Native frameworks](#native-frameworks).                            |
-| `rightFooter`     | `React.ReactNode`   | Content appended after the built-in controls on the footer's right side. No custom content by default. See [Footer content](#footer-content).                                              |
-| `qrcodeNote`      | `React.ReactNode`   | Caller-owned guidance in the QR tab. No note by default. See [QR code notes](#qr-code-notes).                                                                                              |
+| Prop              | Type                | Description                                                                                                                                                                                 |
+| ----------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schema`          | `string`            | Entry URL template using `{{{url}}}` for the raw bundle URL. Sets the QR URL for universal bundles and takes precedence over `schemaOptions`. See [Native frameworks](#native-frameworks).  |
+| `schemaOptions`   | `SchemaOptionsData` | Caller-defined host choices and their URL templates. See [Host schema choices](#host-schema-choices).                                                                                       |
+| `deepLinkUrl`     | `string`            | URL template for opening a local app. Supports `{{{url}}}` and `{{{urlEncoded}}}`; overrides the native framework's default deep-link template.                                             |
+| `nativeFramework` | `string`            | Runtime framework required by the bundle; overrides metadata. Known values include `'lynxtron'` and `'sparkling'`. See [Native frameworks](#native-frameworks).                             |
+| `footerInfo`      | `React.ReactNode`   | Information immediately before GitHub and the other footer actions. Undefined shows the example metadata version; `null`, `false`, or `''` hides it. See [Footer content](#footer-content). |
+| `versionLabel`    | `string`            | Example version prefix, including its separator. Defaults to `v`; `''` shows only the number. See [Example version](#example-version).                                                      |
+| `rightFooter`     | `React.ReactNode`   | Custom content after all built-in footer actions, rendered as supplied. Independent of `footerInfo`; empty by default. See [Footer content](#footer-content).                               |
+| `qrcodeNote`      | `React.ReactNode`   | Caller-owned guidance in the QR tab. No note by default. See [QR code notes](#qr-code-notes).                                                                                               |
 
-The caller owns custom content styling and localization. String
-`qrcodeNote` values receive the built-in text callout.
-The built-in SSG output contains source and entry information, not the
-interactive footer or QR content. `mode="ultra"` has neither surface.
+The caller owns custom content wording and localization. String
+`footerInfo` values use the built-in small-text style; string `qrcodeNote`
+values receive the built-in text callout. Other React nodes retain
+caller-owned styling.
+`rightFooter` retains its original rendering and position, including for
+strings, links, and logos.
+The built-in SSG output includes source and entry information plus the
+example version or footer override. It excludes interactive footer
+controls and QR content. `mode="ultra"` has neither footer nor QR content.
 
 ### Go configuration
 
@@ -256,19 +263,33 @@ Host choices change opening URLs and do not establish binary compatibility.
 
 #### Footer content
 
-`rightFooter` accepts text or React content after Go's built-in footer
-controls. It adds content to the existing footer; it does not replace
-the controls or the Go mark.
+`footerInfo` sits immediately before GitHub and the other footer actions
+with a fixed gap. It does not occupy a centered region. When GitHub is
+absent, the information still appears in the right-side group.
+Omit it to show `metadata.version` when available, or pass
+`null`, `false`, or an empty string to hide it. The built-in controls and
+Go mark remain visible.
+
+`rightFooter` retains its original position after all built-in actions.
+It renders the caller's content directly, without new text styling or a
+clipping wrapper, and does not replace or hide the version.
 
 ```tsx
 <Go
   example="hello-world"
-  rightFooter={<a href="https://example.com/examples">Example details</a>}
+  footerInfo="Host release v1.2.3"
+  rightFooter={
+    <a href="https://example.com/examples" style={{ fontSize: 12 }}>
+      Example details
+    </a>
+  }
 />
 ```
 
-The caller owns styling and localization. Omit it, or pass `null`,
-`false`, or an empty string, to render no custom footer content.
+Strings use the built-in small-text style; other React nodes retain
+caller-owned styling. The caller owns the override's wording and
+localization. Client and React SSG share these default, replacement and
+hide rules. See [Example version](#example-version).
 
 #### QR code notes
 
@@ -324,6 +345,50 @@ const config = {
 Its wording lives in the package's own i18n (`go.poweredby`,
 `go.poweredby.cta`) and can be overridden through `config.i18n` like any other
 chrome string.
+
+### Example version
+
+The footer information displays `example-metadata.json`'s optional `version`.
+The metadata producer determines its value. The example preparation scripts
+use the published package version for npm sources and the explicitly
+configured `source.version` for release tarballs. Go displays the supplied
+value without changing the producer's versioning policy.
+
+```tsx
+<Go example="hello-world" />
+<Go example="hello-world" versionLabel="Version: " />
+<Go example="hello-world" versionLabel="" />
+<Go example="hello-world" footerInfo={null} />
+<Go example="hello-world" footerInfo="Host release v1.2.3" />
+```
+
+An undefined `footerInfo` uses the default; any supplied content replaces
+it, including `null` or `false` to hide it. Missing metadata versions leave
+the default empty. Strings reuse the built-in small-text and ellipsis style;
+other React nodes render as supplied. The default prefix is `v`, so a version
+such as `0.7.0` displays as `v0.7.0`. The full example-version description
+remains available to assistive technology and in the tooltip. Space
+constraints shorten the information text without shrinking the actions
+or applying new clipping to `rightFooter`.
+Client and React SSG use the same default and override rules. The pure Node
+`generateSSGHTML` function accepts plain-text `footerInfo` and
+`rightFooter` values, plus `versionLabel`.
+
+Customize the prefix with `versionLabel`, including any separator.
+For example, `"Version: "` displays `Version: 0.7.0`, while `""`
+displays `0.7.0`. Resolution order is the instance's `versionLabel`,
+`config.versionLabel`, then `v`.
+Configuration applies to client and React SSG; the pure Node generator
+uses its own `versionLabel` option, defaulting to `v`.
+
+The client's tooltip and assistive text use `go.example.version` from
+Go's i18n catalog, followed by the version number. Its built-in values
+are `"Example version: "` and `"示例版本："`. Override this description
+prefix through `config.i18n` for other languages, including any separator.
+It is independent of the visible `versionLabel`; static output uses only
+the visible version text.
+
+The frameless `ultra` mode has no footer.
 
 ### Site base paths
 
@@ -444,7 +509,8 @@ playback.stop();
 
 For non-React sites (Hugo, Jekyll, plain HTML, etc.), use the iframe embed API. The host page only loads a tiny JS file — React runs inside the iframe.
 
-`EmbedOptions` exposes the options below. `rightFooter`, `qrcodeNote`,
+`EmbedOptions` exposes the options below. `footerInfo`, `versionLabel`,
+`rightFooter`, `qrcodeNote`,
 `schemaOptions`, `langAlias`, and `autoGesture` are not currently exposed
 by `mount()`. React elements, components, and hooks cannot be passed
 through this API.
