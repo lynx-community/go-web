@@ -14,6 +14,7 @@ import { useMemo } from 'react';
 import { useGoConfig } from './config';
 import type { ExampleMetadata, ExamplePreviewProps } from './example-preview';
 import { getFileCodeLanguage } from './example-preview/utils/example-data';
+import { getExampleVersionText } from './example-preview/utils/example-version';
 
 export { generateSSGHTML } from './ssg-generate';
 export type { GenerateSSGHTMLOptions } from './ssg-generate';
@@ -126,6 +127,10 @@ export const ExamplePreviewSSG = ({
       parts.push(codeBlock);
       parts.push('\n');
     }
+    const versionText = getExampleVersionText(exampleMetadata?.version);
+    if (versionText) {
+      parts.push(`\n${versionText}\n`);
+    }
     return parts.join('');
   }, [
     lang,
@@ -135,6 +140,7 @@ export const ExamplePreviewSSG = ({
     codeContent,
     codeLanguage,
     highlightMeta,
+    exampleMetadata?.version,
   ]);
 
   return <p>{markdownContent}</p>;

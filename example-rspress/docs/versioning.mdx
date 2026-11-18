@@ -1,0 +1,52 @@
+# Example version
+
+import { Go } from '../src/components/Go';
+
+The footer shows the loaded example's metadata version immediately
+before GitHub and the other actions. Custom `rightFooter` content keeps its
+original position after all built-in actions.
+
+## Default version
+
+The version defaults to a `v` prefix. Static output includes the version
+as text without custom footer content or interactive controls.
+
+<div style={{ overflowX: 'auto' }}>
+  <div style={{ minWidth: '640px' }}>
+    <Go
+      example="hello-world"
+      defaultFile="src/App.tsx"
+      webPreview={false}
+      img="/lynx-examples/hello-world/src/assets/lynx-logo.png"
+    />
+  </div>
+</div>
+
+## Independent right footer
+
+The right slot adds content after the controls without replacing the version.
+The caller supplies compact link styling.
+
+<div style={{ containerType: 'inline-size' }}>
+  <Go
+    example="hello-world"
+    webPreview={false}
+    defaultFile="src/App.tsx"
+    rightFooter={
+      <a href="https://example.com/examples" style={{ fontSize: 12 }}>
+        Source notes
+      </a>
+    }
+    img="/lynx-examples/hello-world/src/assets/lynx-logo.png"
+  />
+</div>
+
+## Narrow container
+
+<div style={{ maxWidth: '320px', containerType: 'inline-size' }}>
+  <Go
+    example="hello-world"
+    webPreview={false}
+    img="/lynx-examples/hello-world/src/assets/lynx-logo.png"
+  />
+</div>

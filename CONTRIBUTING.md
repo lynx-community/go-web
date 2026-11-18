@@ -56,6 +56,9 @@ GO_WEB_BASE=/next/ pnpm --dir example-rspress dev
 
 Visit `/next/` to inspect site-root preview media with the base applied.
 
+The `versioning` page shows the default version, a narrow container,
+and trailing right footer content.
+
 The root, examples, and React compatibility fixture have separate
 manifests and lockfiles. Install each app you use; this repository is
 not a pnpm workspace.
@@ -164,13 +167,16 @@ DOM integration checks run the code component on each React runtime.
 They cover highlight scrolling, code changes, and unmounting before a
 delayed scroll. Preview checks cover scan links, edited schemas, host
 and entry switching, explicit schema and native-framework rules, and the
-QR copy confirmation toast and site-root URL base resolution.
+QR copy confirmation toast, site-root URL base resolution, metadata versions
+in client and static rendering, and the existing client right footer slot.
 The React 19 preview entry loads Semi's
 `react19-adapter`; React 18 uses Semi without the adapter.
 The Rspress Link check uses the real theme component and base utility
 with fixture router hooks and site data. These checks do not replace
 testing the full examples or consumer-specific framework configuration.
 Generated bundles and resolution reports stay in `dist/react-compat/`.
+The public SSG export is also bundled and exercised in Node without DOM
+globals or a stylesheet loader; style imports fail this check.
 
 ## Pull requests
 

@@ -16,6 +16,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { CodeView } from './code-view';
+import { ExampleVersion } from './example-version';
 import { FileTree } from './file-tree';
 import { DeepLinkRow, FloatingDeepLink, OpenInHint } from './open-in-panel';
 import { PoweredByGo } from './powered-by';
@@ -92,6 +93,7 @@ interface ExampleContentProps {
   /** Whether defaultWebPreviewFile is a complete Web application entry. */
   defaultWebPreviewHost?: boolean;
   initState: boolean;
+  version?: string;
   rightFooter?: React.ReactNode;
   qrcodeNote?: React.ReactNode;
   schemaOptions?: SchemaOptionsData;
@@ -132,6 +134,7 @@ export function ExampleContent({
   defaultWebPreviewFile,
   defaultWebPreviewHost = false,
   initState,
+  version,
   rightFooter,
   qrcodeNote,
   schemaOptions,
@@ -891,14 +894,7 @@ export function ExampleContent({
           )}
         </div>
         <div className={s.footer}>
-          <Space
-            spacing={2}
-            style={{
-              maxWidth: '100%',
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-            }}
-          >
+          <Space className={s['footer-breadcrumb']} spacing={2}>
             {mode !== 'preview' && (
               <Button
                 theme="borderless"
@@ -950,7 +946,13 @@ export function ExampleContent({
               )}
             </Space>
           </Space>
-          <Space spacing={7}>
+          <div className={s['footer-info']}>
+            <ExampleVersion
+              version={version}
+              getPopupContainer={getContainer}
+            />
+          </div>
+          <Space spacing={7} className={s['footer-actions']}>
             {mode !== 'preview' && (
               <Button
                 theme="borderless"

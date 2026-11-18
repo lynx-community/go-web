@@ -1,8 +1,15 @@
 import { useRef } from 'react';
 import type React from 'react';
-import { Go, GoConfigProvider, UltraLynxView } from '@lynx-js/go-web';
+import {
+  Go,
+  GoConfigProvider,
+  GO_I18N_EN,
+  GO_I18N_ZH,
+  UltraLynxView,
+} from '@lynx-js/go-web';
 import type {
   GoConfig,
+  GoI18nCatalog,
   AutoGestureOptions,
   SchemaOptionType,
   SchemaOptionsData,
@@ -12,6 +19,21 @@ import { ExamplePreviewSSG, generateSSGHTML } from '@lynx-js/go-web/ssg';
 import { mount } from '@lynx-js/go-web/embed';
 import type { EmbedOptions } from '@lynx-js/go-web/embed';
 import { playAutoGesture } from '@lynx-js/go-web/auto-gesture';
+
+const versionCatalog: GoI18nCatalog = {
+  ...GO_I18N_EN,
+  'go.example.version.label': 'v',
+  'go.example.version.description': 'Example version:',
+};
+const versionDescription: string =
+  versionCatalog['go.example.version.description'];
+const builtinCatalogs: GoI18nCatalog[] = [GO_I18N_EN, GO_I18N_ZH];
+const {
+  'go.example.version.description': omittedDescription,
+  ...incompleteCatalog
+} = versionCatalog;
+// @ts-expect-error Complete catalogs require every package-owned key.
+const invalidCatalog: GoI18nCatalog = incompleteCatalog;
 
 const gesture: AutoGestureOptions = {
   steps: [
@@ -27,6 +49,7 @@ const config: GoConfig = {
   exampleBasePath: '/lynx-examples',
   ...rspressAdapter,
   SSGComponent: ExamplePreviewSSG,
+  i18n: { 'go.preview': 'Preview', 'go.example.version.label': 'r' },
 };
 
 const schemaOption: SchemaOptionType = {
@@ -65,6 +88,7 @@ export function Consumer(): React.JSX.Element {
         autoGesture={gesture}
         schemaOptions={schemaOptions}
         qrcodeNote={<aside>Use a compatible preview host.</aside>}
+        rightFooter={<a href="/notes">Source notes</a>}
       />
       <UltraLynxView src="/main.web.bundle" autoGesture={gesture} />
       <lynx-view ref={ref} url="/main.web.bundle" lynx-group-id={1} />
@@ -104,5 +128,10 @@ export function useEntryPoints(host: HTMLElement) {
     invalidProps,
     invalidConfig,
     link,
+    versionCatalog,
+    versionDescription,
+    builtinCatalogs,
+    omittedDescription,
+    invalidCatalog,
   };
 }

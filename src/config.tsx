@@ -40,9 +40,12 @@ export type GoI18nKey =
   | 'go.ultra'
   | 'go.ultra.exit'
   | 'go.refresh'
+  | 'go.example.version.label'
+  | 'go.example.version.description'
   | 'go.poweredby'
   | 'go.poweredby.cta';
 
+/** Complete catalog for package-owned chrome strings. */
 export type GoI18nCatalog = Record<GoI18nKey, string>;
 
 /**
@@ -86,6 +89,8 @@ const GO_I18N_EN: GoI18nCatalog = {
   'go.ultra': 'Open frameless',
   'go.ultra.exit': 'Exit frameless',
   'go.refresh': 'Refresh',
+  'go.example.version.label': 'v',
+  'go.example.version.description': 'Example version:',
   // The hover-revealed `<Go/>` mark in the footer. The title names the thing;
   // the CTA answers the only question the mark is there to answer.
   'go.poweredby': 'Powered by <Go/>',
@@ -115,6 +120,8 @@ const GO_I18N_ZH: GoI18nCatalog = {
   'go.ultra': '打开无边框',
   'go.ultra.exit': '退出无边框',
   'go.refresh': '刷新',
+  'go.example.version.label': 'v',
+  'go.example.version.description': '示例版本：',
   'go.poweredby': '由 <Go/> 驱动',
   'go.poweredby.cta': '想在自己的网站上使用？打开仓库',
 };

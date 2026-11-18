@@ -128,8 +128,10 @@ props apply to the raw-bundle `<lynx-view>` preview.
 
 The caller owns custom content styling and localization. String
 `qrcodeNote` values receive the built-in text callout.
-The built-in SSG output contains source and entry information, not the
-interactive footer or QR content. `mode="ultra"` has neither surface.
+The built-in SSG output includes source and entry information plus the
+example version. It excludes custom footer content, interactive controls
+and QR content. On the client, `mode="ultra"` has neither footer nor QR
+content.
 
 ### Go configuration
 
@@ -258,7 +260,7 @@ Host choices change opening URLs and do not establish binary compatibility.
 
 `rightFooter` accepts text or React content after Go's built-in footer
 controls. It adds content to the existing footer; it does not replace
-the controls or the Go mark.
+the controls, Go mark, or [example version](#example-version).
 
 ```tsx
 <Go
@@ -269,6 +271,7 @@ the controls or the Go mark.
 
 The caller owns styling and localization. Omit it, or pass `null`,
 `false`, or an empty string, to render no custom footer content.
+Static output does not render this slot.
 
 #### QR code notes
 
@@ -324,6 +327,22 @@ const config = {
 Its wording lives in the package's own i18n (`go.poweredby`,
 `go.poweredby.cta`) and can be overridden through `config.i18n` like any other
 chrome string.
+
+### Example version
+
+The footer displays `example-metadata.json`'s optional `version` immediately
+before GitHub and the other actions as `v{version}` by default. Missing, blank or
+non-string versions produce no version text. The frameless `ultra` mode
+has no client footer.
+
+Use `config.i18n` to override `go.example.version.label` or the tooltip and
+assistive description, `go.example.version.description`. The component
+adds spacing between the description and version.
+
+`ExamplePreviewSSG` and `generateSSGHTML` include the version as static
+`v{version}` text alongside the example content, including in `ultra`
+mode. They do not use client i18n overrides or render client footer
+slots, styles or controls.
 
 ### Site base paths
 

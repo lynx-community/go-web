@@ -62,6 +62,7 @@ function resolveExampleUrl(
   file: string,
   withBase?: (path: string) => string,
 ): string {
+  // Determine the asset's origin; relative bases use the current page.
   const baseUrl = new URL(base, window.location.href);
   if (file.startsWith('/')) {
     const siteFile =
@@ -84,6 +85,10 @@ export interface ExamplePreviewProps {
   highlight?: string | Record<string, string>;
   entry?: string | string[];
   schema?: string;
+  /**
+   * Custom content after all built-in footer actions, rendered as supplied.
+   * Does not replace the example version; no custom content by default.
+   */
   rightFooter?: React.ReactNode;
   /**
    * Caller content below the QR code's copy action and above the host selector.
@@ -162,6 +167,8 @@ export interface ExamplePreviewProps {
 
 export interface ExampleMetadata {
   name: string;
+  /** Example version supplied by the metadata producer. */
+  version?: string;
   files: string[];
   templateFiles: Array<{
     name: string;
@@ -447,6 +454,7 @@ export const ExamplePreview = (props: ExamplePreviewProps) => {
       defaultWebPreviewFile={defaultWebPreviewFile}
       defaultWebPreviewHost={defaultWebPreviewHost}
       initState={initState}
+      version={exampleData?.version}
       rightFooter={rightFooter}
       qrcodeNote={qrcodeNote}
       schemaOptions={schema ? undefined : schemaOptions}
