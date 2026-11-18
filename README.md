@@ -66,6 +66,10 @@ it must preserve paths that already contain the site's base.
 
 ### QR code notes
 
+| Prop         | Type              | Default     | Description                          |
+| ------------ | ----------------- | ----------- | ------------------------------------ |
+| `qrcodeNote` | `React.ReactNode` | `undefined` | Caller-owned guidance in the QR tab. |
+
 Pass `qrcodeNote` to explain an example's host requirements or preview limits:
 
 ```tsx
