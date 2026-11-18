@@ -33,7 +33,9 @@
   "types": "src/index.ts",
   "files": [
     "src",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "dev": "cd example && pnpm install && pnpm dev",

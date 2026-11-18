@@ -92,6 +92,7 @@ interface ExampleContentProps {
   defaultWebPreviewHost?: boolean;
   initState: boolean;
   rightFooter?: React.ReactNode;
+  qrcodeNote?: React.ReactNode;
   schemaOptions?: SchemaOptionsData;
   exampleGitBaseUrl?: string;
   langAlias?: Record<string, string>;
@@ -131,6 +132,7 @@ export function ExampleContent({
   defaultWebPreviewHost = false,
   initState,
   rightFooter,
+  qrcodeNote,
   schemaOptions,
   exampleGitBaseUrl,
   langAlias,
@@ -722,6 +724,17 @@ export function ExampleContent({
                     </Button>
                   </CopyToClipboard>
                 </div>
+                {qrcodeNote != null &&
+                qrcodeNote !== false &&
+                qrcodeNote !== '' ? (
+                  <div className={s['qrcode-note']}>
+                    {typeof qrcodeNote === 'string' ? (
+                      <p className={s['qrcode-note-text']}>{qrcodeNote}</p>
+                    ) : (
+                      qrcodeNote
+                    )}
+                  </div>
+                ) : null}
                 {!nativeFramework && schemaOptions && (
                   <SwitchSchema {...switchSchema} />
                 )}

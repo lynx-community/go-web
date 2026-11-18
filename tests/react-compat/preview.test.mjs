@@ -310,6 +310,56 @@ test('copying a QR link mounts a Semi toast on the selected React runtime', asyn
   }
 });
 
+test('QR notes follow tab visibility and remain beside the host selector', async () => {
+  const noteText = 'Changing the schema does not change binary compatibility.';
+  const qrcodeNote = createElement(
+    'aside',
+    { 'aria-label': 'Host compatibility' },
+    noteText,
+    createElement('a', { href: '/hosts' }, 'Host details'),
+  );
+  await renderExample({ qrcodeNote, img: '/cover.png' });
+  const note = () =>
+    host.querySelector('aside[aria-label="Host compatibility"]');
+  assert(note(), 'ExamplePreview forwards rich note content to the QR panel');
+  assert.equal(note().querySelector('a').getAttribute('href'), '/hosts');
+  assert.equal(host.querySelectorAll('.semi-select').length, 2);
+  await choose(0, 'Host B');
+  await choose(1, 'second');
+  assert(note().textContent.includes(noteText));
+  const radio = (label) =>
+    [...host.querySelectorAll('.semi-radio')].find(
+      (element) => element.textContent === label,
+    );
+  assert(radio('Preview'), 'The image preview tab is available');
+  act(() => radio('Preview').click());
+  assert.equal(note(), null, 'The note is absent outside the QR tab');
+  act(() => radio('QR Code').click());
+  assert(note(), 'Returning to the QR tab restores the note');
+  await renderExample({ qrcodeNote: 'Updated note', schema: 'fixed://open' });
+  const textNote = host.querySelector('p');
+  assert.equal(textNote?.textContent, 'Updated note');
+  assert.equal(host.querySelectorAll('.semi-select').length, 1);
+  for (const qrcodeNote of [undefined, null, false, '']) {
+    await renderExample({ qrcodeNote });
+    assert(!host.textContent.includes('Updated note'));
+    assert.equal(host.querySelectorAll('.semi-select').length, 2);
+  }
+});
+
+test('QR notes follow native-framework QR availability', () => {
+  renderContent(
+    {},
+    { nativeFramework: 'sparkling', qrcodeNote: 'Mobile host note' },
+  );
+  assert(host.textContent.includes('Mobile host note'));
+  renderContent(
+    {},
+    { nativeFramework: 'lynxtron', qrcodeNote: 'Desktop host note' },
+  );
+  assert(!host.textContent.includes('Desktop host note'));
+});
+
 test('host edits survive A → B → A and update the rendered QR independently', async () => {
   const original = structuredClone(options);
   renderContent({}, { schemaOptions: options });
