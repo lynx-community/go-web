@@ -57,7 +57,10 @@ When changing dependencies, update the corresponding lockfile with
 ## Example assets
 
 Each example app's install lifecycle runs its own `prepare` script.
-It downloads published Lynx examples and generates preview metadata.
+It discovers published Lynx example packages, including
+`@lynx-example/*`, downloads them directly from the npm registry, and
+generates preview metadata. These packages do not need to be declared
+as app dependencies.
 The standalone app also fetches a pinned GitHub release tarball.
 
 Preparation reuses existing assets. Refresh them explicitly when needed:
@@ -78,7 +81,21 @@ At the repository root, `pnpm prepare` installs Husky hooks.
 Use the app-specific commands above to prepare example assets.
 Generated assets, dependencies, and build output are gitignored.
 
+CI runs `prepare:clean` for both example apps before production builds.
+
 ## Checks
+
+The following checks must pass on every PR:
+
+- **Format Check** — `pnpm format:check` at the repo root
+- **Type Check** — `pnpm typecheck` at the repo root
+- **React 18/19 Compatibility** — `pnpm test:react` checks source types,
+  public exports, and runtime interactions on both React majors
+- **Build Example App** — standalone Rsbuild example
+- **Build Rspress Example** — Rspress integration example
+- **Package Preview** — gate checks and pkg.pr.new publishing when a
+  PR changeset bumps the package; see [PR package previews](#pr-package-previews)
+  for installation and GitHub App setup
 
 Run formatting and root type checking:
 
@@ -102,8 +119,6 @@ pnpm --dir example-rspress prepare:clean
 pnpm --dir example-rspress build
 ```
 
-PR CI requires formatting, root type checking, React 18 and 19
-compatibility checks, and both example builds.
 There is no package build script.
 Root type checking includes `src/adapters/rspress.tsx`. The root's
 Rspress development dependency and `@theme` type mapping also let
