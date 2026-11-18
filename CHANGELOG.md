@@ -1,5 +1,14 @@
 # @lynx-js/go-web
 
+## 0.14.1
+
+### Patch Changes
+
+- Resolve site-root preview media and native-framework links through the ([#97](https://github.com/lynx-community/go-web/pull/97))
+  host's `withBase` adapter, so Rspress deployments retain their site base.
+  Apply the same rule to Explorer and custom `poweredBy` links while
+  preserving external URLs and schemes.
+
 ## 0.14.0
 
 ### Minor Changes
