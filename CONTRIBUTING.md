@@ -48,6 +48,14 @@ Open the address printed by Rspress. This example consumes the root
 package through `file:..` and uses React 19. Its entry configuration loads
 Semi's `react19-adapter` before rendering components.
 
+To check a deployment base locally:
+
+```sh
+GO_WEB_BASE=/next/ pnpm --dir example-rspress dev
+```
+
+Visit `/next/` to inspect site-root preview media with the base applied.
+
 The root, examples, and React compatibility fixture have separate
 manifests and lockfiles. Install each app you use; this repository is
 not a pnpm workspace.
@@ -156,7 +164,8 @@ DOM integration checks run the code component on each React runtime.
 They cover highlight scrolling, code changes, and unmounting before a
 delayed scroll. Preview checks cover scan links, edited schemas, host
 and entry switching, explicit schema and native-framework rules, and the
-QR copy confirmation toast. The React 19 preview entry loads Semi's
+QR copy confirmation toast and site-root URL base resolution.
+The React 19 preview entry loads Semi's
 `react19-adapter`; React 18 uses Semi without the adapter.
 The Rspress Link check uses the real theme component and base utility
 with fixture router hooks and site data. These checks do not replace

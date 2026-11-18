@@ -51,6 +51,7 @@ export interface NativeFrameworkConfig {
    * Left unset here on purpose: the URL belongs to whoever hosts the docs, so
    * a site supplies it through `GoConfig.nativeFrameworks` rather than having
    * one site's domain baked into this package.
+   * Site-root paths use the host's `withBase` adapter.
    */
   learnMoreUrl?: LocalizedUrl;
   /**
@@ -59,6 +60,7 @@ export interface NativeFrameworkConfig {
    * answers it — replaced by this URL. Not shown up front: a working deep link
    * should never carry a download prompt beside it. Same ownership rule as
    * `learnMoreUrl` — supplied per site.
+   * Site-root paths use the host's `withBase` adapter.
    */
   downloadUrl?: LocalizedUrl;
 }

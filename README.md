@@ -325,6 +325,21 @@ Its wording lives in the package's own i18n (`go.poweredby`,
 `go.poweredby.cta`) and can be overridden through `config.i18n` like any other
 chrome string.
 
+### Site base paths
+
+With the Rspress adapter, site-root paths such as `/images/demo.png` and
+`/lynxtron/go` use the configured documentation base. This applies to
+`exampleBasePath`, `img` (images and videos), `explorerUrl`,
+`nativeFrameworks.*.learnMoreUrl`, `nativeFrameworks.*.downloadUrl`, and
+custom `poweredBy` URLs. Pass these paths directly; Go resolves them.
+
+External URLs, protocol-relative URLs, relative paths, and schemes pass
+through unchanged. Example-relative metadata files resolve under
+`exampleBasePath`; site-root metadata entries such as `webHostFile` use
+the site base when the data is on the page's origin. Assets hosted on a
+different origin retain that host's root. `schema` and `deepLinkUrl`
+remain templates around the resolved entry URL.
+
 ### SSG (Static Site Generation)
 
 go-web ships a built-in SSG component and a pure generation function so that pre-rendered pages include a meaningful code preview instead of an empty placeholder.

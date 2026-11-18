@@ -3,3 +3,14 @@
 import { Go } from '../src/components/Go';
 
 <Go example="hello-world" defaultFile="src/App.tsx" />
+
+## Site-root preview media
+
+The preview image follows the documentation site's base path.
+
+<Go
+  example="hello-world"
+  mode="preview"
+  webPreview={false}
+  img="/lynx-examples/hello-world/src/assets/lynx-logo.png"
+/>

@@ -45,6 +45,7 @@ import {
 import { isQrAllowed, resolveOpenIn } from '../utils/open-in-mode';
 import type { WebPreviewMode } from '../utils/resolve-web-preview';
 import { tabScrollToTop } from '../utils/tool';
+import { resolveSiteUrl } from '../utils/site-url';
 
 const WebIframe = React.lazy(() =>
   import('./web-iframe').then((module) => ({ default: module.WebIframe })),
@@ -156,7 +157,7 @@ export function ExampleContent({
     i18n: i18nOverrides,
     nativeFrameworks,
     poweredBy,
-    withBase: withBaseFn = (p: string) => p,
+    withBase,
     useLang: useLangHook,
     NoSSR: NoSSRComponent = DefaultNoSSR,
     Link: LinkComponent = 'a',
@@ -396,14 +397,20 @@ export function ExampleContent({
   const deepLinkTemplate = deepLinkUrl || frameworkConfig?.deepLinkScheme || '';
   // Site-supplied URLs (see `GoConfig.nativeFrameworks`): where to get the host
   // app, and where to send someone whose device can't run this bundle.
-  const frameworkDownloadUrl = resolveLocalizedUrl(
+  const frameworkDownloadPath = resolveLocalizedUrl(
     frameworkConfig?.downloadUrl,
     lang,
   );
-  const frameworkLearnMoreUrl = resolveLocalizedUrl(
+  const frameworkLearnMorePath = resolveLocalizedUrl(
     frameworkConfig?.learnMoreUrl,
     lang,
   );
+  const frameworkDownloadUrl = frameworkDownloadPath
+    ? resolveSiteUrl(frameworkDownloadPath, withBase)
+    : undefined;
+  const frameworkLearnMoreUrl = frameworkLearnMorePath
+    ? resolveSiteUrl(frameworkLearnMorePath, withBase)
+    : undefined;
 
   const resolvedDeepLinkUrl = useMemo(() => {
     if (!deepLinkTemplate) return '';
@@ -692,10 +699,11 @@ export function ExampleContent({
                       className={
                         LinkComponent === 'a' ? s['scan-link'] : undefined
                       }
-                      href={withBaseFn(
+                      href={resolveSiteUrl(
                         lang === 'zh'
                           ? LYNX_EXPLORER_URL_CN
                           : LYNX_EXPLORER_URL_EN,
+                        withBase,
                       )}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -903,7 +911,11 @@ export function ExampleContent({
                 mark sits with the breadcrumb, reading as its namespace. */}
             <span className={s['footer-mark']}>
               <PoweredByGo
-                poweredBy={poweredBy}
+                poweredBy={
+                  typeof poweredBy === 'string'
+                    ? resolveSiteUrl(poweredBy, withBase)
+                    : poweredBy
+                }
                 t={t}
                 getPopupContainer={getContainer}
               />
