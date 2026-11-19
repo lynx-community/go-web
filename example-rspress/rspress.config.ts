@@ -6,12 +6,10 @@ export default defineConfig({
   root: path.join(__dirname, 'docs'),
   title: 'Go Web - Rspress Example',
   base: process.env.GO_WEB_BASE || '/',
-  source: {
-    include: [/[\\/]go-web[\\/]/],
-  },
   builderConfig: {
     plugins: [pluginSass()],
     source: {
+      include: [/[\\/]go-web[\\/]/],
       preEntry: ['@douyinfe/semi-ui/react19-adapter'],
     },
     tools: {
