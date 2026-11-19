@@ -26,6 +26,13 @@
   }
 }
 
+.open-link-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 // ─── Additive deep-link row (inside the QR tab) ──────────────────────────────
 // A soft "or" divider separates the deep link from the QR flow above it.
 
@@ -82,11 +89,9 @@
   border: 1px solid var(--semi-color-border);
 }
 
-// Same shape and position as the deep link it replaces — it takes over the slot
-// after an unanswered click, so it must read as "this control changed", not as
-// a new thing that appeared elsewhere. A warning tint carries the state change;
-// a fade-in keeps the swap from looking like a glitch several seconds after the
-// click that caused it.
+// The fallback appears next to the original deep link after an unanswered
+// click. A warning tint carries the state change; a fade-in keeps the new link
+// from looking like a glitch several seconds after the click that caused it.
 .open-link[data-fallback] {
   color: var(--semi-color-warning);
   border-color: var(--semi-color-warning-light-active);
