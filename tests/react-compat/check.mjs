@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import ts from 'typescript';
+import { checkInstalledConsumer } from './installed-consumer.mjs';
 
 const fixture = fileURLToPath(new URL('./', import.meta.url));
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -141,6 +142,8 @@ for (const major of majors) {
   console.log(
     `React ${major}: source and all package exports pass type checking.`,
   );
+
+  await checkInstalledConsumer({ root, fixture, consumer, major, config });
 
   for (const suite of ['runtime', 'preview']) {
     const bundle = path.join(output, `${suite}.mjs`);

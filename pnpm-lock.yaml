@@ -6,6 +6,10 @@ settings:
 
 importers:
   .:
+    dependencies:
+      '@types/react-copy-to-clipboard':
+        specifier: ^5.0.7
+        version: 5.0.7
     devDependencies:
       '@changesets/cli':
         specifier: ^2.30.0
@@ -37,9 +41,6 @@ importers:
       '@types/react':
         specifier: ^18.2.0
         version: 18.3.28
-      '@types/react-copy-to-clipboard':
-        specifier: ^5.0.7
-        version: 5.0.7
       '@types/react-dom':
         specifier: ^18.2.0
         version: 18.3.7(@types/react@18.3.28)

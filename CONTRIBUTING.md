@@ -157,6 +157,9 @@ It retains the root's strict settings and `skipLibCheck: true`;
 third-party declaration bodies are not fully checked.
 The check verifies the actual React and ReactDOM declaration paths,
 including type references, and rejects mixed type majors.
+It also packs and installs the published source in a temporary consumer
+outside the repository, then type-checks all public exports without
+consumer-provided clipboard declarations or repository dependencies.
 Consumer cases cover scoped and global `lynx-view` props and reject
 invalid URLs and loading modes.
 
