@@ -79,12 +79,12 @@
 
       &:hover,
       &:focus-within {
-        --go-code-scrollbar-thumb: rgba(127, 127, 127, 0.22);
+        --go-code-scrollbar-thumb: rgba(127, 127, 127, 0.11);
 
         @supports (color: color-mix(in srgb, black, white)) {
           --go-code-scrollbar-thumb: color-mix(
             in srgb,
-            var(--semi-color-text-2) 24%,
+            var(--semi-color-text-2) 12%,
             transparent
           );
         }
@@ -113,24 +113,24 @@
       }
 
       &::-webkit-scrollbar-thumb:hover {
-        --go-code-scrollbar-thumb: rgba(127, 127, 127, 0.36);
+        --go-code-scrollbar-thumb: rgba(127, 127, 127, 0.18);
 
         @supports (color: color-mix(in srgb, black, white)) {
           --go-code-scrollbar-thumb: color-mix(
             in srgb,
-            var(--semi-color-text-2) 40%,
+            var(--semi-color-text-2) 20%,
             transparent
           );
         }
       }
 
       @media (hover: none) {
-        --go-code-scrollbar-thumb: rgba(127, 127, 127, 0.16);
+        --go-code-scrollbar-thumb: rgba(127, 127, 127, 0.08);
 
         @supports (color: color-mix(in srgb, black, white)) {
           --go-code-scrollbar-thumb: color-mix(
             in srgb,
-            var(--semi-color-text-2) 18%,
+            var(--semi-color-text-2) 9%,
             transparent
           );
         }
