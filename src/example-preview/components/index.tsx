@@ -541,6 +541,9 @@ export function ExampleContent({
         )}
         <div
           className={`${s['code-view-container']} ${showCodeTab ? s['code-view-container-tab-show'] : ''}`}
+          tabIndex={showCode ? 0 : -1}
+          role="region"
+          aria-label={currentFileName || name}
         >
           <CodeView
             currentFileName={currentFileName}
