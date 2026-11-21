@@ -1,8 +1,16 @@
 import { useRef } from 'react';
 import type React from 'react';
-import { Go, GoConfigProvider, UltraLynxView } from '@lynx-js/go-web';
+import {
+  Go,
+  GoConfigProvider,
+  GO_I18N_EN,
+  GO_I18N_ZH,
+  UltraLynxView,
+} from '@lynx-js/go-web';
 import type {
   GoConfig,
+  GoI18nCatalog,
+  GoI18nKey,
   AutoGestureOptions,
   SchemaOptionType,
   SchemaOptionsData,
@@ -12,6 +20,45 @@ import { ExamplePreviewSSG, generateSSGHTML } from '@lynx-js/go-web/ssg';
 import { mount } from '@lynx-js/go-web/embed';
 import type { EmbedOptions } from '@lynx-js/go-web/embed';
 import { playAutoGesture } from '@lynx-js/go-web/auto-gesture';
+
+// A complete catalog written before example versioning remains valid.
+const legacyCatalog: GoI18nCatalog = {
+  'go.preview': 'Preview',
+  'go.qrcode': 'QR Code',
+  'go.files': 'Files',
+  'go.scan.message-1': 'Scan the QR code with',
+  'go.scan.message-2': 'to preview on device.',
+  'go.qrcode.copy-link': 'Copy link',
+  'go.qrcode.copied': 'Copied!',
+  'go.qrcode.entry': 'Entry:',
+  'go.openin': 'Open',
+  'go.deeplink.open.default': 'Open in Lynx Explorer',
+  'go.deeplink.open.lynxtron': 'Open in Lynxtron Go',
+  'go.deeplink.open.sparkling': 'Open in Sparkling',
+  'go.deeplink.hint-desktop': 'desktop only',
+  'go.deeplink.hint-mobile': 'mobile only',
+  'go.deeplink.download.default': "Didn't open? Get Lynx Explorer",
+  'go.deeplink.download.lynxtron': "Didn't open? Get Lynxtron Go",
+  'go.deeplink.download.sparkling': "Didn't open? Get Sparkling",
+  'go.deeplink.or': 'or',
+  'go.openin.show-qrcode': 'Show QR Code',
+  'go.ultra': 'Open frameless',
+  'go.ultra.exit': 'Exit frameless',
+  'go.refresh': 'Refresh',
+  'go.poweredby': 'Powered by <Go/>',
+  'go.poweredby.cta': 'Want one on your own site? Open the repo',
+};
+const versionCatalog: GoI18nCatalog = {
+  ...legacyCatalog,
+  'go.example.version': 'Example version: ',
+};
+const previewLabel: string = legacyCatalog['go.preview'];
+const optionalVersionLabel: string | undefined =
+  legacyCatalog['go.example.version'];
+const builtinLabels: Record<GoI18nKey, string>[] = [GO_I18N_EN, GO_I18N_ZH];
+const { 'go.preview': omittedPreview, ...incompleteCatalog } = legacyCatalog;
+// @ts-expect-error Existing catalog keys remain required.
+const invalidCatalog: GoI18nCatalog = incompleteCatalog;
 
 const gesture: AutoGestureOptions = {
   steps: [
@@ -27,6 +74,8 @@ const config: GoConfig = {
   exampleBasePath: '/lynx-examples',
   ...rspressAdapter,
   SSGComponent: ExamplePreviewSSG,
+  versionLabel: 'v',
+  i18n: legacyCatalog,
 };
 
 const schemaOption: SchemaOptionType = {
@@ -65,6 +114,9 @@ export function Consumer(): React.JSX.Element {
         autoGesture={gesture}
         schemaOptions={schemaOptions}
         qrcodeNote={<aside>Use a compatible preview host.</aside>}
+        footerInfo={<a href="/release">Host release</a>}
+        rightFooter={<a href="/notes">Source notes</a>}
+        versionLabel="Version: "
       />
       <UltraLynxView src="/main.web.bundle" autoGesture={gesture} />
       <lynx-view ref={ref} url="/main.web.bundle" lynx-group-id={1} />
@@ -95,6 +147,9 @@ export function useEntryPoints(host: HTMLElement) {
   const html = generateSSGHTML({
     exampleRoot: '/lynx-examples',
     example: 'hello-world',
+    versionLabel: 'v',
+    footerInfo: null,
+    rightFooter: 'Source notes',
   });
   return {
     embed,
@@ -104,5 +159,11 @@ export function useEntryPoints(host: HTMLElement) {
     invalidProps,
     invalidConfig,
     link,
+    versionCatalog,
+    previewLabel,
+    optionalVersionLabel,
+    builtinLabels,
+    omittedPreview,
+    invalidCatalog,
   };
 }

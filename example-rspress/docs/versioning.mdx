@@ -1,0 +1,111 @@
+# Example version
+
+import { Go } from '../src/components/Go';
+
+Footer information shows the loaded example's metadata version immediately
+before GitHub and the other actions. Custom `rightFooter` content keeps its
+original position after all built-in actions.
+
+## Default version
+
+The default label is `v`.
+
+<div style={{ overflowX: 'auto' }}>
+  <div style={{ minWidth: '640px' }}>
+    <Go
+      example="hello-world"
+      defaultFile="src/App.tsx"
+      webPreview={false}
+      img="/lynx-examples/hello-world/src/assets/lynx-logo.png"
+    />
+  </div>
+</div>
+
+## Custom footer
+
+The caller replaces the default with a string using the built-in small text.
+
+<Go
+  example="hello-world"
+  mode="preview"
+  webPreview={false}
+  img="/lynx-examples/hello-world/src/assets/lynx-logo.png"
+  footerInfo="Host release v1.2.3"
+/>
+
+## Hidden version
+
+An explicit `null` suppresses the default.
+
+<Go
+  example="hello-world"
+  mode="preview"
+  webPreview={false}
+  img="/lynx-examples/hello-world/src/assets/lynx-logo.png"
+  footerInfo={null}
+/>
+
+## Custom version label
+
+<Go
+  example="hello-world"
+  mode="preview"
+  webPreview={false}
+  versionLabel="Version: "
+  img="/lynx-examples/hello-world/src/assets/lynx-logo.png"
+/>
+
+## Independent right footer
+
+The right slot adds content after the controls without replacing the version.
+The caller supplies compact link styling.
+
+<Go
+  example="hello-world"
+  webPreview={false}
+  defaultFile="src/App.tsx"
+  rightFooter={
+    <a href="https://example.com/examples" style={{ fontSize: 12 }}>
+      Source notes
+    </a>
+  }
+  img="/lynx-examples/hello-world/src/assets/lynx-logo.png"
+/>
+
+## Right footer logo
+
+The caller's logo keeps its dimensions and trailing position.
+
+<Go
+  example="hello-world"
+  webPreview={false}
+  defaultFile="src/App.tsx"
+  rightFooter={
+    <svg
+      role="img"
+      aria-label="Example brand"
+      width="48"
+      height="20"
+      viewBox="0 0 48 20"
+    >
+      <path
+        d="M4 15V5h8M4 10h6M18 15V5l5 7 5-7v10M34 15l5-10 5 10M36 12h6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  }
+  img="/lynx-examples/hello-world/src/assets/lynx-logo.png"
+/>
+
+## Narrow container
+
+<div style={{ maxWidth: '320px', containerType: 'inline-size' }}>
+  <Go
+    example="hello-world"
+    webPreview={false}
+    img="/lynx-examples/hello-world/src/assets/lynx-logo.png"
+  />
+</div>
