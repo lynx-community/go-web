@@ -1,5 +1,12 @@
 # @lynx-js/go-web
 
+## 0.14.2
+
+### Patch Changes
+
+- Use subtle code pane scrollbars with transparent tracks. Reveal the thumb ([#102](https://github.com/lynx-community/go-web/pull/102))
+  on hover or keyboard focus, and keep it visible on devices without hover.
+
 ## 0.14.1
 
 ### Patch Changes
