@@ -306,9 +306,90 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 7px;
     padding: 0 12px;
     border-top: 1px solid var(--semi-color-border);
   }
+
+  .footer-breadcrumb {
+    flex: 1 1 0;
+    max-width: 100%;
+    // Reserve room for the file-tree button and Go mark.
+    min-width: 72px;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .footer-info {
+    display: flex;
+    align-items: center;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+
+    &:empty {
+      display: none;
+    }
+  }
+
+  .footer-actions {
+    flex: 0 0 auto;
+  }
+}
+
+.footer-text {
+  color: var(--semi-color-text-2);
+  font-size: 12px;
+  display: block;
+  min-width: 0;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @supports (color: color-mix(in srgb, black, white)) {
+    color: color-mix(
+      in srgb,
+      var(--semi-color-text-2) 20%,
+      var(--semi-color-text-3) 80%
+    );
+  }
+}
+
+.footer-version {
+  display: flex;
+  // Contain the accessible description without affecting visual layout.
+  position: relative;
+}
+
+.footer-version-tooltip {
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.footer-version-description {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.footer-version-label {
+  flex-shrink: 0;
+  white-space: pre;
+}
+
+.footer-version-number {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .box {

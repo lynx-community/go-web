@@ -8,6 +8,7 @@ import fs from 'fs';
 import path from 'path';
 import type { ExampleMetadata } from './example-preview';
 import { getFileCodeLanguage } from './example-preview/utils/example-data';
+import { getExampleVersionText } from './example-preview/utils/example-version';
 
 const TEXT: Record<string, string> = {
   zh: '下面是一个示例: ',
@@ -98,6 +99,9 @@ export function generateSSGHTML(options: GenerateSSGHTMLOptions): string {
         '</code></pre>',
     );
   }
+
+  const versionText = getExampleVersionText(metadata?.version);
+  if (versionText) parts.push(`<p>${escapeHtml(versionText)}</p>`);
 
   return parts.join('\n');
 }
