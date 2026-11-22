@@ -70,12 +70,17 @@
       min-height: 0;
       scrollbar-width: thin;
       scrollbar-color: var(--go-code-scrollbar-thumb) transparent;
+      transition: scrollbar-color 180ms ease;
       background: var(
         --shiki-dark-bg,
         var(--rp-code-block-bg, var(--semi-color-bg-1))
       );
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
+
+      @media (prefers-reduced-motion: reduce) {
+        transition: none;
+      }
 
       &:hover,
       &:focus-within {
