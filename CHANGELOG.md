@@ -1,5 +1,22 @@
 # @lynx-js/go-web
 
+## 0.15.0
+
+### Minor Changes
+
+- Display the loaded example's metadata version immediately before the ([#91](https://github.com/lynx-community/go-web/pull/91))
+  GitHub button and other footer actions with a compact `v` prefix by default.
+  Override the client label and description through `config.i18n`.
+  Include the version as text in static output without rendering client
+  footer content or styles. Omit missing, blank or non-string versions.
+  Preserve the existing client `rightFooter` content and position.
+
+### Patch Changes
+
+- Use subtle code pane scrollbars with transparent tracks. Fade the thumb ([#102](https://github.com/lynx-community/go-web/pull/102))
+  in and out on hover or keyboard focus, and keep it visible on devices
+  without hover. Respect reduced-motion preferences by disabling the fade.
+
 ## 0.14.1
 
 ### Patch Changes
